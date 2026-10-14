@@ -5,8 +5,9 @@ questions:
       `@lru_cache def get_settings()`, and a route `/info` that uses `Depends(get_settings)`.
       You want two tests. Test one checks what `/info` returns for settings you choose. Test two
       checks that `get_settings()` really reads `MAX_ITEMS` from the environment. For each test,
-      say how you would write it, how you keep your real env file out of the test, and say
-      what the cache can do to the second test and how you stop it.
+      say how you would write it and how you keep your real env file out of the test. For the
+      second test, also say how you set the variable so that it is gone after the test, what
+      the cache can do to it, and how you stop that.
     rubric:
       - name: override-the-dependency
         explanation: >-
@@ -28,8 +29,8 @@ questions:
           "Use my normal local env file, it has the right values", or no mention of the file at all.
       - name: environment-set-with-monkeypatch
         explanation: >-
-          The answer sets the variable for test two with `monkeypatch.setenv`, using text
-          values, so the change is undone after the test.
+          The answer sets the variable for test two in a way that is undone after the test,
+          such as `monkeypatch.setenv` with a text value, and not a change that stays behind.
         pass_anchor: >-
           "Call `monkeypatch.setenv("MAX_ITEMS", "25")`, then check `get_settings().max_items == 25`."
         fail_anchor: >-
@@ -67,10 +68,10 @@ questions:
       what you must do if a real key was already committed, and why. Finally say how you would
       declare the field so that a logged or returned settings object does not show the key.
     rubric:
-      - name: ignore-file-commit-example
+      - name: env-file-not-committed
         explanation: >-
-          The answer keeps the env file out of git with a `.gitignore` entry, and commits a
-          names-only example file (`.env.example`) instead.
+          The answer says the real env file is never committed, and that a names-only example
+          file (`.env.example`) is committed instead.
         pass_anchor: >-
           "Put `.env` in `.gitignore` and commit `.env.example` with the variable names and empty values, so people copy it and fill in their own."
         fail_anchor: >-

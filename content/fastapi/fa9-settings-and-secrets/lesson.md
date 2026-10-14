@@ -45,7 +45,7 @@ Here is how to set one, in the terminal in VS Code on a Mac (zsh or bash).
 
 A program gets a copy. If Python changes `os.environ` for itself, your terminal still has the old value.
 
-On Windows PowerShell the FastAPI page uses `$Env:APP_NAME = "Demo"`. We ran only the Mac commands.
+On Windows PowerShell the FastAPI page uses the form `$Env:NAME = "value"`. We ran only the Mac commands.
 
 Why not write the values in your code?
 
@@ -75,7 +75,7 @@ How it behaves, as we ran it.
 - A field with no default is **required**. `app_name` and `api_key` here. A field with a default is optional. `max_items` is `10` when `MAX_ITEMS` is not set.
 - The text is converted to the type you wrote. With `MAX_ITEMS=25`, `settings.max_items` is the `int` `25`.
 - A `bool` field accepts words such as `true`, `1`, `yes` and `off`. Text such as `maybe` is an error.
-- A list or other complex value must be written as JSON text, like `TAGS='["a","b"]'`. The text `a,b` fails.
+- A list or other complex value must be written as JSON text, like `TAGS='["a","b"]'`. The text `a,b` fails too, but with a `SettingsError` from `pydantic_settings.exceptions`. It is raised while the value is read, before Pydantic checks anything, and it is not a `ValidationError`.
 - Values you pass in code win over the environment. `Settings(app_name="x")` uses `"x"`.
 - All the Pydantic tools work. `max_items: int = Field(default=10, ge=1)` rejects `MAX_ITEMS=0`, with the error type `greater_than_equal`, the same way as in FA3.
 
@@ -85,7 +85,7 @@ More: [Settings and Environment Variables](https://fastapi.tiangolo.com/advanced
 
 ## When a value is bad
 
-The check happens when you build the object, `Settings()`. If anything fails, you get a `ValidationError` and no object. It is the same error class you know from FA3, and you import it with `from pydantic import ValidationError`.
+The check happens when you build the object, `Settings()`. If a value is the wrong type or breaks a rule, you get a `ValidationError` and no object. It is the same error class you know from FA3, and you import it with `from pydantic import ValidationError`.
 
 Missing both required values:
 
@@ -301,20 +301,20 @@ The hands-on task asks for a route that returns only the key's length. That is a
 
 ## How this site does it
 
-This site is a worked example. Here is what its own files say. The code is in `app/config.py`, the variable names are in `.env.example`, and the rules are in `CLAUDE.md` and `docs/RESUME.md`.
+This site is a worked example. The code is in `app/config.py`, the names are in `.env.example`, and the rules are in `CLAUDE.md` and `docs/RESUME.md`.
 
-**One `Settings` class, built once.** `app/config.py` has a `Settings(BaseSettings)` and, under it, `settings = Settings()`. That object is created when `app.config` is first imported, and other modules import it. The site does not use the `lru_cache` dependency, because the agents, the scripts and the content loader also need settings outside any request. The tests change it with `monkeypatch.setattr(settings, ...)`, or build a fresh `Settings(_env_file=None)`.
+**One `Settings` class, built once.** `app/config.py` has a `Settings(BaseSettings)` and, under it, `settings = Settings()`. That object is created when `app.config` is first imported, and other modules import it. The site does not use the `lru_cache` dependency, because agents and scripts need settings outside any request. Tests use `monkeypatch.setattr(settings, ...)` or build a fresh `Settings(_env_file=None)`.
 
-Because it is built at import, a bad value stops the program at the start. We ran `import app.config` with `EMBED_DIMS=abc` and got a `ValidationError` for `embed_dims`, with `int_parsing`.
+Because it is built at import, a bad value stops the program at the start. We ran `import app.config` with `EMBED_DIMS=abc` and got a `ValidationError` with `int_parsing`.
 
-**The config line.** `env_file=".env"`, `extra="ignore"` and `env_ignore_empty=True`. We built the site's `Settings` from a copy of `.env.example` with every value empty. It loaded, and the defaults were in place: `tutor_model` was the default model and `embed_dims` was the `int` 1536. Without `env_ignore_empty`, the empty `EMBED_DIMS=` line would have failed. The ignore setting is what lets the example be copied as it is.
+**The config line.** `env_file=".env"`, `extra="ignore"` and `env_ignore_empty=True`. We built the site's `Settings` from a copy of `.env.example` with every value empty. It loaded, and the defaults were in place: `tutor_model` was the default model and `embed_dims` was the `int` 1536. Without `env_ignore_empty`, the empty `EMBED_DIMS=` line would have failed.
 
 **Every field has a default.** The site starts with an empty env file. The key is `openrouter_api_key: str = ""`, and the code checks `if settings.openrouter_api_key` to see whether it is set. This is a plain `str`, not a `SecretStr`. The site protects it by never printing or returning it, and by keeping the file out of git.
 
-**Model names.** `tutor_model` is `openrouter:anthropic/claude-haiku-5.5`. `grader_model`, `author_model` and `judge_model` are `openrouter:anthropic/claude-sonnet-5.5`. `embed_model` is `openrouter:openai/text-embedding-3-small`, with `embed_dims` of `1536`. A comment in the code says `embed_dims` must equal the size of the database column. Each can be changed with an environment variable such as `TUTOR_MODEL`.
+**Model names.** `tutor_model` is `openrouter:anthropic/claude-haiku-5.5`. `grader_model`, `author_model` and `judge_model` are `openrouter:anthropic/claude-sonnet-5.5`. `embed_model` is `openrouter:openai/text-embedding-3-small`, with `embed_dims` of `1536`. A comment says `embed_dims` must equal the size of the database column. Each can be changed with a variable such as `TUTOR_MODEL`.
 
-**Caps.** `rag_k`, how many docs chunks the tutor gets, defaults to `6`. A `field_validator` clamps it to the range 1 to 10. We ran `RAG_K=100` and got `10`, and `RAG_K=0` and got `1`. The other limits are not settings. `max_tokens` is written in the agent code: 1200 for the tutor and 1500 for the grader. The spend cap on the OpenRouter key is set in the OpenRouter dashboard, as the spec says. Other numbers that are settings: `desired_retention` of `0.9`, `mastery_quiz_threshold` of `0.8` and `mastery_recalls_required` of `2`.
+**Caps.** `rag_k`, how many docs chunks the tutor gets, defaults to `6`. A `field_validator` clamps it to the range 1 to 10. We ran `RAG_K=100` and got `10`, and `RAG_K=0` and got `1`. The other limits are not settings. `max_tokens` is written in the agent code: 1200 for the tutor and 1500 for the grader. The spend cap on the OpenRouter key is set in the OpenRouter dashboard, as the spec says.
 
-**Who types the secrets.** `.env.example` marks `OPENROUTER_API_KEY`, `DATABASE_URL`, `DATABASE_URL_UNPOOLED` and `LOGFIRE_TOKEN` as secret. `CLAUDE.md` says secrets live only in the local env file and in GitHub secrets, that the owner types the values, and that Claude never reads, prints, edits or commits them. The file is denied to Claude by the project settings. `docs/RESUME.md` repeats it for the Neon and Vercel steps. In short, the pattern from this lesson is the pattern the site follows.
+**Who types the secrets.** `.env.example` marks `OPENROUTER_API_KEY`, `DATABASE_URL`, `DATABASE_URL_UNPOOLED` and `LOGFIRE_TOKEN` as secret. `CLAUDE.md` says secrets live only in the local env file and in GitHub secrets, that the owner types the values, and that Claude never reads, prints, edits or commits them. The file is denied to Claude by the project settings. `docs/RESUME.md` repeats it for the Neon and Vercel steps. The site follows the pattern from this lesson.
 
 Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Settings and Environment Variables](https://fastapi.tiangolo.com/advanced/settings/), [Environment Variables](https://fastapi.tiangolo.com/environment-variables/). This site is not affiliated with FastAPI or Pydantic.
