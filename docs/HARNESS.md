@@ -109,6 +109,8 @@ Ask rules are avoided: in auto mode they prompt and stall.
 Runners vs the Mac: CI runs on GitHub (free for public repos). The Claude Code GitHub Action was **rejected**: with an
 OAuth token it bills the same weekly subscription limits as local Claude Code, and it adds a public prompt-injection surface.
 
+**Deploy (phase 2).** Vercel config is `vercel.json`, `.vercelignore`, `.python-version` and `[tool.vercel]` in `pyproject.toml`. The owner links the project and sets env vars by following [`docs/runbooks/vercel.md`](runbooks/vercel.md); the facts behind the choices are in [`docs/research/vercel.md`](research/vercel.md).
+
 ## 9. /goal and /loop (M1 onward)
 - `/goal` judges only from the transcript, has no turn cap unless you write one, and clears on auth/credit/model errors.
   Use the line in `docs/PLAN.md`. Keep the session open.

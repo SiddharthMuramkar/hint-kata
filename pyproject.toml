@@ -47,3 +47,6 @@ pythonpath = ["."]
 
 [tool.fastapi]
 entrypoint = "app.main:app"
+
+[tool.vercel]
+entrypoint = "app.main:app"
