@@ -136,9 +136,15 @@ def test_reveal_quiz_item_schedules_retest_within_a_day(client: TestClient) -> N
 
 def test_reveal_deeper_question_schedules_one_card_per_criterion(client: TestClient) -> None:
     body = client.post("/api/tutor/fx-demo/reveal", json={"item_id": "d1"}).json()
-    keys = [k for k in _due_keys(25) if k.startswith("fx-demo:d1#")]
-    assert len(keys) == 3
-    assert datetime.fromisoformat(body["next_due"]) <= datetime.now(UTC) + timedelta(days=2)
+    dues = [due for k, due in _due_keys(25).items() if k.startswith("fx-demo:d1#")]
+    assert len(dues) == 3
+    assert body["next_due"] == min(dues)
+
+
+def test_revealing_twice_keeps_one_card(client: TestClient) -> None:
+    for _ in range(2):
+        client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q1"})
+    assert [k for k in _due_keys(25) if k == "fx-demo:q1"] == ["fx-demo:q1"]
 
 
 def test_unknown_lesson_is_404(client: TestClient) -> None:

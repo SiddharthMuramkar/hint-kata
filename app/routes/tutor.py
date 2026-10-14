@@ -23,7 +23,7 @@ from app.agents.tutor import TutorDeps, make_tutor
 from app.content import Lesson, Source
 from app.deps import get_store, get_user_id
 from app.markdown import render_markdown
-from app.review import record_criterion, record_result
+from app.review import criterion_item_id, record_result
 from app.store import Store
 from app.tutor_rules import apply_ceiling, compute_ceiling, no_progress, validate_citations
 
@@ -173,9 +173,10 @@ def reveal(
         if q.id == body.item_id:
             answer = q.model_answer
             dues = [
-                due
+                record_result(
+                    store, user_id, lesson_id, criterion_item_id(q.id, c.name), Rating.Again
+                )
                 for c in q.rubric
-                if (due := record_criterion(store, user_id, lesson_id, q.id, c.name, met=False))
             ]
     for item in lesson.quiz:
         if item.id == body.item_id:
