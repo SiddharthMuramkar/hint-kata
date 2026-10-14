@@ -38,10 +38,11 @@ def validate_lesson_id(lesson_id: str) -> str:
 
 def _inside(path: Path, root: Path) -> Path:
     """Resolve `path` and refuse it unless it stays under `root`."""
-    resolved = path.resolve()
-    if not resolved.is_relative_to(root.resolve()):
-        raise ValueError(f"{path} is outside {root}")
-    return resolved
+    base = os.path.realpath(root)
+    full = os.path.realpath(path)
+    if not full.startswith(base + os.sep):
+        raise ValueError(f"path is outside {root}")
+    return Path(full)
 
 
 def find_task_dir(lesson_id: str, content_root: Path = Path("content")) -> Path | None:
