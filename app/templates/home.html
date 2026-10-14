@@ -4,9 +4,15 @@
 {% for track in tracks %}
 <section class="card">
   <h2>{{ track.name }}</h2>
+  {% if track.lessons %}
   <ul>
-    {% for lesson in track.lessons %}<li>{{ lesson }}</li>{% endfor %}
+    {% for lesson in track.lessons %}
+    <li><a href="/lessons/{{ lesson.id }}">{{ lesson.title }}</a> <span class="muted">({{ lesson.minutes }} min)</span></li>
+    {% endfor %}
   </ul>
+  {% else %}
+  <p class="muted">No lessons yet</p>
+  {% endif %}
 </section>
 {% endfor %}
 {% endblock %}

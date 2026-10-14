@@ -1,0 +1,9 @@
+sources:
+  - id: fx-source
+    track: fastapi
+    title: Fixture source
+    url: https://example.com/fx
+    version: 0.143.0
+    license: MIT
+    attribution: Adapted from the Fixture docs, MIT License.
+    fetched_at: '2026-10-14T14:00:38Z'

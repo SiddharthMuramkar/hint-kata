@@ -1,0 +1,9 @@
+questions:
+  - id: d1
+    prompt: Why use dependencies?
+    model_answer: Reuse and testability.
+    hints: [Think about tests, Think about reuse]
+    rubric:
+      - {name: reuse, explanation: Mentions reuse, pass_anchor: shared code, fail_anchor: speed}
+      - {name: tests, explanation: Mentions overrides, pass_anchor: override in tests, fail_anchor: none}
+      - {name: scope, explanation: Mentions per-request, pass_anchor: per request, fail_anchor: global}
