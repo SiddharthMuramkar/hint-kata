@@ -1,0 +1,31 @@
+# secrets and local data
+.env
+.env.*
+!.env.example
+data/
+workspace/
+.cache/
+*.db
+*.db-wal
+*.db-shm
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ty_cache/
+dist/
+build/
+*.egg-info/
+
+# claude code worktrees (hookify rule files under .claude/ ARE committed)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/agent-memory-local/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store

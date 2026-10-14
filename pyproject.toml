@@ -1,0 +1,27 @@
+[project]
+name = "hint-kata"
+version = "0.1.0"
+description = "Interactive lessons for Pydantic AI, FastAPI and GitHub flow in the Claude Code era"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.17.0",
+    "ty==0.0.87",
+]
+
+[tool.ruff]
+line-length = 100
+exclude = ["docs", ".cache", "workspace"]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
