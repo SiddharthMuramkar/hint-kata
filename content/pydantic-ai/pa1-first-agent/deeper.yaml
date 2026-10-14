@@ -1,0 +1,81 @@
+questions:
+  - id: d1
+    prompt: >-
+      You are building a support-ticket classifier. Each ticket must get a category (billing, bug,
+      or feature request) and a priority, and the result will be saved to a database. How would you
+      decide between plain text output and a structured output type?
+    rubric:
+      - name: chooses-structured
+        explanation: The answer picks a structured output type (a Pydantic model) for this classifier.
+        pass_anchor: "I would use a Pydantic model with category and priority fields as the output_type."
+        fail_anchor: "I would keep plain text and have the model write the category in a sentence."
+      - name: ties-to-consumer
+        explanation: >-
+          The answer says the choice depends on who or what reads the output. Code that stores or routes
+          the result needs fields. A person reading a reply can use text.
+        pass_anchor: "The result goes into a database and routing, so code needs real fields it can rely on."
+        fail_anchor: "Structured output is always better, so use it everywhere."
+      - name: validation
+        explanation: >-
+          The answer names a concrete benefit of validation: bad or missing data is rejected, or the model
+          is asked to retry, instead of failing later in your code.
+        pass_anchor: "Pydantic rejects a made-up category, and the model is asked again, so bad data never reaches the database."
+        fail_anchor: "Structured output makes the model more accurate about which category is right."
+      - name: limits-or-fallback
+        explanation: >-
+          The answer shows the limit of the choice: when free text is the right answer (for example a
+          reply to the customer), or how a list such as `[Ticket, str]` allows both.
+        pass_anchor: "If the reply is meant for the customer I would return text, or allow both with [Ticket, str]."
+        fail_anchor: "A structured type has no downsides and covers every case."
+    model_answer: >-
+      I would use a structured output type. The classifier's result is read by code: it is saved to a
+      database and used to route the ticket. Code needs named fields it can trust, not a sentence it has to
+      parse. A Pydantic model with a category and a priority gives me that. Pydantic checks every answer. If
+      the model invents a category or leaves out the priority, validation fails and the model is asked to try
+      again, so bad data never reaches my database. The result is also typed, so my editor knows that
+      `result.output.category` exists. Plain text is still right when a person is the reader, for example a
+      polite reply to the customer. If I need both, I can pass a list such as `[Ticket, str]` and let the
+      model choose.
+    hints:
+      - Ask who or what reads the output. Is it a person or your own code?
+      - Think about what happens to a wrong or missing value when the model returns text, and when it returns a validated model.
+  - id: d2
+    prompt: >-
+      Your agent has `instructions="Be helpful."` and its answers are long and inconsistent. How would you
+      improve the instructions, and how would you check that the new version works?
+    rubric:
+      - name: specific-behavior
+        explanation: >-
+          The answer replaces the vague text with specific rules about the job: a role, a length limit, or a
+          format.
+        pass_anchor: "I would say what the agent does and limit the length, for example: answer in two sentences."
+        fail_anchor: "I would add more words like 'be very helpful and friendly'."
+      - name: uncertainty-or-boundaries
+        explanation: >-
+          The answer tells the model what to do in the hard case: when it does not know, or when a question
+          is out of scope.
+        pass_anchor: "I would add a rule: if you are not sure, say so instead of guessing."
+        fail_anchor: "I would trust the model to work out what to do when it is unsure."
+      - name: separates-schema
+        explanation: >-
+          The answer keeps the shape of the answer in `output_type`, and uses the instructions for behavior.
+          It does not paste a JSON format into the instructions.
+        pass_anchor: "The shape goes in a Pydantic output_type. The instructions are about tone and rules."
+        fail_anchor: "I would paste the JSON layout into the instructions and parse the reply."
+      - name: verifies
+        explanation: >-
+          The answer says how to check the change: run it on several sample inputs, or write a test, and
+          compare results before and after.
+        pass_anchor: "I would run the old and new instructions on the same ten sample questions and compare."
+        fail_anchor: "I would change it once and assume it is better."
+    model_answer: >-
+      "Be helpful" tells the model almost nothing, so it chooses its own length and style each time. I would
+      rewrite the instructions to state the job, such as "You answer questions about cities". I would add a
+      limit, such as two sentences at most. I would also add a rule for the hard case: if you are not sure of
+      a number, say so instead of guessing. The shape of the answer does not belong in the instructions. I
+      would put that in an `output_type` and let Pydantic check it. To check the change, I would run the old
+      and the new instructions on the same set of sample questions and compare the answers. A test with a
+      `TestModel` can also check that the instructions contain the rule I expect.
+    hints:
+      - Which words in "Be helpful" can you measure? Replace them with rules you could check.
+      - Where should the shape of the answer live, and where should the behavior rules live?
