@@ -26,8 +26,8 @@ items:
           Both listen on `127.0.0.1`. The only difference is that `fastapi dev` reloads.
         misconception: Thinks the two modes differ only in reload.
         feedback: >-
-          The address differs too. `fastapi run` listens on `0.0.0.0`. You can change it with
-          `--host`, but that changes the default. It is not the default.
+          The address differs too: `fastapi run` listens on `0.0.0.0`. `--host` overrides the
+          default for that run; it does not change what the default is.
       - text: >-
           Both reload when files change. `fastapi run` only prints fewer log lines.
         misconception: Thinks run mode is a quieter dev mode.
@@ -141,12 +141,14 @@ items:
       - "`uv init awesome-project --bare` makes a folder that holds only a `pyproject.toml`"
       - "`cd awesome-project` moves the terminal into that folder"
       - "`uv add \"fastapi[standard]\"` makes `.venv`, adds the dependency and writes `uv.lock`"
+      - "With FastAPI now installed, you save a `main.py` that holds `app = FastAPI()` and one route"
       - "`uv run fastapi dev` finds `main:app` in your `main.py` and starts the server on `127.0.0.1`"
       - "You open `http://127.0.0.1:8000/docs` in the browser and see the interactive docs"
     explanation: >-
-      uv has to make the project before it can add anything to it. The `fastapi` command comes
-      with the `standard` extra, so the add comes before the run. The server has to be up
-      before the browser can show its docs page.
+      uv has to make the project before it can add anything to it. Once FastAPI is installed,
+      you write the app that imports it. The `fastapi` command comes with the `standard`
+      extra, and it needs your `main.py` to exist, so the run comes after both. The server has
+      to be up before the browser can show its docs page.
   - id: q6
     type: blank
     concept: version-pin

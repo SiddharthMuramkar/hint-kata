@@ -11,7 +11,8 @@ They do not know the name of your app. They only know what your pyproject says.
 ## 1. Pin FastAPI
 
 In `pyproject.toml`, the dependency is plain `"fastapi"`. Change it to ask for the `standard` extra
-and to stay inside the 0.143 minor. That means at least 0.143.0 and below 0.144.0.
+(`standard-no-fastapi-cloud-cli` also passes) and to stay inside the 0.143 minor. That means at
+least 0.143.0 and below 0.144.0. The test reads your range, so any way of writing that range works.
 
 ## 2. Write the entrypoint
 

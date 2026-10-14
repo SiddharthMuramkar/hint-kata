@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from packaging.specifiers import SpecifierSet
 
 PYPROJECT = Path("pyproject.toml")  # the checker runs with the workspace as the working directory
 PIN = ">=0.143.0,<0.144.0"
@@ -65,9 +66,15 @@ def test_openapi_json_lists_the_root_route(client):
 
 def test_fastapi_dependency_asks_for_the_standard_extra():
     dep = fastapi_dependency()
-    assert dep.startswith("fastapi[standard]"), f"the fastapi command needs the extra: {dep!r}"
+    assert re.match(r"fastapi\[(standard|standard-no-fastapi-cloud-cli)\]", dep), (
+        f"the fastapi command needs the standard extra: {dep!r}"
+    )
 
 
 def test_fastapi_is_pinned_to_the_0_143_minor():
-    dep = re.sub(r"\[.*?\]", "", fastapi_dependency())
-    assert dep == f"fastapi{PIN}", f"expected fastapi{PIN}, found {dep!r}"
+    dep = fastapi_dependency()
+    spec = SpecifierSet(re.sub(r"^fastapi(\[.*?\])?", "", dep))
+    for version in ("0.143.0", "0.143.9"):
+        assert version in spec, f"{dep!r} should allow {version}: use {PIN}"
+    for version in ("0.142.99", "0.144.0"):
+        assert version not in spec, f"{dep!r} should not allow {version}: use {PIN}"

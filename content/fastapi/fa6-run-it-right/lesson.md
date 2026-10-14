@@ -35,7 +35,9 @@ $ uv add "fastapi[standard]"
 
 The part in square brackets matters. `fastapi[standard]` is FastAPI plus a set of extras. Two of them are the `fastapi` command itself (the package `fastapi-cli`) and Uvicorn, the server that does the real work. A third is a command for FastAPI Cloud, the hosting service from the FastAPI team. You can ignore it, or leave it out with `fastapi[standard-no-fastapi-cloud-cli]`.
 
-Plain `fastapi` has none of these. If a project lists only plain `fastapi`, then `uv run fastapi dev` stops with a message that asks you to install `fastapi[standard]`. We ran it and saw that message. The last section shows where.
+Plain `fastapi` has none of these. If a project lists only plain `fastapi`, then `uv run fastapi dev` stops with a message that asks you to install `fastapi[standard]`. A Python traceback follows it, ending in a `RuntimeError` that repeats the same message. The traceback looks scary, but the message is the whole story. We ran it and saw both. The last section shows where.
+
+If you want only the command, you can list the package `fastapi-cli` by itself, next to `fastapi`. We checked that this starts `fastapi dev` too.
 
 One more fact about `uv add`. It writes only a lower bound. If the newest FastAPI is `0.143.1`, your file gets `fastapi[standard]>=0.143.1`, with no upper limit. The pin section fixes that.
 
@@ -95,7 +97,7 @@ Here is what each row means.
 
 **The address.** `127.0.0.1` means "this computer only". Nobody else on your network can connect. `0.0.0.0` means "every network address this machine has". Anyone who can reach the machine can reach the app. In a container that is what you want. On a laptop, usually not. So use `fastapi dev` while you code. In real deployments a proxy in front of the app normally handles HTTPS.
 
-**Flags change the defaults.** The modes are only bundles of defaults. `--host` and `--port` set the address and the port. The port is 8000 unless you pass `--port` or set the `PORT` environment variable. `--reload` and `--no-reload` turn reload on or off. We checked two of these. `fastapi dev --host 0.0.0.0` listened on all addresses. `fastapi run --host 127.0.0.1` listened on this machine only. `--workers` is only on `run`, and it cannot be combined with reload.
+**Flags change the defaults.** The modes are only bundles of defaults. `--host` and `--port` set the address and the port. The port is 8000 unless you pass `--port` or set the `PORT` environment variable. `--reload` and `--no-reload` turn reload on or off. We checked two of these. `fastapi dev --host 0.0.0.0` listened on all addresses. `fastapi run --host 127.0.0.1` listened on this machine only. `--workers` is only on `run`. The built-in help calls it mutually exclusive with reload. When we passed both anyway, the app started, and Uvicorn logged a warning that `workers` is ignored while reloading.
 
 **`FASTAPI_ENV`.** This is an environment variable. Before it imports your app, dev mode sets it to `development`, but only if it has no value yet. So `FASTAPI_ENV=staging uv run fastapi dev` gives your app the value `staging`. `fastapi run` does not touch it. We ran an app that printed the variable, and under `fastapi run` it was not set at all.
 
@@ -199,12 +201,14 @@ This site is a FastAPI app, so everything above applies to it. Here is what its 
 
 - **`app/main.py`** makes the app with `app = FastAPI(lifespan=lifespan)`. It sits at the top level of the file `app/main.py`, and `app/` is a package. So the import string is `app.main:app`. The package and the variable are both called `app`. The part before the colon is the module, the part after is the variable.
 - **`pyproject.toml`** has `[tool.fastapi]` with `entrypoint = "app.main:app"`. That is the rule from the entrypoint section. A second table, `[tool.vercel]`, holds the same string. It is for hosting on Vercel later, and `docs/runbooks/vercel.md` covers it.
-- **The pins** are exact. `fastapi==0.143.0` and `uvicorn[standard]==0.54.0` are both listed.
+- **The pins** are exact. When this lesson was written, `fastapi==0.143.0` and `uvicorn[standard]==0.54.0` were listed. The fix described below adds `fastapi-cli==0.0.32` next to them.
 - **`CLAUDE.md`** says to start the site with `uv run fastapi dev`. With `fastapi-cli` installed, that command finds `app.main:app` from the pyproject entry, with no path. We checked by adding `fastapi[standard]` for a single run with `uv run --with "fastapi[standard]==0.143.0" fastapi dev`. It printed `app.main:app` as the import string and `/healthz` answered `{"ok": true}`.
-- **`docs/RESUME.md`** is the prompt you paste to carry on building in a Claude Code session. It has no command for starting the site.
+- **`docs/RESUME.md`** is the prompt you paste to carry on building in a Claude Code session. When this lesson was written, it had no command for starting the site. The fix described below adds a short "run the site" section to it.
 
-There is one catch, and it is the trap from the first section. The site's dependency line is plain `fastapi`, with no `[standard]`, and the lock file has no `fastapi-cli`. When we ran plain `uv run fastapi dev` in the repo, it stopped with the message that asks for `fastapi[standard]`. The same project starts fine with Uvicorn directly: `uv run uvicorn app.main:app`. Uvicorn is a direct dependency, and the site answered `/healthz` that way.
+There was one catch, and it is the trap from the first section. When this lesson was written, the site's dependency line was plain `fastapi`, with no `[standard]`, and the lock file had no `fastapi-cli`. When we ran plain `uv run fastapi dev` in the repo, it stopped with the message that asks for `fastapi[standard]`, followed by the traceback. The same project started fine with Uvicorn directly: `uv run uvicorn app.main:app`. Uvicorn is a direct dependency, and the site answered `/healthz` that way.
 
-Check it yourself. Run `uv run fastapi dev` in the repo. If you see the install message, the catch is still there. If you see the dev banner, the repo has added the extra since. In both cases the fix is the one from the first section: ask for `fastapi[standard]`.
+The repo has since listed `fastapi-cli` itself, pinned to the version this lesson was tested with. The `[standard]` extra would also have worked. It brings extra packages this site does not use, so the repo took the smaller route. The general fix is the same either way: get `fastapi-cli` installed, with `fastapi[standard]` or with `fastapi-cli` on its own.
 
-Sources: [Tutorial - User Guide](https://fastapi.tiangolo.com/tutorial/), [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/), [First Steps](https://fastapi.tiangolo.com/tutorial/first-steps/) and [About FastAPI versions](https://fastapi.tiangolo.com/deployment/versions/). FastAPI 0.143.0 documentation, MIT licence, © 2018 Sebastián Ramírez. Adapted and rewritten. This site is not affiliated with FastAPI.
+Check it yourself. Run `uv run fastapi dev` in the repo. You should see the dev banner with `app.main:app` as the import string. If you see the install message instead, your environment is missing the package. Run `uv sync --locked --all-groups` and try again.
+
+Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Tutorial - User Guide](https://fastapi.tiangolo.com/tutorial/), [FastAPI CLI](https://fastapi.tiangolo.com/fastapi-cli/), [First Steps](https://fastapi.tiangolo.com/tutorial/first-steps/), [About FastAPI versions](https://fastapi.tiangolo.com/deployment/versions/). This site is not affiliated with FastAPI.
