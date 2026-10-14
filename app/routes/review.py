@@ -9,19 +9,19 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
 from app.config import settings
-from app.deps import get_store, get_user_id
+from app.deps import get_store, get_user_id, open_store_from_settings
 from app.quiz import grade_item, scramble
 from app.review import DueItem, due_items, rating_for, record_result, resolve
-from app.store import Store, open_store
+from app.store import Store
 
 router = APIRouter()
 
 
 def _due_count(request: Request) -> dict[str, int]:
     """For the nav link: how many cards are due now (0 when there is no database yet)."""
-    if not Path(settings.hintkata_db_path).exists():
+    if not settings.database_url and not Path(settings.hintkata_db_path).exists():
         return {"due_count": 0}
-    store = open_store(settings.hintkata_db_path)
+    store = open_store_from_settings()
     try:
         lessons = getattr(request.app.state, "lessons", {})
         due = due_items(store, lessons, store.ensure_user("owner"), datetime.now(UTC))
