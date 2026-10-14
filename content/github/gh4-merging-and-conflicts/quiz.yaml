@@ -1,0 +1,177 @@
+items:
+  - id: q1
+    type: single
+    concept: merge-method-history
+    source_section: the-three-merge-methods
+    prompt: >-
+      Your branch `login` has three commits: A, B and C. You merge its PR with the default
+      **Merge pull request** button. What does `git log --oneline --graph` on `main` show for it?
+    options:
+      - text: >-
+          Commits A, B and C, plus one extra merge commit that has two parents.
+        correct: true
+        feedback: >-
+          Right. The default method keeps every commit and adds a merge commit that joins the two
+          lines of history. That is why the graph shows a fork and a join.
+      - text: One single new commit that holds the changes of A, B and C.
+        misconception: Mixes up the default merge with squash and merge.
+        feedback: >-
+          That is what **Squash and merge** does. The default button keeps your three commits
+          and adds a merge commit.
+      - text: >-
+          Three new commits in a straight line with new SHAs, and no merge commit.
+        misconception: Mixes up the default merge with rebase and merge.
+        feedback: >-
+          That is **Rebase and merge**. It replays the commits on top of `main`, so they get new
+          SHAs. The default method does not copy anything. It adds a merge commit.
+      - text: Nothing, until you delete the `login` branch.
+        misconception: Thinks the branch must be deleted before the commits appear on the base branch.
+        feedback: >-
+          The merge puts the work on `main` at once. Deleting the branch afterwards is only
+          housekeeping, and it does not change `main`.
+
+  - id: q2
+    type: single
+    concept: linear-history
+    source_section: the-three-merge-methods
+    prompt: >-
+      The ruleset on `main` includes **Require linear history**. Which merge method will GitHub
+      refuse for a pull request?
+    options:
+      - text: Merge commit, because it adds a merge commit with two parents.
+        correct: true
+        feedback: >-
+          Right. Linear history means no merge commits on the branch. Squash and rebase both
+          produce a straight line, so they still work.
+      - text: Squash and merge, because it creates a new commit.
+        misconception: Thinks any new commit counts as a merge commit.
+        feedback: >-
+          A squash makes one ordinary commit with one parent. That keeps history in a straight
+          line, so the rule allows it.
+      - text: >-
+          Rebase and merge, because it rewrites the commits with new SHAs.
+        misconception: Thinks rewritten commits break linear history.
+        feedback: >-
+          Rebase and merge replays the commits one after another with no merge commit. The result
+          is a straight line, so the rule allows it. The new SHAs do not matter to this rule.
+      - text: All three. A ruleset can only allow a pull request that is already up to date.
+        misconception: Mixes up linear history with the "branch must be up to date" setting.
+        feedback: >-
+          Those are two different rules. Linear history only looks at the shape of what lands on
+          the branch, and only merge commits break it.
+
+  - id: q3
+    type: order
+    concept: conflict-resolution-steps
+    source_section: resolving-a-conflict-on-the-command-line
+    prompt: >-
+      Your PR branch `greet-b` conflicts with `main`. Put the steps in order for fixing it on the
+      command line.
+    steps:
+      - "Switch to your branch: `git switch greet-b`."
+      - "Download the latest `main`: `git fetch origin`."
+      - "Run `git merge origin/main`. Git reports CONFLICT and stops in the middle of the merge."
+      - "Open the file, choose the final text, and delete all three marker lines."
+      - "Mark the file as resolved: `git add greeting.txt`."
+      - "Finish the merge with `git commit`, then run `git push`."
+    explanation: >-
+      You must be on your own branch before you merge, and you need the latest `main` before you
+      can merge it. The conflict appears at the merge step, so the edit comes after it. `git add`
+      tells git the file is resolved, and the commit finishes the merge. The push comes last,
+      because that is what updates the PR.
+
+  - id: q4
+    type: single
+    concept: leftover-conflict-markers
+    source_section: resolving-a-conflict-on-the-command-line
+    prompt: |
+      You wanted to keep both greetings. You deleted the `<<<<<<<` and `>>>>>>>` lines, ran
+      `git add` and `git commit`, and git accepted it without any complaint. The file now reads:
+
+      ```text
+      Welcome to the project.
+      Hello from branch B
+      =======
+      Hello from branch A
+      Bye.
+      ```
+
+      What is the bug?
+    options:
+      - text: >-
+          The `=======` line is still there. Git does not read the file when you run `git add`, so
+          the stray line was committed as ordinary text.
+        correct: true
+        feedback: >-
+          Right. All three marker lines must go. Git trusts you when you stage the file, so only
+          your own check catches a leftover. Look at the file again or run `git diff --check`
+          before you `git add`.
+      - text: >-
+          A resolution may keep only one side. Keeping both lines is not allowed.
+        misconception: Thinks git forces you to choose one version.
+        feedback: >-
+          You may keep yours, keep theirs, or combine both. Keeping both greetings is a fine
+          choice. The problem is the `=======` line.
+      - text: >-
+          Git would have refused the commit if anything were wrong, so there is no bug.
+        misconception: Thinks `git commit` validates the content of resolved files.
+        feedback: >-
+          Git only checks that you staged the file. It does not look for markers. This is exactly
+          how a half-resolved file ends up in a project.
+      - text: >-
+          The merge is not finished, because `git merge --continue` is required instead of
+          `git commit`.
+        misconception: Thinks the finishing command is what caused the problem.
+        feedback: >-
+          The commit finished the merge. Whichever command you use, the stray `=======` line is
+          the bug, and it will now be in your PR.
+
+  - id: q5
+    type: blank
+    concept: revert-a-squash
+    source_section: reverting-a-merged-pull-request
+    prompt: |
+      The squash-merge commit `4f2a9c1` broke the site, and force pushes to `main` are blocked.
+      Fill in the git command that adds a new commit that undoes it:
+
+      ```bash
+      git ____ 4f2a9c1
+      ```
+    answer: revert
+    explanation: >-
+      `git revert <sha>` adds a new commit that does the opposite of the old one. Nothing is
+      rewritten, so it is safe on a shared branch. A squash-merged PR is a single commit, so one
+      revert undoes the whole pull request. The Revert button on the PR page does the same through
+      a new PR.
+
+  - id: q6
+    type: single
+    concept: reuse-squashed-branch
+    source_section: keeping-branches-short-lived
+    prompt: >-
+      Last week you squash-merged PR #12 from the branch `login`. Today you commit more work on
+      `login` and open PR #15 from it. PR #15 lists last week's old commits and shows a conflict in
+      a file you did not touch today. Why?
+    options:
+      - text: >-
+          The squash made a brand new commit on `main`. Git cannot tell that your old commits are
+          already in it, so it lists them again, and they can conflict with their squashed copy.
+        correct: true
+        feedback: >-
+          Right. After a squash, `login` and `main` no longer share those commits. Delete the
+          branch after merging, and start the next change from a fresh `main`.
+      - text: Squash merging deletes the branch, so GitHub rebuilds it from scratch.
+        misconception: Thinks a squash merge removes or resets the branch automatically.
+        feedback: >-
+          A squash merge leaves the branch alone unless you ask for it to be deleted. The old
+          commits are still on `login`, and that is the problem.
+      - text: Opening two PRs from the same branch name always causes a conflict.
+        misconception: Believes the branch name itself triggers conflicts.
+        feedback: >-
+          Conflicts come from changes to the same lines, not from names. The cause here is that
+          the squashed commits are unknown to git as merged work.
+      - text: Someone force-pushed to `main` in the meantime.
+        misconception: Blames a force push to explain a conflict that has a normal cause.
+        feedback: >-
+          A ruleset normally blocks force pushes, and nothing in the story says one happened. The
+          squash alone explains the repeated commits.
