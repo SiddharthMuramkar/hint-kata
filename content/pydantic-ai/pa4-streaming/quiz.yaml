@@ -4,7 +4,7 @@ items:
     concept: stream-context-manager
     source_section: starting-a-streamed-run
     prompt: >-
-      Which code reads the events of a run correctly in Pydantic AI 2.56.0?
+      Which code reads the events of a run without an error in Pydantic AI 2.56.0?
     options:
       - text: "async with agent.run_stream_events(prompt) as events: then async for event in events:"
         correct: true

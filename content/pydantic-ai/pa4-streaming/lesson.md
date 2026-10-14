@@ -16,7 +16,7 @@ A model can take many seconds to write a long answer. If you wait for the whole 
 
 ## Starting a streamed run
 
-Besides `run()` and `run_sync()`, the [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/#running-agents) page lists the ways to run an agent. Two of them stream:
+The [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/#running-agents) page lists the ways to run an agent. Two of them are the main tools for streaming:
 
 - `agent.run_stream()` streams the final output as it arrives. It gives you a `StreamedRunResult`.
 - `agent.run_stream_events()` streams every event of the run: the model's output, the tool calls, the tool results, and the finished run.
