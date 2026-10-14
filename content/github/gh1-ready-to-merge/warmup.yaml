@@ -1,0 +1,16 @@
+items:
+  - id: w1
+    prompt: >-
+      You open a pull request on your own repository. Can you approve it yourself?
+      Say yes or no, and guess what happens if the repository demands one approval.
+    note: >-
+      No. The author of a PR cannot approve it. A rule that needs one approval would
+      lock out a solo developer, so you will see how to set it to zero in the reading.
+  - id: w2
+    prompt: >-
+      A pull request shows a green tick from the tests. Name one other thing that
+      could still make it a bad idea to merge right now.
+    note: >-
+      Many answers work: an open review thread, a draft state, a missing required check,
+      a branch that is out of date, a surprising change in the diff. The lesson ends with
+      a six-signal checklist.

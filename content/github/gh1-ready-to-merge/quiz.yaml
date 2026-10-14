@@ -1,0 +1,135 @@
+items:
+  - id: q1
+    type: single
+    concept: ready-to-merge-signals
+    source_section: the-ready-to-merge-checklist
+    prompt: >-
+      A PR shows: required check green, one review thread still open ("What happens when
+      the list is empty?"), and the base branch has moved since you branched. The rule for
+      required checks is non-strict. Is it ready to merge?
+    options:
+      - text: Yes. The required check is green, so it is ready.
+        misconception: thinks green CI alone means ready
+        feedback: >-
+          Tempting, because green is the loudest signal. But CI only tells you the automated
+          tests passed. The open thread is a question from a reviewer that nobody has answered.
+      - text: Not yet. Answer the open thread first. The moved base branch is not a blocker here, because the rule is non-strict.
+        correct: true
+        feedback: >-
+          Right. An open thread is an open question, so settle it. A non-strict rule does not
+          force the branch to be up to date, so the moved base branch alone does not block the merge.
+      - text: Yes. Review comments are only suggestions, so you can merge and answer later.
+        misconception: treats an unresolved review thread as optional
+        feedback: >-
+          A thread does not always block by force, but it is an unanswered question about
+          your change. Merging first removes the chance to fix it cheaply.
+      - text: No. A moved base branch always makes the green check invalid, so it must run again before any merge.
+        misconception: thinks a moved base branch always invalidates checks, even under a non-strict rule
+        feedback: >-
+          That is how a strict rule behaves. Under a non-strict rule you may merge an older branch.
+          The risk is that the checks never ran on the combined code, so you still judge it yourself.
+  - id: q2
+    type: single
+    concept: required-check-missing
+    source_section: status-checks
+    prompt: >-
+      The merge button is blocked. The box says a required check named "tests" is
+      "Waiting for status to be reported". All the other jobs on the PR are green.
+      What is the most likely cause?
+    options:
+      - text: The "tests" check ran and failed, so you must read its log.
+        misconception: confuses a missing check with a failing check
+        feedback: >-
+          A failure would show a red cross with a log. "Waiting for status to be reported" means
+          no job with that name has reported anything yet.
+      - text: No job named "tests" has reported on this commit, for example because the workflow did not start or the job was renamed.
+        correct: true
+        feedback: >-
+          Right. The rule waits for a check with that exact name. A workflow that did not trigger
+          on this PR, or a renamed job, leaves the required check missing, and a missing required
+          check blocks the merge.
+      - text: The PR needs one more approval, because the author cannot approve it.
+        misconception: mixes up required reviews with required checks
+        feedback: >-
+          A missing approval shows up as a review requirement, not as a check waiting for a status.
+      - text: GitHub is just slow. A missing required check is treated as passed after a while.
+        misconception: thinks a missing required check counts as passed
+        feedback: >-
+          It never turns into a pass by waiting. Only a job that was skipped reports success.
+          A job that never reports keeps the merge blocked.
+  - id: q3
+    type: single
+    concept: merge-methods
+    source_section: merge-methods
+    prompt: >-
+      A PR has six small commits, including "fix typo" and "oops". You want main to get exactly
+      one commit for it, with the PR title as its message. Which merge method do you choose?
+    options:
+      - text: Merge commit
+        misconception: thinks a merge commit gives one commit on main
+        feedback: >-
+          A merge commit keeps all six commits and adds a seventh, the merge point.
+      - text: Rebase and merge
+        misconception: thinks rebase combines commits
+        feedback: >-
+          Rebase replays each of the six commits on top of main. The line is straight, but you
+          still get six commits.
+      - text: Rebase and merge, then tick "squash" in the merge box
+        misconception: thinks squash can be added on top of another merge method
+        feedback: >-
+          The merge method is one choice. Each option is a different method, so you cannot combine
+          rebase with squash. Pick "Squash and merge" itself.
+      - text: Squash and merge
+        correct: true
+        feedback: >-
+          Right. Squash turns the whole PR into one commit. This is why the repo that builds
+          this site squashes.
+  - id: q4
+    type: order
+    concept: github-flow-order
+    source_section: github-flow-in-one-picture
+    prompt: Put the steps of GitHub flow in order.
+    steps:
+      - Create a branch
+      - Commit and push your changes to the branch
+      - Open a pull request
+      - Respond to review comments and check results
+      - Merge the pull request
+      - Delete the branch
+    explanation: >-
+      Open the PR before the review, so that reviewers and checks see the same diff. Merge only
+      after the evidence is in, and delete the branch last.
+  - id: q5
+    type: blank
+    concept: gh-ruleset-check
+    source_section: rulesets-and-branch-protection
+    prompt: "Show every rule that applies to the main branch: gh ____ main"
+    answer: 're:(gh\s+)?ruleset\s+check(\s+main)?'
+    explanation: >-
+      gh ruleset check <branch> lists each rule and the ruleset that sets it. gh ruleset is
+      read-only, so you create a ruleset with gh api.
+  - id: q6
+    type: single
+    concept: rulesets-vs-branch-protection
+    source_section: rulesets-and-branch-protection
+    prompt: Which statement about rulesets is true?
+    options:
+      - text: Only one ruleset can target a branch. A new ruleset replaces the old one.
+        misconception: confuses rulesets with classic branch protection, where one rule applies per pattern
+        feedback: >-
+          That is the old branch protection model. Rulesets have no priority, and several can
+          target the same branch.
+      - text: Several rulesets can target the same branch. Their rules add up, and the strictest version of a rule wins.
+        correct: true
+        feedback: >-
+          Right. Rulesets layer with each other and with classic branch protection. You can also
+          switch one to disabled without deleting it.
+      - text: Rulesets replace branch protection. When both exist, only the ruleset is enforced.
+        misconception: thinks rulesets switch off branch protection
+        feedback: >-
+          They work alongside each other. Every applicable rule is enforced.
+      - text: Rulesets only work on private repositories with a paid plan.
+        misconception: thinks rulesets cost money on every repository
+        feedback: >-
+          Public repositories get rulesets on the free plan. That is why the practice task uses
+          a public repo.
