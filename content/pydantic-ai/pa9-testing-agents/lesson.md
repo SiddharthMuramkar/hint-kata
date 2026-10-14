@@ -2,7 +2,7 @@
 id: pa9-testing-agents
 track: pydantic-ai
 title: "Testing agents"
-minutes: 30
+minutes: 35
 pins:
   pydantic-ai: "2.56.0"
   pytest: "9.1"
@@ -30,7 +30,7 @@ models.ALLOW_MODEL_REQUESTS = False
 
 Put it in `conftest.py` at the top of your tests folder. pytest loads that file before it runs any test, so the flag is set early. This site does the same in `tests/conftest.py`.
 
-Real models check the flag before they send a request. When it is `False`, they raise `RuntimeError`. The docs say it blocks requests to non-test models, and we saw that `TestModel` and `FunctionModel` still run with the flag off. See [`ALLOW_MODEL_REQUESTS`](https://pydantic.dev/docs/ai/api/models/base/#pydantic_ai.models.ALLOW_MODEL_REQUESTS) in the API reference.
+Real models check the flag before they send a request. When it is `False`, they raise `RuntimeError`. The [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) guide says it blocks requests to non-test models, and we saw that `TestModel` and `FunctionModel` still run with the flag off.
 
 One more thing we saw. We used an agent that names the model `openai:gpt-5.2`, and we ran it with no override.
 
@@ -88,7 +88,7 @@ The `price_of` tool reads its prices from the dependencies and asks the model to
 
 ## Fast guesses with TestModel
 
-`TestModel` is a fake model that needs no script. By default it calls every tool once, then answers. The docs stress that it contains no AI. It is plain code that makes data to fit the JSON schema of each tool and of the output type. The data will not look sensible, but it should pass validation.
+`TestModel` is a fake model that needs no script. By default it calls every tool once, then answers. The docs stress that it contains no AI. It is plain code that makes data to fit the JSON schema of each tool and of the output type. Do not expect meaningful values from it. It only has to fit your schema.
 
 ```python
 from pydantic_ai.models.test import TestModel
@@ -177,7 +177,7 @@ def test_with_fixture(fake_shop: None) -> None:
 
 The examples use `run_sync`. If the code under test is async, the guide marks the test module with `pytestmark = pytest.mark.anyio` and awaits `agent.run(...)`. We ran a test that way. The pytest plugin comes with anyio, which is already installed in this project, and it loaded by itself.
 
-Now the argument `defer_model_check=True`. When you name a model with a string, Pydantic AI builds the model object as soon as the `Agent` is created, and that checks for the API key. We saw `Agent("openai:gpt-5.2")` raise `UserError` at that moment when no key was set. That would break every test file that imports the agent, before any override can run. With `defer_model_check=True` the check waits until the first run. The [Agent reference](https://pydantic.dev/docs/ai/api/pydantic-ai/agent/) describes it, and says it helps when you override the model in tests. The tutor on this site is built with it.
+Now the argument `defer_model_check=True`. When you name a model with a string, Pydantic AI builds the model object as soon as the `Agent` is created, and that checks for the API key. We saw `Agent("openai:gpt-5.2")` raise `UserError` at that moment when no key was set. That would break every test file that imports the agent, before any override can run. With `defer_model_check=True` the check waits until the first run. The installed source docstring of `Agent.__init__` describes the argument and says it is useful when you want to override the model for testing. The Agents page does not cover it. The tutor on this site is built with it.
 
 ## Reading the run with capture_run_messages
 
@@ -241,7 +241,7 @@ We skip `final_result`, because it is the answer and not one of your tools. We u
 
 With `TestModel` the same helper gave `[("price_of", {"item": "a"}), ("add_tax", {"price": 0.0})]`. The order was the order in which the tools were registered. That makes `TestModel` a cheap way to pin the order. If someone moves a tool in the file, the test fails. Do not assert on `tool_call_id`. `TestModel` builds it from the tool name, and a real model makes its own.
 
-Keep one detail in mind. The list shows the order the model **asked** for the calls. It is not the order they **finished**. We built an agent whose model asks for a slow tool and then a fast tool in one reply. By default the fast one finished first. With `sequential=True` on the tools, the slow one ran and finished first. So if one tool needs the side effect of another, as `refund` needs `lookup_order` in this lesson's task, mark them `sequential=True` and test the order. The [Tools](https://pydantic.dev/docs/ai/tools-toolsets/tools/) page covers the decorators.
+Keep one detail in mind. The list shows the order the model **asked** for the calls. It is not the order they **finished**. We built an agent whose model asks for a slow tool and then a fast tool in one reply. By default the fast one finished first. With `sequential=True` on the tools, the slow one ran and finished first. So if one tool needs the side effect of another, as `refund` needs `lookup_order` in this lesson's task, mark them `sequential=True` and test the order. The Agents page uses `sequential=True` in one example, under [Model errors](https://pydantic.dev/docs/ai/core-concepts/agent/#model-errors). The finish-order behaviour above is what we saw in our own run, not something the docs state.
 
 ## Scripting retries
 

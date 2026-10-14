@@ -145,7 +145,7 @@ items:
       Fill in the argument so that creating this Agent does not look for an API key at import time:
 
       support_agent = Agent("openai:gpt-5.2", ____=True)
-    answer: 're:(defer_model_check)(=True)?'
+    answer: 're:defer_model_check'
     explanation: >-
       With a model name as a string, Pydantic AI builds the model right away and checks for the
       key. defer_model_check=True waits until the first run, so a test can import the agent and

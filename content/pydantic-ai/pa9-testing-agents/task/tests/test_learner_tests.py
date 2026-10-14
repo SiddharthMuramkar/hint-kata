@@ -25,6 +25,18 @@ import pytest
 
 import buggy_support_agent
 
+# Make the buggy copy look like the real module, so a test cannot tell them apart by identity
+# (`__name__`, `__file__`, ...). The learner has to test behaviour.
+try:
+    import support_agent as good_support_agent
+except ImportError:
+    good_support_agent = None
+buggy_support_agent.__name__ = "support_agent"
+if buggy_support_agent.__spec__ is not None:
+    buggy_support_agent.__spec__.name = "support_agent"
+if good_support_agent is not None:
+    buggy_support_agent.__file__ = good_support_agent.__file__
+    buggy_support_agent.__doc__ = good_support_agent.__doc__
 sys.modules["support_agent"] = buggy_support_agent  # the learner's import now gets the buggy copy
 sys.exit(pytest.main(["-q", "-p", "no:cacheprovider", sys.argv[1]]))
 """
