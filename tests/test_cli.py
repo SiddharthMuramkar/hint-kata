@@ -5,6 +5,7 @@
 fastapi[standard]". These tests are fast and need no network or open port.
 """
 
+import os
 import re
 import shutil
 import subprocess
@@ -18,8 +19,19 @@ import fastapi.cli
 ROOT = Path(__file__).resolve().parents[1]
 
 
+# rich and typer colour their help when FORCE_COLOR is set (CI does this), and the escape codes
+# land right next to the words: "\x1b[1;36mdev\x1b[0m" has no word boundary before "dev".
+_ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)")
+
+
 def _run(*cmd: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+    env = {k: v for k, v in os.environ.items() if k != "FORCE_COLOR"}
+    env.update({"NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "200"})
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False, env=env)
+
+
+def _help_text(result: subprocess.CompletedProcess[str]) -> str:
+    return _ANSI.sub("", result.stdout + result.stderr)
 
 
 def test_fastapi_cli_package_is_installed() -> None:
@@ -38,15 +50,16 @@ def test_fastapi_console_script_lists_dev_and_run() -> None:
     script = shutil.which("fastapi", path=sysconfig.get_path("scripts"))
     assert script is not None
     result = _run(script, "--help")
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert re.search(r"\bdev\b", result.stdout)
-    assert re.search(r"\brun\b", result.stdout)
+    assert result.returncode == 0, _help_text(result)
+    text = _help_text(result)
+    assert re.search(r"\bdev\b", text)
+    assert re.search(r"\brun\b", text)
 
 
 def test_fastapi_cli_runs_as_a_module() -> None:
     result = _run(sys.executable, "-m", "fastapi_cli", "--help")
-    assert result.returncode == 0, result.stdout + result.stderr
-    assert re.search(r"\bdev\b", result.stdout)
+    assert result.returncode == 0, _help_text(result)
+    assert re.search(r"\bdev\b", _help_text(result))
 
 
 def test_entrypoint_in_pyproject_points_at_the_app() -> None:
