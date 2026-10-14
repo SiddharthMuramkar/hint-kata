@@ -46,6 +46,10 @@ Known caveat: Fable may bill to usage credits on some plans and its consent prom
   exit 2. Python with `from __future__ import annotations` so it also runs on macOS's `/usr/bin/python3` 3.9.
 - Why no PreToolUse hooks of our own: hookify (below) covers the pattern blocks; `permissions.deny` covers reads.
 - Tested once by piping sample JSON (`echo '{"tool_name":"Edit","tool_input":{"file_path":"x.py"}}' | python3 .claude/hooks/ruff_after_edit.py; echo $?`); results pasted in the M1 PR.
+- **SessionEnd hook (phase 2, not yet enabled).** `.claude/hooks/session_end.py` copies the session transcript to `~/hint-kata-inbox/<session-id>.jsonl` (outside the repo; never overwrites; always exits 0).
+  To enable it, the owner adds this to `.claude/settings.json` under `hooks`:
+  `"SessionEnd": [{"hooks": [{"type": "command", "command": "python3", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session_end.py"], "timeout": 5}]}]`
+  Why: Claude Code deletes transcripts after `cleanupPeriodDays` (30). See `docs/runbooks/session-traces.md`.
 
 ## 4. Hookify rules — `.claude/hookify.<name>.local.md` (M1, committed on purpose)
 Hookify can only warn or block; it reads rules from `.claude/` relative to the working directory, so the files are
@@ -55,13 +59,13 @@ committed (and `.gitignore` must not exclude `*.local.md`) so every worktree and
 | `block-sudo` | bash / block | `(^\|[;&\|]\s*)sudo\s` |
 | `block-rm-rf` | bash / block | `rm\s+-[a-zA-Z]*r[a-zA-Z]*f\|rm\s+-[a-zA-Z]*f[a-zA-Z]*r\|rm\s+(-\S+\s+)*(-r\b.*-f\b\|-f\b.*-r\b)` |
 | `block-force-push` | bash / block | `git\s+push\b.*(\s-f\b\|--force)` |
-| `block-push-main` | bash / block | `git\s+push\b.*(\s\|:)(main\|master)(\s\|$)` |
-| `block-env-bash` | bash / block | `(cat\|head\|tail\|less\|more\|sed\|grep\|source\|\.)\s+[^\|;&]*\.env(?!\.example)(\.[a-z]+)?\b` (excludes `.env.example`) |
+| `block-push-main` | bash / block | `git\s+push\b[^;&\|]*(\s\|:)(main\|master)(\s\|$)` (`main` must be in the same shell segment as `git push`) |
+| `block-env-bash` | bash / block | `(^\|[;&\|]\s*)(cat\|head\|tail\|less\|more\|sed\|grep\|source\|\.)\s+[^\|;&]*\.env(?!\.example)(\.[a-z]+)?\b` (excludes `.env.example`; the command must start a shell segment) |
 | `block-env-edit` | file / block | `file_path` regex `\.env($\|\.(?!example))` |
 | `block-print-secrets` | bash / block | `\bprintenv\b\|\benv\s*(\\\|$)\|echo\s+["']?\$\{?\w*(KEY\|TOKEN\|SECRET)` |
 | `stop-run-tests` | stop / block | transcript `not_contains` `pytest` |
 Gaps hookify cannot close (documented so nobody assumes otherwise): the Read tool (covered by `permissions.deny`),
-`/usr/bin/git`, `sh -c '…'`, scripts that open files. GitHub rulesets are the real lock on `main`.
+`/usr/bin/git`, `sh -c '…'`, scripts that open files. Patterns are searched across the whole command text, so run `git push` as its own command. GitHub rulesets are the real lock on `main`.
 Also: hookify registers only `Stop`, not `SubagentStop`, so `stop-run-tests` fires only for the main session, never for
 the `builder` / `content-writer` subagents. CI is the real test gate.
 
@@ -108,6 +112,8 @@ Ask rules are avoided: in auto mode they prompt and stall.
 | `evals.yml` | `workflow_dispatch` only | runs `evals/` with `OPENROUTER_API_KEY` secret | costs money; never on every PR |
 Runners vs the Mac: CI runs on GitHub (free for public repos). The Claude Code GitHub Action was **rejected**: with an
 OAuth token it bills the same weekly subscription limits as local Claude Code, and it adds a public prompt-injection surface.
+
+**Deploy (phase 2).** Vercel config is `vercel.json`, `.vercelignore`, `.python-version` and `[tool.vercel]` in `pyproject.toml`. The owner links the project and sets env vars by following [`docs/runbooks/vercel.md`](runbooks/vercel.md); the facts behind the choices are in [`docs/research/vercel.md`](research/vercel.md).
 
 ## 9. /goal and /loop (M1 onward)
 - `/goal` judges only from the transcript, has no turn cap unless you write one, and clears on auth/credit/model errors.
