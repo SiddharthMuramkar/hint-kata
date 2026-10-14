@@ -1,0 +1,152 @@
+items:
+  - id: q1
+    type: single
+    concept: allow-model-requests
+    source_section: why-a-test-must-never-call-a-real-model
+    prompt: >-
+      You want to be sure that no test in the project can reach a real model, even a test written
+      next year by someone in a hurry. What do you set up?
+    options:
+      - text: models.ALLOW_MODEL_REQUESTS = False in conftest.py
+        correct: true
+        feedback: >-
+          Right. pytest loads conftest.py before any test runs, and real models refuse to send a
+          request while the flag is False. TestModel and FunctionModel still work.
+      - text: defer_model_check=True on every Agent
+        misconception: Thinks defer_model_check blocks model requests.
+        feedback: >-
+          That argument only delays the API key check until the first run. A run with a real key
+          still sends a real request. The flag is what blocks requests.
+      - text: Override the model with TestModel in the tests where you remember to
+        misconception: Relies on every test author remembering to override.
+        feedback: >-
+          One forgotten override is enough to cost money. A global block catches the test that
+          forgot, which is the point of having it.
+      - text: Run the tests on a machine that has no API key
+        misconception: Thinks a missing API key is a reliable guard.
+        feedback: >-
+          It works only until a machine has a key, and the laptop of the person who writes the
+          tests usually does. We saw a UserError about the key without it, and the flag's
+          RuntimeError with a key set. The flag is the guard you can trust.
+  - id: q2
+    type: single
+    concept: testmodel-made-up-arguments
+    source_section: fast-guesses-with-testmodel
+    prompt: >-
+      A shop agent's tool price_of(item: str) raises ModelRetry when the item is not in
+      deps.prices. The deps hold {"tea": 2.5}. A test runs the agent under TestModel() and the run
+      raises UnexpectedModelBehavior. Why?
+    options:
+      - text: >-
+          TestModel calls price_of with an item it made up ("a"). The tool asks for a retry,
+          TestModel sends the same call again, and the tool's one retry is used up.
+        correct: true
+        feedback: >-
+          Right. TestModel makes up argument values from the tool's schema. Give the deps an item
+          with the id it invents, or script the calls with FunctionModel.
+      - text: TestModel only calls a tool that you list in call_tools.
+        misconception: Thinks TestModel needs call_tools to call any tool.
+        feedback: >-
+          By default TestModel calls every tool once. call_tools is for narrowing that down to
+          some of them.
+      - text: ALLOW_MODEL_REQUESTS = False also blocks TestModel.
+        misconception: Thinks the flag blocks every model, fake ones too.
+        feedback: >-
+          The flag blocks real models only. A blocked request would raise RuntimeError, not
+          UnexpectedModelBehavior, and TestModel runs fine with the flag off.
+      - text: TestModel read the prompt and picked a different item than tea.
+        misconception: Thinks TestModel understands the prompt.
+        feedback: >-
+          TestModel has no AI inside. It builds values from the tool's JSON schema, so a string
+          becomes "a" whatever the prompt says.
+  - id: q3
+    type: single
+    concept: functionmodel-for-retry-paths
+    source_section: scripting-retries
+    prompt: >-
+      You must test that the agent recovers when the model asks for a misspelled item: the tool
+      sends a retry prompt, and the next call uses the right spelling. Which fake model fits?
+    options:
+      - text: >-
+          A FunctionModel whose script first calls the tool with the misspelled item, then with the
+          right one, then gives the answer.
+        correct: true
+        feedback: >-
+          Right. With FunctionModel you write the model's side of the chat, so you can script the
+          bad call, read the retry prompt, and send the good call.
+      - text: TestModel() with its default settings.
+        misconception: Thinks TestModel can be told to make a spelling mistake.
+        feedback: >-
+          TestModel picks its own made-up arguments. You cannot choose a misspelling, and it does
+          not change its call after a retry prompt.
+      - text: 'TestModel(custom_output_args={"item": "teaa", "total": 0.0})'
+        misconception: Thinks custom_output_args sets the arguments of tool calls.
+        feedback: >-
+          custom_output_args sets the final structured answer, not the arguments of the tool
+          calls. The tool would still get the argument TestModel makes up.
+      - text: A real model with a low temperature, so that it repeats itself
+        misconception: Thinks a real model can be made repeatable enough for a test.
+        feedback: >-
+          It still costs money, it is slow, and nothing makes it misspell on purpose. With the
+          request block on, it would not run at all.
+  - id: q4
+    type: single
+    concept: usage-is-a-property
+    source_section: asserting-usage
+    prompt: |-
+      This test should check how many model requests the run took. It fails when you run it. What is the bug?
+
+      result = shop_agent.run_sync("How much is tea?", deps=deps)
+      assert result.usage().requests == 3
+    options:
+      - text: In 2.56.0 usage is a property, so usage() raises TypeError. Write result.usage.requests.
+        correct: true
+        feedback: >-
+          Right. result.usage is already a RunUsage object. Calling it fails with "'RunUsage'
+          object is not callable".
+      - text: There is no requests field. The field is called total_requests.
+        misconception: Thinks the request count has a different field name.
+        feedback: >-
+          The field is requests. It counts the model responses the agent acted on, one per turn.
+      - text: Usage is only filled in by run_stream, not by run_sync.
+        misconception: Thinks run_sync leaves usage empty.
+        feedback: >-
+          Every run has usage. Once the run has finished, run_sync gives the full count.
+      - text: Fake models report no usage, so a test cannot assert it.
+        misconception: Thinks TestModel and FunctionModel report no usage.
+        feedback: >-
+          They do. In our scripted run we saw requests=3 and tool_calls=2. Only the token counts
+          are not worth asserting, because the fake model makes them up.
+  - id: q5
+    type: order
+    concept: retry-message-sequence
+    source_section: reading-the-run-with-capture_run_messages
+    prompt: >-
+      A scripted model first calls price_of("teaa"), then price_of("tea"), then gives the final
+      answer. The tool raises ModelRetry for "teaa". Put the messages that capture_run_messages
+      holds in the order they happen.
+    steps:
+      - "ModelRequest: the user prompt"
+      - "ModelResponse: the call to price_of with \"teaa\""
+      - "ModelRequest: a retry prompt for price_of (unknown item)"
+      - "ModelResponse: the call to price_of with \"tea\""
+      - "ModelRequest: the tool return of price_of (2.5)"
+      - "ModelResponse: the call to final_result"
+      - "ModelRequest: the tool return \"Final result processed.\""
+    explanation: >-
+      Requests and responses take turns. The retry prompt takes the place of the tool return for
+      the failed call, so it comes right after the bad call and before the good one. The answer is
+      itself a tool call (final_result), and its result is the last request in the list.
+  - id: q6
+    type: blank
+    concept: defer-model-check
+    source_section: swapping-the-model-with-override
+    prompt: |-
+      Fill in the argument so that creating this Agent does not look for an API key at import time:
+
+      support_agent = Agent("openai:gpt-5.2", ____=True)
+    answer: 're:(defer_model_check)(=True)?'
+    explanation: >-
+      With a model name as a string, Pydantic AI builds the model right away and checks for the
+      key. defer_model_check=True waits until the first run, so a test can import the agent and
+      swap its model with agent.override(...) first.
