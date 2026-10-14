@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      You write a workflow with `on: schedule` and a daily cron line. You push it to a branch called
+      `add-nightly` and wait a night. Do you think it runs? What would you have to do first? Guess
+      before you read.
+    note: >-
+      It does not run. A scheduled workflow only runs from the default branch, so the file has to be
+      merged there first. The run then uses the latest commit on that branch.
+  - id: w2
+    prompt: >-
+      Two runs of the same workflow start one minute apart. The first one takes ten minutes. By
+      default, do they run side by side, or does the second wait? What setting would you look for to
+      change that?
+    note: >-
+      By default they run side by side. A `concurrency` group is the setting that limits a group to
+      one running member. A newer run then waits, or cancels the older one, depending on how you
+      set it.
