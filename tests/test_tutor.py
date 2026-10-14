@@ -1,5 +1,6 @@
 import json
 from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from pydantic_ai.models.test import TestModel
 from app.config import settings
 from app.main import app
 from app.routes.tutor import get_tutor
+from app.store import open_store
 from app.tutor_rules import (
     LADDER,
     apply_ceiling,
@@ -114,6 +116,35 @@ def test_reveal_logs_event_and_lifts_ceiling(client: TestClient) -> None:
     ev = _chat(client)
     assert "x=1" in str(ev["html"])  # ceiling 6 keeps the code
     assert client.get("/api/tutor/fx-demo/history").json()[1]["ceiling"] == "L6"
+
+
+def _due_keys(hours: int) -> dict[str, str]:
+    store = open_store(settings.hintkata_db_path)
+    try:
+        later = (datetime.now(UTC) + timedelta(hours=hours)).isoformat()
+        return {c["item_key"]: c["due"] for c in store.due_cards(store.ensure_user("owner"), later)}
+    finally:
+        store.close()
+
+
+def test_reveal_quiz_item_schedules_retest_within_a_day(client: TestClient) -> None:
+    body = client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q1"}).json()
+    due = _due_keys(25)["fx-demo:q1"]
+    assert datetime.fromisoformat(due) <= datetime.now(UTC) + timedelta(hours=24)
+    assert body["next_due"] == due
+
+
+def test_reveal_deeper_question_schedules_one_card_per_criterion(client: TestClient) -> None:
+    body = client.post("/api/tutor/fx-demo/reveal", json={"item_id": "d1"}).json()
+    dues = [due for k, due in _due_keys(25).items() if k.startswith("fx-demo:d1#")]
+    assert len(dues) == 3
+    assert body["next_due"] == min(dues)
+
+
+def test_revealing_twice_keeps_one_card(client: TestClient) -> None:
+    for _ in range(2):
+        client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q1"})
+    assert [k for k in _due_keys(25) if k == "fx-demo:q1"] == ["fx-demo:q1"]
 
 
 def test_unknown_lesson_is_404(client: TestClient) -> None:

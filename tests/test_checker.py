@@ -118,7 +118,8 @@ def test_gh_checks_need_practice_repo(gh_task: Path) -> None:
 @pytest.fixture
 def client(tmp_path: Path, content: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setattr(settings, "hintkata_db_path", str(tmp_path / "t.db"))
-    monkeypatch.chdir(tmp_path)  # workspace/ is created here; content/ is found here
+    monkeypatch.setattr(settings, "content_root", str(content))
+    monkeypatch.chdir(tmp_path)  # workspace/ is created here
     with TestClient(app) as c:
         yield c
 
