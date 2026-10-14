@@ -1,0 +1,114 @@
+questions:
+  - id: d1
+    prompt: >-
+      Your app needs one connection pool for its whole life, and each request needs one
+      connection borrowed from that pool. Say where the pool is created and closed, where a
+      connection is borrowed and given back, and how the code that borrows reaches the pool.
+      Then say what happens to an old `@app.on_event("shutdown")` handler if you also pass
+      `lifespan=` to `FastAPI`.
+    rubric:
+      - name: pool-in-lifespan
+        explanation: >-
+          The answer puts the pool in a lifespan: an async context manager passed as
+          `FastAPI(lifespan=...)`. The pool is created before the `yield` and closed after it,
+          so it opens once and closes once for the whole app.
+        pass_anchor: >-
+          "A lifespan function creates the pool before its `yield` and closes it after, so it happens once for the app, not per request."
+        fail_anchor: >-
+          "Create the pool inside each route", or "build it at the top of the module with no shutdown step."
+      - name: connection-in-yield-dependency
+        explanation: >-
+          The answer puts the borrowing in a `yield` dependency: check out before the `yield`,
+          give back after it in a `finally`, so it happens once per request even when the route
+          raises.
+        pass_anchor: >-
+          "A dependency with `yield` checks out a connection, yields it, and releases it in a `finally`, for each request."
+        fail_anchor: >-
+          "Borrow the connection once in the lifespan and share it between all requests", or "release it at the end of the route function, with no `finally`."
+      - name: reaching-the-pool
+        explanation: >-
+          The answer says how the dependency gets the pool: the lifespan yields a dict and the
+          dependency reads it from `request.state`, or the lifespan stores it on `app.state`
+          and the dependency reads `request.app.state`.
+        pass_anchor: >-
+          "The lifespan does `yield {"pool": pool}` and the dependency takes `request: Request` and reads `request.state.pool`."
+        fail_anchor: >-
+          "The dependency creates its own pool", or "pass the pool as a query parameter."
+      - name: events-not-called
+        explanation: >-
+          The answer says the `on_event` shutdown handler is not called when `lifespan=` is
+          passed. It is all lifespan or all events.
+        pass_anchor: >-
+          "It silently never runs, because once you pass a lifespan the startup and shutdown event handlers are ignored."
+        fail_anchor: >-
+          "It runs after the lifespan's shutdown code", or "both run, in the order they were declared."
+    model_answer: >-
+      The pool lives as long as the app, so it goes in a lifespan. I write an async function
+      with `@asynccontextmanager`. Before the `yield` it creates the pool. It yields
+      `{"pool": pool}` and, in a `finally` after the `yield`, it closes the pool. I pass it as
+      `FastAPI(lifespan=lifespan)`, so the pool opens once at start-up and closes once at
+      shutdown. A connection lives as long as one request, so it goes in a `yield` dependency.
+      The dependency takes `request: Request` and reads the pool from `request.state.pool`,
+      which is where the entries of the yielded dict end up. It checks out a connection, yields
+      it, and releases it in a `finally`, so the connection goes back even when the route
+      raises. If the app also has an `@app.on_event("shutdown")` handler, it never runs once
+      `lifespan=` is passed. It is all lifespan or all events, so I would move that code into
+      the lifespan.
+    hints:
+      - Which of the two things lives as long as the app, and which lives as long as one request?
+      - What does the lifespan hand to each request, and where does a dependency read it from?
+  - id: d2
+    prompt: >-
+      A route raises `HTTPException(status_code=404)`. It uses a dependency with `yield`.
+      Describe what the dependency's code sees, and what the client gets, when the dependency
+      has only `try/finally`. Then describe the same when it also has `except HTTPException`
+      that logs and does not raise again. Finally, say how `scope="function"` changes when the
+      code after the `yield` runs on a request that succeeds.
+    rubric:
+      - name: exception-thrown-into-yield
+        explanation: >-
+          The answer says the exception from the route is thrown into the dependency at the
+          `yield` line, so its `except` and `finally` blocks can run.
+        pass_anchor: >-
+          "The 404 from the route is raised inside the dependency at the `yield`, so the `finally` block runs."
+        fail_anchor: >-
+          "The dependency never sees the route's exception", or "the dependency only runs when the route succeeds."
+      - name: finally-keeps-the-status
+        explanation: >-
+          The answer says that with only `try/finally`, the clean-up runs and the client still
+          gets the 404.
+        pass_anchor: >-
+          "With just `finally`, the resource is released and the client still receives the 404."
+        fail_anchor: >-
+          "The `finally` turns the 404 into a 500", or "the clean-up is skipped because the route raised."
+      - name: swallowing-gives-500
+        explanation: >-
+          The answer says that an `except` block that does not raise again stops the exception,
+          so the client gets a 500 instead of the 404. The fix is to raise again.
+        pass_anchor: >-
+          "Catching the 404 and not re-raising swallows it, so FastAPI answers 500. Add a bare `raise` to keep the 404."
+        fail_anchor: >-
+          "The client still gets the 404, because the route raised it", or "the client gets a 200."
+      - name: function-scope-timing
+        explanation: >-
+          The answer says that with the default `scope="request"` the code after the `yield`
+          runs after the response is sent, and with `scope="function"` it runs right after the
+          route function returns, before the response is sent.
+        pass_anchor: >-
+          "By default the tear-down runs after the response is sent. With `scope="function"` it runs as soon as the route returns, before the response goes out."
+        fail_anchor: >-
+          "`scope="function"` runs the tear-down at app shutdown", or "the timing is the same for both scopes."
+    model_answer: >-
+      The 404 is raised in the route, and FastAPI throws it into the dependency at the `yield`
+      line. So the dependency's `except` and `finally` blocks can run, like in normal Python.
+      With only `try/finally`, the `finally` block runs and releases the resource, and the
+      exception carries on, so the client still gets the 404. With an `except HTTPException`
+      that logs and does not raise again, the exception stops inside the dependency. FastAPI
+      then thinks the dependency ended normally after a route that failed, and the client gets
+      a 500 instead of the 404. A bare `raise` at the end of the `except` block fixes it.
+      On a request that succeeds, the default `scope="request"` runs the code after the `yield`
+      after the response has been sent. With `scope="function"` it runs as soon as the route
+      function returns, before the response is sent.
+    hints:
+      - Where in the dependency does the route's exception come out, and what does `finally` do on every path?
+      - If the dependency catches the exception and does nothing more, what does FastAPI think happened?

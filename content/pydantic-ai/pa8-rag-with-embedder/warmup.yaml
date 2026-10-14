@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      You call embed_documents on three very different texts, using Pydantic AI's
+      TestEmbeddingModel and no API key. Do the three vectors differ? What do they look like?
+    note: >-
+      They do not differ. Every vector is the same: eight numbers, all 1.0, whatever the text.
+      That makes the fake model good for testing the plumbing of your code and no use for
+      testing a ranking.
+  - id: w2
+    prompt: >-
+      A learner searches your docs for the exact name ALLOW_MODEL_REQUESTS. A search by meaning
+      alone may rank the right chunk low. What could you add to catch the exact word?
+    note: >-
+      A keyword search, such as Postgres full-text search, finds the exact word. Run it next to
+      the search by meaning and merge the two ranked lists. This site merges them with reciprocal
+      rank fusion.
