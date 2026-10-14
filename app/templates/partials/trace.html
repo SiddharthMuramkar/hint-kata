@@ -1,0 +1,23 @@
+{% if has_trace %}
+<style>
+  #trace progress { width: 100%; }
+  .trace-card, .trace-checkpoint { border: 1px solid var(--border); border-radius: 6px; padding: 8px 16px; margin: 8px 0; background: var(--bg-muted); }
+  .trace-meta { color: var(--fg-muted); font-size: 0.85rem; }
+  #trace-options button { display: block; margin: 4px 0; }
+</style>
+<section id="trace" data-lesson="{{ lesson_id }}">
+  <h2>Watch it run</h2>
+  <progress id="trace-progress" value="0" max="1"></progress>
+  <article id="trace-step" class="trace-card" aria-live="polite">Loading trace…</article>
+  <div id="trace-checkpoint" class="trace-checkpoint" hidden>
+    <p id="trace-prompt"></p>
+    <div id="trace-options"></div>
+    <p id="trace-result" role="status"></p>
+  </div>
+  <p>
+    <button type="button" id="trace-prev">Prev</button>
+    <button type="button" id="trace-next">Next</button>
+  </p>
+</section>
+<script src="{{ url_for('static', path='js/trace.js') }}" defer></script>
+{% endif %}
