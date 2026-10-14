@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     practice_repo: str = ""
     logfire_token: str = ""
     desired_retention: float = 0.9
+    content_root: str = "content"
 
 
 settings = Settings()

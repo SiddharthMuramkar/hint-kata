@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ lesson.title }} - Hint Kata{% endblock %}
+{% block content %}
+<h1>{{ lesson.title }}</h1>
+<p class="muted">{{ track_name }} &middot; {{ lesson.minutes }} min
+{% for name, version in lesson.pins.items() %} &middot; {{ name }} {{ version }}{% endfor %}</p>
+
+{% include "partials/warmup.html" ignore missing %}
+
+<article class="markdown-body">
+{% for s in lesson.sections %}
+{% if s.id == "intro" %}<section id="intro">{{ s.html|safe }}</section>{% else %}{{ s.html|safe }}{% endif %}
+{% endfor %}
+</article>
+
+{% include "partials/trace.html" ignore missing %}
+{% include "partials/quiz.html" ignore missing %}
+{% include "partials/deeper.html" ignore missing %}
+{% include "partials/task.html" ignore missing %}
+{% include "partials/tutor.html" ignore missing %}
+
+<footer class="card sources">
+  <h2>Sources</h2>
+  <ul>
+    {% for s in sources %}
+    <li><a href="{{ s.url }}">{{ s.title }}</a>
+      {% if s.version or s.fetched_at %}({{ s.version }}{% if s.fetched_at %}, fetched {{ s.fetched_at }}{% endif %}){% endif %}
+      &middot; {{ s.license }}<br><small>{{ s.attribution }}</small></li>
+    {% endfor %}
+  </ul>
+</footer>
+{% endblock %}

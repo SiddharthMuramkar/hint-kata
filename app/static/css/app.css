@@ -34,3 +34,4 @@ pre { font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; overfl
 
 .card { background: var(--bg-muted); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 16px 0; }
 .card h2 { margin-top: 0; }
+.muted { color: var(--fg-muted); }
