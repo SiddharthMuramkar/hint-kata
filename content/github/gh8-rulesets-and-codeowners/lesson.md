@@ -2,7 +2,7 @@
 id: gh8-rulesets-and-codeowners
 track: github
 title: "Rulesets, CODEOWNERS and required reviews"
-minutes: 30
+minutes: 35
 pins:
   gh: "2.102"
 sources:
@@ -50,7 +50,7 @@ The `pull_request` rule has the most settings. These are the ones that matter:
 - **Required approvals.** How many approving reviews the PR needs. Zero means "a PR must exist, but nobody has to approve it".
 - **Dismiss stale approvals.** If someone pushes new commits that change the diff, earlier approvals are thrown away. The PR needs a fresh approval. This stops a bait and switch: get an approval, then push something else.
 - **Require review from code owners.** A PR that changes a file with a code owner needs an approval from that owner. You will meet this again below.
-- **Require approval of the latest push.** The newest commit must be approved by someone other than the person who pushed it.
+- **Require approval of the latest push.** The newest push needs an approval from someone who did not make it.
 - **Require conversation resolution.** Every review thread must be resolved before the merge (see GH3).
 - **Allowed merge methods.** Merge, squash, rebase, or a subset. This repo allows squash only.
 
@@ -73,7 +73,7 @@ gh ruleset view 25079334 -R siddharth-0044/hint-kata
 
 At the time of writing, the output contains `You can bypass: never` and `This ruleset cannot be bypassed`. Here is why that is the right choice for this repo:
 
-1. **The owner and the agents share one admin token.** The agents in `docs/HARNESS.md` run with the owner's rights. If the owner could bypass, so could a mistaken agent command. The ruleset is "the real lock on `main`", as that file puts it. The agents' permission list also denies `gh api -X PUT`, `-X PATCH` and `-X DELETE`, so an agent cannot loosen a ruleset by accident.
+1. **The owner and the agents share one admin token.** The agents in `docs/HARNESS.md` run with the owner's rights. If the owner could bypass, so could a mistaken agent command. The ruleset is "the real lock on `main`", as that file puts it. The agents' permission list also denies `gh api -X PUT`, `-X PATCH` and `-X DELETE`, which makes it harder for an agent to loosen a ruleset by accident.
 2. **It costs nothing.** The ruleset asks for zero approvals, so the owner never needs a bypass to get a PR merged. The rules only ask for a PR and a passing `checks` job.
 3. **The emergency exit is deliberate.** If CI itself breaks, the owner can set the ruleset to **Disabled** in Settings, fix the problem, and switch it back. That is a visible, slow action, not a standing permission.
 
@@ -81,7 +81,7 @@ At the time of writing, the output contains `You can bypass: never` and `This ru
 
 [Approving a pull request with required reviews](https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews) states a short rule: pull request authors cannot approve their own pull requests.
 
-Now think about a repo with one human. You open every PR, so you are the author of every PR. If the ruleset asks for **1** approval, nobody can give it. The merge box says a review is required, and you have no way to provide one. Your options:
+Now think about a repo with one human. You open every PR, so you are the author of every PR. If the ruleset asks for **1** approval and has no bypass list, nobody can give it. The merge box says a review is required, and you have no way to provide one. Your options:
 
 - **Add a second person** with write access. They approve, and you merge.
 - **Put yourself on the bypass list.** Now the approval rule does not bind you. You have switched your own rule off.

@@ -95,7 +95,7 @@ gh api --method POST repos/{owner}/{repo}/rulesets --input - <<'EOF'
 EOF
 ```
 
-Run it once. If you ran it twice by mistake, `gh ruleset list` shows two `main-guard` entries. Delete the extra one in **Settings > Rules > Rulesets**.
+Run it once. If you run it twice, GitHub may refuse the second one with a validation error. If you do end up with an extra ruleset, delete it in **Settings > Rules > Rulesets**.
 
 2. List your rulesets. You should see `main-guard`, and the GH1 ruleset next to it:
 
@@ -168,5 +168,5 @@ Set `PRACTICE_REPO` in `.env`, then press **Check my work**. It runs read-only `
 - The rules on `main` include `pull_request` and `required_status_checks`.
 - The required status checks on `main` include one named `checks`.
 - The rules on `main` include `deletion` and `non_fast_forward`.
-- The file `.github/CODEOWNERS` has a line that starts with `*.yml`, then spaces, then an owner that starts with `@`. A line that starts with `#` does not count.
+- The file `.github/CODEOWNERS` has a line that starts with `*.yml`, then spaces, then an owner that starts with `@`. A line that starts with `#` does not count. The check does not confirm that the owner is you, so make sure you replaced the placeholder with your own username.
 - At least one pull request, open or closed, changed a file called `practice-owned.yml`.

@@ -26,7 +26,7 @@ checks:
       - repos/{repo}/contents/.github/CODEOWNERS
       - --jq
       - >-
-        .content | gsub("\\n"; "") | @base64d | test("(^|\\n)\\*\\.yml[ \\t]+@[^ \\t\\r\\n#]+")
+        .content | gsub("\\n"; "") | @base64d | test("(^|\\n)[ \\t]*\\*\\.yml[ \\t]+@[^ \\t\\r\\n#]+")
     expect: "true"
   - name: a pull request changed the file practice-owned.yml
     args:

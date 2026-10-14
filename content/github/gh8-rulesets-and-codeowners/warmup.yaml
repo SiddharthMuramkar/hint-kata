@@ -5,7 +5,7 @@ items:
       rule that asks for 1 approval on every pull request. What do you think happens the first time
       you open a pull request and try to merge it? Guess before you read.
     note: >-
-      The merge is stuck. A pull request author cannot approve their own pull request, and you wrote
+      In a ruleset with no bypass list, the merge is stuck. A pull request author cannot approve their own pull request, and you wrote
       every pull request, so nobody can give the approval. A one-person repo has to ask for zero
       approvals (and lean on required checks), add a second person, or put the owner on the bypass
       list.
