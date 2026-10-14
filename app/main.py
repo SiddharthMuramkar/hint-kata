@@ -12,6 +12,7 @@ from markupsafe import Markup
 from app.config import settings
 from app.content import Lesson, Source, load_lessons, load_sources
 from app.routes.check import router as check_router
+from app.routes.deeper import router as deeper_router
 
 HERE = Path(__file__).parent
 
@@ -39,6 +40,7 @@ app = FastAPI(lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 app.include_router(check_router)
+app.include_router(deeper_router)
 
 
 @app.get("/", response_class=HTMLResponse)
