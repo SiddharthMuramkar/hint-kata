@@ -34,14 +34,18 @@ TAB_PANEL_RE = re.compile(r"^\s*-\s+\[[^\]]*\]\(#tab-panel-\d+\)\s*$")
 AUTOREF_RE = re.compile(r"\[([^\]]+)\]\[[A-Za-z_]\w*(?:\.\w+)+\]")  # [text][pydantic_ai.x.Y]
 FENCE_ATTR_RE = re.compile(r"^(\s*)(`{3,})(\w[\w+-]*)\s*\{([^}]*)\}\s*$")
 TITLE_RE = re.compile(r'title="([^"]*)"')
-LINK_TAG_RE = re.compile(r'<a\s[^>]*?href="([^"]*)"[^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
+LINK_TAG_RE = re.compile(  # link text may not cross a blank line
+    r'<a\s[^>]*?href="([^"]*)"[^>]*>((?:[^\n]|\n(?!\s*\n))*?)</a>', re.IGNORECASE
+)
 COMMENT_RE = re.compile(r"<!--(?!\s*anchor:)[\s\S]*?--!?>")  # keep `<!-- anchor: id -->`
 TAGS = (
     "a abbr b blockquote br code dfn div em hr i img kbd li ol p picture source span strong sub sup"
-    " summary details svg table tbody td th thead tr u ul"
+    " summary details svg table tbody td th thead tr u ul script style iframe"
 )
 TAG_RE = re.compile(rf"</?(?:{'|'.join(TAGS.split())})\b[^>]*>", re.IGNORECASE)
-CODE_SPAN_RE = re.compile(r"(`+[^`]*`+)")
+CODE_SPAN_RE = re.compile(
+    r"(`+(?:[^`\n]|\n(?!\s*\n))*`+)"
+)  # an inline span never crosses a blank line
 
 
 def closes_fence(line: str, fence: str) -> bool:
@@ -77,28 +81,28 @@ def outside_fences(text: str, fn: Callable[[str], str]) -> str:
 
 
 def strip_html(text: str) -> str:
-    """Drop HTML tags and comments (keep their text and `<a href>` links), paragraph by paragraph.
-    Fenced code and inline code are left alone."""
+    """Drop HTML tags and comments (keep their text and `<a href>` links). Fenced code and inline
+    code are left alone. Comments may span lines, even blank ones."""
 
     def clean(part: str) -> str:
         part = LINK_TAG_RE.sub(lambda m: f"[{TAG_RE.sub('', m[2]).strip()}]({m[1]})", part)
         return TAG_RE.sub("", COMMENT_RE.sub("", part))
 
     out: list[str] = []
-    para: list[str] = []
+    prose: list[str] = []  # a run of lines outside fences
 
     def flush() -> None:
-        if para:
-            spans = CODE_SPAN_RE.split("\n".join(para))
+        if prose:
+            spans = CODE_SPAN_RE.split("\n".join(prose))
             out.append("".join(p if i % 2 else clean(p) for i, p in enumerate(spans)))
-            para.clear()
+            prose.clear()
 
     for ln, code in mark_code(text):
-        if code or not ln.strip():
+        if code:
             flush()
             out.append(ln)
         else:
-            para.append(ln)
+            prose.append(ln)
     flush()
     return "\n".join(out)
 
@@ -210,10 +214,16 @@ def normalize_github(text: str) -> str:
     return tidy(plain_alerts(strip_html(text)))
 
 
+def normalize_raw(text: str) -> str:
+    """Pages kept exactly as served (Markdown from MCP, GitHub READMEs): same clean-up as GitHub."""
+    return normalize_github(text)
+
+
 NORMALIZERS: dict[str, Callable[[str], str]] = {
     "fastapi_raw": normalize_fastapi,
     "pydantic_ai_md": normalize_pydantic_ai,
     "github_article": normalize_github,
+    "raw": normalize_raw,
 }
 
 

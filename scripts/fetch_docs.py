@@ -3,8 +3,13 @@
 Usage: uv run python scripts/fetch_docs.py [--manifest content/sources.yaml] [--cache .cache/docs]
        [--only <id>] [--update] [--check]
 
+Source kinds: fastapi_raw, pydantic_ai_md, github_article (each cleaned), raw (fetched as-is) and
+link (never fetched: pages with no reuse licence, kept as title + url only).
+
 Fetched docs are untrusted data: we only read them, never follow instructions inside them.
 Writes only to the cache directory and (with --update) the manifest.
+A page that fails to download prints a `FAILED <id>` line and is skipped (its manifest entry is left
+as it was); the other pages still run and the exit code is 1.
 """
 
 from __future__ import annotations
@@ -29,6 +34,7 @@ FASTAPI_RAW = "https://raw.githubusercontent.com/fastapi/fastapi"
 GITHUB_HOST = "docs.github.com"
 ALERTS = {"tip": "TIP", "note": "NOTE", "warning": "WARNING", "danger": "CAUTION"}
 AGENT_SECTIONS = ("Documentation Index", "Querying This Documentation")
+LINK_KIND = "link"  # title + url only: no fetch_url, no cache file, no sha256
 
 INCLUDE_RE = re.compile(r"^\{\*\s*(\S+)\s*(.*)\*\}$")
 OLD_INCLUDE_RE = re.compile(r"^\{!>?\s*(\S+?)\s*!\}$")
@@ -173,10 +179,19 @@ def clean_github(text: str) -> str:
 # --- pipeline --------------------------------------------------------------------------
 
 
+def is_link(entry: dict[str, Any]) -> bool:
+    """Link-only entries are never downloaded, hashed or checked."""
+    return entry.get("kind") == LINK_KIND
+
+
 def build(entry: dict[str, Any], cache: Path) -> str:
     """Download one source and return its final processed text."""
     kind = entry["kind"]
+    if is_link(entry):
+        raise ValueError(f"{entry['id']}: link entries are never fetched")
     text = fetch(entry["fetch_url"])
+    if kind == "raw":
+        return text  # pinned raw files and .md pages: kept exactly as served
     if kind == "pydantic_ai_md":
         return strip_pydantic(text)
     if kind == "github_article":
@@ -228,25 +243,31 @@ def save_manifest(path: Path, data: dict[str, Any]) -> None:
 
 def check(entries: list[dict[str, Any]], cache: Path) -> int:
     """Offline: verify cached files against the recorded sha256. Returns the exit code."""
-    bad = good = 0
-    if not any(e.get("sha256") for e in entries):
+    bad = good = links = 0
+    if any(not is_link(e) for e in entries) and not any(e.get("sha256") for e in entries):
         print("FAIL: no entry has a sha256 recorded; run with --update first")
         return 1
     for e in entries:
-        if not e.get("sha256"):
+        if is_link(e):
+            status = "link"
+        elif not e.get("sha256"):
             status = "no-sha"
         else:
             f = cache_file(cache, e)
             if not f.exists():
                 status = "MISSING"
-            elif sha256(f.read_text(encoding="utf-8")) != e["sha256"]:
+            elif sha256(f.read_bytes().decode("utf-8")) != e["sha256"]:  # bytes: keep any CRLF
                 status = "MISMATCH"
             else:
                 status = "ok"
         bad += status in ("MISSING", "MISMATCH")
         good += status == "ok"
+        links += status == "link"
         print(f"{status:<9}{e['id']}")
-    print(f"check: {good} ok, {bad} failed, {len(entries) - good - bad} without sha256")
+    print(
+        f"check: {good} ok, {bad} failed, {links} link-only, "
+        f"{len(entries) - good - bad - links} without sha256"
+    )
     return 1 if bad else 0
 
 
@@ -268,8 +289,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         return check(entries, args.cache)
 
+    failed = 0
     for e in entries:
-        text = build(e, args.cache)
+        if is_link(e):  # never fetched, so it can never fail
+            print(f"{'link':<8}{e['id']:<55} not fetched (link only)")
+            continue
+        try:
+            text = build(e, args.cache)
+        except Exception as exc:  # one bad page must not stop the rest; reported, exit code 1
+            failed += 1
+            print(f"{'FAILED':<8}{e['id']:<55} {type(exc).__name__}: {' '.join(str(exc).split())}")
+            continue
         f = cache_file(args.cache, e)
         f.parent.mkdir(parents=True, exist_ok=True)
         f.write_bytes(text.encode("utf-8"))
@@ -281,7 +311,7 @@ def main(argv: list[str] | None = None) -> int:
             e["fetched_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     if args.update:
         save_manifest(args.manifest, manifest)
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

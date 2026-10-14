@@ -94,16 +94,42 @@ def test_h4_and_deeper_stay_in_their_section() -> None:
     assert len(chunks) == 1 and "#### Deep" in chunks[0].text
 
 
-def test_small_sections_merge_forward_into_the_next() -> None:
+def test_small_sections_merge_forward_and_the_big_one_owns_anchor_and_path() -> None:
     md = doc(
         "## A\n\nA tiny section.",
         "## B\n\nAnother tiny one.",
         f"## C\n\n{words(400)}",
     )
-    (chunk,) = [c for c in run(md) if c.anchor == "a"]
-    assert chunk.heading_path[-1] == "A"  # path and anchor are the first section's
-    assert "## B" in chunk.text and "## C" in chunk.text
-    assert [c.anchor for c in run(md) if c.anchor in {"b", "c"}] == []
+    (chunk,) = run(md)
+    assert chunk.anchor == "c" and chunk.heading_path == ("FastAPI", "Page title", "C")
+    assert chunk.text.startswith("## A\n\nA tiny section.\n\n## B\n\nAnother tiny one.\n\n## C\n\n")
+    assert chunk.embed_text.startswith("FastAPI › Page title › C\n\n## A")
+
+
+def test_a_small_intro_merges_into_the_first_section_and_keeps_its_title_line() -> None:
+    md = doc(f"Short intro.\n\n## Setup {{ #setup-id }}\n\n{words(150)}")
+    (chunk,) = run(md)
+    assert chunk.anchor == "setup-id" and chunk.heading_path[-1] == "Setup"
+    assert chunk.text.startswith("# Page title\n\nShort intro.\n\n## Setup\n\n")
+
+
+def test_a_big_section_followed_by_small_ones_keeps_its_own_anchor() -> None:
+    md = doc(f"## Big\n\n{words(300)}", "## Tail 1\n\nTiny.", "## Tail 2\n\nAlso tiny.")
+    (chunk,) = run(md)
+    assert chunk.anchor == "big" and chunk.heading_path[-1] == "Big"
+    assert not chunk.text.startswith("## Big")  # the owner's heading is in the path, not repeated
+    assert chunk.text.endswith("## Tail 1\n\nTiny.\n\n## Tail 2\n\nAlso tiny.")
+
+
+def test_the_owner_in_the_middle_keeps_every_heading_line() -> None:
+    md = doc("## A\n\nTiny.", f"## B\n\n{words(300)}", "## C\n\nTiny too.")
+    (chunk,) = run(md)
+    assert chunk.anchor == "b"
+    assert [ln for ln in chunk.text.splitlines() if ln.startswith("## ")] == [
+        "## A",
+        "## B",
+        "## C",
+    ]
 
 
 def test_a_small_last_section_merges_backward() -> None:

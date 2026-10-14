@@ -75,11 +75,10 @@ def hybrid_search(
     source: str | None = None,
 ) -> list[Hit]:
     """Top `k` chunks, optionally only from pages of one `source` (a track id such as "fastapi")."""
-    # set_config(..., true) is SET LOCAL with parameters: it lasts for this transaction only, so it
-    # is safe through the Neon pooler. A filtered HNSW scan can come back short, so scan further.
-    conn.execute("SELECT set_config('hnsw.ef_search', '100', true)")
-    if source:
-        conn.execute("SELECT set_config('hnsw.iterative_scan', 'relaxed_order', true)")
+    # LOCAL: lasts for this transaction only, so it is safe behind Neon's pooler (PgBouncer).
+    conn.execute("SET LOCAL hnsw.ef_search = 100")
+    if source:  # a filtered HNSW scan can come back short, so let it scan further
+        conn.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
     rows = conn.execute(
         SEARCH,
         {"emb": Vector(list(query_embedding)), "q": query_text, "k": k, "source": source or None},

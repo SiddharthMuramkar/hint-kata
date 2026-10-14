@@ -41,6 +41,12 @@ ON CONFLICT (chunk_key) DO UPDATE SET
     embedding = EXCLUDED.embedding
 """
 
+PAGE_CHUNKS: LiteralString = """
+SELECT p.id, p.source, p.path, count(c.chunk_key) AS chunks
+FROM pages p LEFT JOIN chunks c ON c.page_id = p.id
+GROUP BY p.id ORDER BY p.source, p.path
+"""
+
 DIMS: LiteralString = """
 SELECT atttypmod AS dims FROM pg_attribute
 WHERE attrelid = 'chunks'::regclass AND attname = 'embedding'
@@ -56,6 +62,37 @@ class Plan:
     to_embed: list[Chunk]  # new or changed
     unchanged: int
     vanished: list[str]  # chunk_keys in the database that the page no longer has
+
+
+@dataclass(frozen=True)
+class Stale:
+    """A stored page that is no longer wanted."""
+
+    id: int
+    source: str
+    path: str
+    chunks: int
+
+
+def stale_pages(conn: PgConn, keep: set[tuple[str, str]]) -> list[Stale]:
+    """Stored pages whose (source, path) is not in `keep`."""
+    rows = conn.execute(PAGE_CHUNKS).fetchall()
+    conn.commit()
+    return [
+        Stale(r["id"], r["source"], r["path"], r["chunks"])
+        for r in rows
+        if (r["source"], r["path"]) not in keep
+    ]
+
+
+def delete_pages(conn: PgConn, pages: Sequence[Stale]) -> None:
+    """Delete pages; their chunks go with them (ON DELETE CASCADE)."""
+    try:
+        conn.execute("DELETE FROM pages WHERE id = ANY(%s)", ([p.id for p in pages],))
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
 
 
 def check_dims(conn: PgConn, expected: int) -> None:

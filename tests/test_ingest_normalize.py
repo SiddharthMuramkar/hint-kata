@@ -140,3 +140,18 @@ def test_html_comments_go_even_across_lines_but_anchor_ids_and_code_stay() -> No
     assert "## Title <!-- anchor: title -->" in out
     assert "Before  after." in out and "one" not in out
     assert "Write `<!-- not a comment -->` in HTML." in out and "<!-- code -->" in out
+
+
+def test_comments_across_blank_lines_and_script_style_tags_go() -> None:
+    text = 'Before <!-- a\n\nb --> after.\n\n<style>x</style><iframe src="u"></iframe>Text.\n'
+    out = strip_html(text)
+    assert out.startswith("Before  after.") and "<style" not in out and "<iframe" not in out
+    assert out.rstrip().endswith("xText.")  # the tags go, the text between them stays
+
+
+def test_raw_pages_get_the_same_clean_up_as_github_pages() -> None:
+    text = "# Intro\n\n> [!NOTE]\n> Hi <b>there</b>.\n\n```yaml\n# not a heading\n```\n"
+    assert (
+        normalize("raw", text)
+        == "# Intro\n\n> **Note**\n> Hi there.\n\n```yaml\n# not a heading\n```\n"
+    )

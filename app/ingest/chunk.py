@@ -2,7 +2,8 @@
 
 One chunk per H2/H3 section, with its heading path and anchor. Target 300-500 tokens, hard max about
 800, no overlap. A fenced code block is never split. A section under about 80 tokens is merged into
-its neighbour. Tokens are approximated as `len(text) // 4`: no tokenizer dependency.
+its neighbour; the neighbour with more text owns the anchor and heading path, and the tiny heading
+stays in the text as a line. Tokens are approximated as `len(text) // 4`: no tokenizer dependency.
 
 The one exception to the hard max is a single fence (or a single huge line) that is longer than that
 on its own: it stays whole.
@@ -111,32 +112,44 @@ def sections(markdown: str, root: tuple[str, ...]) -> list[Section]:
     return [replace(s, body=s.body.strip()) for s in out if s.body.strip()]
 
 
-def _join(a: Section, b: Section) -> Section:
-    """Merge b into a: a's path and anchor stay; b's heading line stays in the text."""
-    return replace(a, body=f"{a.body}\n\n{b.heading}\n\n{b.body}")
+def _assemble(group: list[Section]) -> Section:
+    """One chunk from neighbouring sections. The one with the most text owns the anchor and the
+    heading path (the later one on a tie), so a citation points at the heading above the real
+    content. The other headings stay in the text as lines; the owner's own is in the path."""
+    if len(group) == 1:
+        return group[0]
+    owner = max(reversed(group), key=lambda s: tokens(s.body))
+    parts: list[str] = []
+    for s in group:
+        if not (s is owner and s is group[0]):
+            parts.append(s.heading)
+        parts.append(s.body)
+    return replace(owner, body="\n\n".join(parts))
 
 
 def merge_small(secs: list[Section]) -> list[Section]:
-    """Merge a section under MIN_TOKENS into the next one (or the previous, at the end)."""
-    out: list[Section] = []
-    pending: Section | None = None
+    """Merge a section under MIN_TOKENS into the next one (or the previous, at the end), as long
+    as the result stays within MAX_TOKENS."""
+
+    def size(group: list[Section]) -> int:
+        return sum(tokens(s.body) for s in group)
+
+    groups: list[list[Section]] = []
+    pending: list[Section] = []
     for s in secs:
-        if pending:
-            if tokens(pending.body) + tokens(s.body) <= MAX_TOKENS:
-                s = _join(pending, s)
-            else:
-                out.append(pending)
-            pending = None
-        if tokens(s.body) < MIN_TOKENS:
-            pending = s
-        else:
-            out.append(s)
+        if pending and size(pending) + tokens(s.body) > MAX_TOKENS:
+            groups.append(pending)
+            pending = []
+        pending.append(s)
+        if size(pending) >= MIN_TOKENS:
+            groups.append(pending)
+            pending = []
     if pending:
-        if out and tokens(out[-1].body) + tokens(pending.body) <= MAX_TOKENS:
-            out[-1] = _join(out[-1], pending)
+        if groups and size(groups[-1]) + size(pending) <= MAX_TOKENS:
+            groups[-1] += pending
         else:
-            out.append(pending)
-    return out
+            groups.append(pending)
+    return [_assemble(g) for g in groups]
 
 
 def units(body: str) -> list[tuple[str, str]]:

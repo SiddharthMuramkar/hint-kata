@@ -6,9 +6,12 @@ from types import ModuleType
 
 import pytest
 import yaml
+from pydantic_ai import Embedder
+from pydantic_ai.embeddings import TestEmbeddingModel
 
 from app.config import settings
 from app.ingest.normalize import NORMALIZERS
+from app.ingest.pipeline import as_markdown
 
 SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "ingest.py"
 FIXTURES = Path(__file__).parent / "fixtures" / "ingest"
@@ -30,10 +33,21 @@ def _load() -> ModuleType:
 ing = _load()
 
 
-def make_site(tmp_path: Path, pages: int = 3) -> tuple[Path, Path]:
-    """A manifest and a cache laid out like scripts/fetch_docs.py leaves them."""
+LINK = {  # as in content/sources.yaml: title and url only, no fetch_url, no sha256
+    "id": "claude-code-docs-memory",
+    "track": "github",
+    "title": "How Claude remembers your project",
+    "url": "https://code.example/docs/memory",
+    "kind": "link",
+    "version": "live",
+}
+
+
+def make_site(tmp_path: Path, pages: int = 3, links: int = 0) -> tuple[Path, Path]:
+    """A manifest and a cache laid out like scripts/fetch_docs.py leaves them. Link entries get
+    no cache file."""
     cache = tmp_path / "cache"
-    entries = []
+    entries: list[dict[str, str]] = [dict(LINK, id=f"{LINK['id']}-{i}") for i in range(links)]
     for id_, track, kind, name in PAGES[:pages]:
         entries.append(
             {
@@ -118,7 +132,85 @@ def test_the_modes_exclude_each_other(tmp_path: Path) -> None:
     assert exc.value.code == 2
 
 
-def test_every_kind_in_the_real_manifest_has_a_normaliser() -> None:
+def test_every_kind_in_the_real_manifest_is_ingestable_or_a_link() -> None:
     manifest = Path(__file__).resolve().parent.parent / "content" / "sources.yaml"
     kinds = {e["kind"] for e in yaml.safe_load(manifest.read_text(encoding="utf-8"))["sources"]}
-    assert kinds <= set(NORMALIZERS)
+    assert kinds - {"link"} <= set(NORMALIZERS)
+
+
+def test_link_entries_are_skipped_not_reported_missing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    manifest, cache = make_site(tmp_path, links=2)
+    args = ["--manifest", str(manifest), "--cache", str(cache), "--dry-run"]
+    assert ing.main(args) == 0
+    out = capsys.readouterr().out
+    assert "skipped 2 link-only source(s)" in out and "dry-run: 3 pages" in out
+    assert "claude-code-docs-memory" not in out  # no chunk line for them
+    assert (
+        ing.main([*args, "--only", "claude-code-docs-memory-0"]) == 0
+    )  # only a link: nothing to do
+    assert "dry-run: 0 pages" in capsys.readouterr().out
+
+
+def test_a_link_only_ingest_has_nothing_to_do_and_needs_no_key(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    manifest, cache = make_site(tmp_path, pages=0, links=1)
+    assert ing.main(["--manifest", str(manifest), "--cache", str(cache)]) == 0
+    assert "nothing to ingest" in capsys.readouterr().out
+
+
+def test_raw_pages_are_ingested_and_non_markdown_becomes_one_code_block(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    cache = tmp_path / "cache" / "github"
+    cache.mkdir(parents=True)
+    (cache / "mcp-intro.md").write_text("# Intro\n\n## Why\n\nBecause.\n")
+    (cache / "example-workflow.md").write_text("# a yaml comment\non:\n  push:\n")
+    base = {"track": "github", "url": "https://x.example/", "version": "1", "kind": "raw"}
+    entries = [
+        dict(base, id="mcp-intro", title="Intro", fetch_url="https://x.example/intro.md"),
+        dict(base, id="example-workflow", title="Workflow", fetch_url="https://x.example/c.yml"),
+    ]
+    manifest = tmp_path / "sources.yaml"
+    manifest.write_text(yaml.safe_dump({"sources": entries}), encoding="utf-8")
+    assert (
+        ing.main(["--manifest", str(manifest), "--cache", str(tmp_path / "cache"), "--dry-run"])
+        == 0
+    )
+    assert "dry-run: 2 pages, 2 chunks" in capsys.readouterr().out
+    wrapped = as_markdown(entries[1], "# a yaml comment\non:\n")
+    assert wrapped == "```yml\n# a yaml comment\non:\n```\n"
+    assert as_markdown(entries[0], "# Intro\n") == "# Intro\n"
+
+
+def test_prune_needs_the_whole_manifest_and_a_database(tmp_path: Path) -> None:
+    manifest, cache = make_site(tmp_path)
+    base = ["--manifest", str(manifest), "--cache", str(cache), "--prune"]
+    for extra in (["--only", "fastapi-dependencies"], ["--check"]):
+        with pytest.raises(SystemExit) as exc:
+            ing.main([*base, *extra])
+        assert exc.value.code == 2
+    with pytest.raises(SystemExit, match="DATABASE_URL_UNPOOLED"):
+        ing.main(base)
+
+
+def test_prune_refuses_when_the_manifest_has_nothing_to_keep(tmp_path: Path) -> None:
+    manifest, cache = make_site(tmp_path, pages=0, links=2)
+    with pytest.raises(SystemExit, match="no ingestable sources"):
+        ing.main(["--manifest", str(manifest), "--cache", str(cache), "--prune"])
+
+
+def test_a_connection_failure_does_not_claim_pages_were_written(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, cache = make_site(tmp_path, pages=1)
+    monkeypatch.setattr(
+        settings, "database_url_unpooled", "postgresql://u:p@127.0.0.1:1/db?connect_timeout=2"
+    )
+    embedder = Embedder(TestEmbeddingModel(dimensions=settings.embed_dims))
+    with pytest.raises(SystemExit) as exc:
+        ing.main(["--manifest", str(manifest), "--cache", str(cache)], embedder=embedder)
+    message = str(exc.value)
+    assert message.startswith("error:") and "kept" not in message and "written" not in message

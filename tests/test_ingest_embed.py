@@ -9,7 +9,7 @@ from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
 from pydantic_ai.embeddings.result import EmbedInputType
 from pydantic_ai.exceptions import ModelAPIError, ModelHTTPError
 
-from app.config import settings
+from app.config import Settings, settings
 from app.ingest.embed import BATCH, RETRY_AFTER_S, embed_texts, make_embedder
 
 
@@ -98,6 +98,17 @@ def test_default_dims_come_from_settings(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(settings, "embed_dims", 8)
     with pytest.raises(ValueError, match="EMBED_DIMS"):
         embed_texts(embedder, ["a"])
+
+
+def test_empty_env_lines_fall_back_to_the_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("EMBED_DIMS", "EMBED_MODEL", "OPENROUTER_ZDR"):
+        monkeypatch.setenv(name, "")  # a line like `EMBED_DIMS=` in the local env file
+    fresh = Settings(_env_file=None)
+    assert (
+        fresh.embed_dims == 1536
+        and fresh.embed_model == Settings.model_fields["embed_model"].default
+    )
+    assert fresh.openrouter_zdr is False
 
 
 def test_make_embedder_builds_an_openrouter_model_and_tests_cannot_reach_it(
