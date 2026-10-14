@@ -252,14 +252,14 @@ The two `async def` routes that really wait are the ones that call the model. Wa
 
 Now the honest part. Those two `async def` routes also call the sync store directly. We wrapped the store methods in a probe that asks `asyncio.get_running_loop()`, and ran the real routes with a stub in place of the model. The result:
 
-- In `chat`, the calls `attempts_for`, `chat_history` and `add_chat` ran **on the event loop**.
+- In `chat`, the store calls `attempts_for`, `events_for`, `chat_history` and `add_chat` ran **on the event loop**.
 - In `post_deeper`, `grades_for` and `add_grade` ran **on the event loop**.
 - In the `def` routes, the same store calls ran in worker threads.
 - `get_store` and `get_user_id` ran in worker threads for all of them, even under the `async def` routes.
 
 So the rule of this lesson is bent in two places. We left it that way because each call is a short query on a local SQLite file, so the loop is held for a very short time. We did not measure the Postgres setup. There, the same calls would be network round trips on the loop, and that is where the rule would start to hurt. The fixes would be `await run_in_threadpool(store.attempts_for, ...)` or an async driver.
 
-One more detail ties back to threads. `app/store.py` opens its SQLite connection with `check_same_thread=False`. In a scratch run, the thread that ran the setup of a `def` dependency with `yield` was never the thread that ran the `def` route (0 of 90 requests). A connection opened in one worker thread is used in another, and this setting allows that. We read this as the reason for the setting. The code does not say so itself.
+One more detail ties back to threads. `app/store.py` opens its SQLite connection with `check_same_thread=False`. In a scratch run we put a `def` dependency with `yield`, a `def` sub-dependency and a `def` route on one app, and recorded which worker thread ran each. With one request at a time, the setup and the route ran on the same thread in 90 of 90 requests, because AnyIO reuses the thread that has just become free. With three requests at once, the setup and the route shared a thread in only 26 and 38 of 90 requests (two runs), and the closing step shared the route's thread in 57 or 58 of 90. With ten at once, it was 5 or 11 of 90. So under load, a connection opened in one worker thread is often used, and closed, in another, and this setting allows that. We read this as the reason for the setting. The code does not say so itself.
 
 More: the code in `app/main.py`, `app/deps.py`, `app/store.py`, and `app/routes/`.
 

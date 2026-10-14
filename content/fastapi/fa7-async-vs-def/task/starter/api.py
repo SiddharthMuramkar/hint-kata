@@ -19,8 +19,8 @@ async def fetch_rate() -> float:
     return 1.25
 
 
-# TODO 1 (blocking call in `async def`): this route blocks the event loop for 0.3 s, so two
-#   requests at once take 0.6 s and everything else on the server waits too. Fix it in one of
+# TODO 1 (blocking call in `async def`): this route blocks the event loop for 0.3 s, so three
+#   requests at once take 0.9 s and everything else on the server waits too. Fix it in one of
 #   two ways. Make the route a plain `def`, or keep `async def` and call the blocking function
 #   with `await run_in_threadpool(slow_lookup)` (from fastapi.concurrency).
 @app.get("/lookup")
