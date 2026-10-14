@@ -28,7 +28,7 @@ items:
         misconception: Thinks catching the error in the dependency turns the request into a success.
         feedback: >-
           A route that raised has no return value to send. FastAPI saw a failed route and a
-          dependency that said nothing, and in our run the client got a 500.
+          dependency that said nothing, and in our run a real server sent a 500.
       - text: >-
           The client gets the 404, but `db.close()` is skipped because the `except` block ran
           first.
@@ -72,8 +72,9 @@ items:
     prompt: >-
       Spot the bug. The app has a lifespan that opens a pool and ends with
       `yield {"pool": pool}`. A route reads `request.state.pool`. In `fastapi dev` the route
-      works. In this test file it returns a 500 every time: `client = TestClient(app)` at the top,
-      then `client.get("/rows")`. What is wrong?
+      works. In this test file it fails every time with `AttributeError: 'State' object has no
+      attribute 'pool'`: `client = TestClient(app)` at the top, then `client.get("/rows")`. What
+      is wrong?
     options:
       - text: >-
           The test never starts the lifespan. Use `with TestClient(app) as client:` so that

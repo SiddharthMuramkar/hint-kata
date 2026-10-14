@@ -2,7 +2,7 @@
 id: fa8-lifecycles
 track: fastapi
 title: "Resource lifecycles: yield dependencies, scope, lifespan"
-minutes: 25
+minutes: 30
 pins:
   fastapi: "0.143.0"
 sources:
@@ -113,6 +113,8 @@ def missing(session: Annotated[str, Depends(get_session)]):
 | `/boom` | 500 | `set-up`, `route`, `saw Boom`, `finally` |
 | `/missing` | 404 | `set-up`, `route`, `saw HTTPException`, `finally` |
 
+The 500 is what a real server sends. We got the same status from `TestClient(app, raise_server_exceptions=False)`. The default `TestClient(app)` raises the route's exception into your test instead of returning a 500.
+
 Two things to take from the table.
 
 - An `HTTPException` from the route reaches the dependency too, not only your own exception types. It is just another exception to the `yield` line.
@@ -128,7 +130,7 @@ def get_session() -> Iterator[str]:
         EVENTS.append("swallowed")
 ```
 
-When the route raises `HTTPException(404)`, this dependency catches it and ends quietly. FastAPI never learns that there was an error. The client gets **500**, not 404. The docs add that the server logs nothing, so you have a 500 and no clue why. The same happens with any exception you catch and drop.
+When the route raises `HTTPException(404)`, this dependency catches it and ends quietly. FastAPI never learns that there was an error. The client gets **500**, not 404. The docs warn that this leaves you with a 500 and little to go on. On FastAPI 0.143.0 we saw a clue. Under a real `uvicorn` server, the server log held `Exception in ASGI application` and a `FastAPIError` that begins "Response not awaited". The message names the cause, a dependency that catches an exception and does not raise it again, and it links the docs section. Under the default `TestClient(app)`, that same `FastAPIError` is raised into your test. So look in the server log, or the test error, for that message. The same happens with any exception you catch and drop.
 
 You have two good choices inside an `except`.
 
@@ -291,7 +293,7 @@ One request gives: `a set-up`, `b set-up`, `c set-up`, `route`, `c tear-down`, `
 Three more results from our runs.
 
 - **Siblings.** A route with `x: Depends(sib_x)` and `y: Depends(sib_y)` set up `x` then `y`, in the order of the parameters. It tore down `y` then `x`.
-- **One run per request.** If `a` is needed twice in the same tree, FastAPI still runs it once. That is the dependency cache, and `use_cache=False` turns it off. In our run, that gave two `a set-up` entries and two `a tear-down` entries.
+- **One run per request.** If `a` is needed twice in the same tree, FastAPI still runs it once. That is the dependency cache, and `use_cache=False` turns it off. Where you put the flag matters. The first `Depends(a)` in a request is stored in the cache whatever its flag says, so `use_cache=False` there still gave one `a set-up`. When we put the flag on a later `Depends(a)`, or on the `Depends(a)` inside `b`, we got two `a set-up` entries and two `a tear-down` entries.
 - **A failure in the middle.** If `b` raises `HTTPException(503)` before its own `yield`, the client gets the 503. `a` already started, so its tear-down runs: `a set-up`, `b set-up raises`, `a tear-down`. `b` never reached its `yield`, so `b` has no tear-down.
 
 More: [Dependencies with yield](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/), the part called "Sub-dependencies with yield".
@@ -418,7 +420,7 @@ More: [Lifespan Events](https://fastapi.tiangolo.com/advanced/events/), and the 
 
 Tests are where lifespan code gets forgotten, because a bare test client does not run it.
 
-- `TestClient(app)` on its own does **not** run the lifespan. In our run no set-up step happened, and a route that read `request.state` failed with a 500.
+- `TestClient(app)` on its own does **not** run the lifespan. In our run no set-up step happened, and a route that read `request.state` made the test itself fail with `AttributeError: 'State' object has no attribute 'client'`. A client built with `raise_server_exceptions=False`, or a real server, shows that same failure as a 500 instead.
 - `with TestClient(app) as client:` runs the start-up when the block begins and the shutdown when it ends. This is the form to use. It also means the shutdown steps are only in your event list *after* the block.
 - `httpx.AsyncClient` with `ASGITransport(app=app)` does not run the lifespan either. In our run, the same route raised `AttributeError: 'State' object has no attribute 'client'`. The async tests page names the `asgi-lifespan` package and its `LifespanManager` for this. We did not run that package.
 
@@ -445,6 +447,6 @@ This site is a FastAPI app, so it has the same two pieces.
 
 **The lifespan is in `app/main.py`.** Before its `yield`, it starts Logfire when a token is set, loads the lessons and the sources into `app.state`, and writes the mastery settings to the store through a short-lived store that it closes in a `finally`. It yields nothing. It does not use lifespan state, and there are no tear-down steps after the `yield`. Each call to `open_store_from_settings()` opens one connection, to SQLite or to Postgres when `DATABASE_URL` is set. The site keeps no pool, so there is nothing to shut down after the `yield`.
 
-That explains the site's tests. They use `with TestClient(app) as c`, so the lifespan runs and `app.state.lessons` exists. We tried a bare `TestClient(app)` and `GET /lessons/fa1-dependencies` gave a 500. Some tests also swap `get_store` for a fake with `app.dependency_overrides`, as lesson FA2 shows.
+That explains the site's tests. They use `with TestClient(app) as c`, so the lifespan runs and `app.state.lessons` exists. We tried a bare `TestClient(app)` and `GET /lessons/fa1-dependencies` raised `AttributeError: 'State' object has no attribute 'lessons'` in the test. With `raise_server_exceptions=False`, the same request gave a 500. Some tests also swap `get_store` for a fake with `app.dependency_overrides`, as lesson FA2 shows.
 
 Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Dependencies with yield](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/), [Advanced Dependencies](https://fastapi.tiangolo.com/advanced/advanced-dependencies/), [Lifespan Events](https://fastapi.tiangolo.com/advanced/events/), [Async Tests](https://fastapi.tiangolo.com/advanced/async-tests/). This site is not affiliated with FastAPI.

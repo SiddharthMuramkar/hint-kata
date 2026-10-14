@@ -5,6 +5,8 @@ import pytest
 from fastapi import Depends, HTTPException, Request
 from fastapi.testclient import TestClient
 
+# Snapshot of the event list straight after `import api`, before any fixture clears it.
+EVENTS_AT_IMPORT: list[str] = list(api.EVENTS)
 POOLS: list[api.FakePool] = []
 _ROUTES_ADDED: list[bool] = []
 
@@ -40,6 +42,7 @@ def clean_state() -> None:
 
 
 def test_the_pool_opens_at_start_up_not_at_import():
+    assert EVENTS_AT_IMPORT == [], "importing api.py must not open the pool"
     client = TestClient(api.app)  # no `with`: the lifespan has not started
     assert api.EVENTS == []
     with client:

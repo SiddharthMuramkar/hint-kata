@@ -2,6 +2,8 @@ Lesson FA8 teaches how FastAPI ties code to the life of a resource, around one i
 
 One lesson learned: what a tear-down can do depends on its scope, and the docs only hint at it. With the default scope, an `HTTPException` raised after the `yield` on a request that already succeeded changes nothing for the client, who got a 200, and the server raises `RuntimeError: Caught handled exception, but response already started.` With `scope="function"` the same code gives the client a 400. We also saw that an `except HTTPException` that does not raise again turned the route's 404 into a 500, and that an `@app.on_event` handler silently never runs once `lifespan=` is set. The lifespan state feature (`yield {...}` and `request.state`) is covered only by a link to Starlette in the FastAPI page, so the lesson says what a run showed and links there. A list of events written by a ten-line script was the proof every time.
 
+After review, the lesson now says what a test sees and what a real server sees. A bare `TestClient(app)` raises the error into the test (`AttributeError` for missing lifespan state, `FastAPIError` for a swallowed exception). A 500 appears on a real server or with `raise_server_exceptions=False`. The `use_cache=False` note names where the flag goes, the lesson is now 30 minutes, and the task test also checks that importing `api.py` does not open the pool.
+
 Closes #80
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
