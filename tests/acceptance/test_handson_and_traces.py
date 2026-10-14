@@ -2,10 +2,13 @@
 
 Python tasks: tests/test_lesson_tasks.py already runs the hidden tests against every
 `task/solution` (must pass) and `task/starter` (must fail), and tests/test_checker.py covers the
-timeout. Here: the GitHub `check.yaml` tasks, and the trace lessons.
+timeout. `traces/scripts/pr_timeline.py` needs `gh`, so tests/test_traces.py re-runs it with a
+fake `gh` and canned JSON; that is not repeated
+here. Here: the GitHub `check.yaml` tasks, and the trace lessons.
 """
 
 import importlib.util
+import json
 import stat
 import sys
 from pathlib import Path
@@ -97,4 +100,6 @@ def test_agent_run_script_reproduces_the_committed_trace(
     out = tmp_path / "trace.json"
     monkeypatch.setattr(sys, "argv", ["agent_run.py", "--out", str(out)])
     module.main()
-    assert out.read_bytes() == committed.read_bytes()
+    # Step structure only: `source` holds today's date and the installed library version.
+    regenerated = json.loads(out.read_text())["steps"]
+    assert regenerated == json.loads(committed.read_text())["steps"]

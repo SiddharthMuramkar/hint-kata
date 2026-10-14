@@ -29,6 +29,7 @@ def test_get_hides_the_answers(client: TestClient, lesson: Lesson) -> None:
 def test_wrong_then_right_second_try(
     client: TestClient, store: SqliteStore, uid: int, lesson: Lesson
 ) -> None:
+    assert len(singles(lesson)) >= 2, "lesson needs two single items with a wrong option"
     item = singles(lesson)[0]
     first = post_quiz(client, lesson, item, wrong(item), confidence="sure").json()
     assert first["correct"] is False and first["feedback"]  # per-option feedback
@@ -46,6 +47,7 @@ def test_wrong_then_right_second_try(
 
 @pytest.mark.parametrize("lesson", QUIZ)
 def test_score_is_first_try_correct_over_items(client: TestClient, lesson: Lesson) -> None:
+    assert len(singles(lesson)) >= 2, "lesson needs two single items with a wrong option"
     a, b = singles(lesson)[:2]
     post_quiz(client, lesson, a, wrong(a))
     post_quiz(client, lesson, a, right(a), try_no=2)  # a second-try success earns nothing

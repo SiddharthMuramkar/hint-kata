@@ -10,7 +10,7 @@ from app.content import Lesson
 from app.markdown import render_markdown
 from app.store import SqliteStore
 
-from .conftest import ALL, LESSONS, ROOT, lessons_with, post_quiz, right, singles, wrong
+from .conftest import LESSONS, ROOT, lessons_with, post_quiz, right, singles, wrong
 
 QUIZ = lessons_with("quiz")
 
@@ -19,6 +19,7 @@ QUIZ = lessons_with("quiz")
 def test_a_miss_makes_a_due_card_and_answering_reschedules_it(
     client: TestClient, store: SqliteStore, uid: int, lesson: Lesson
 ) -> None:
+    assert len(singles(lesson)) >= 2, "lesson needs two single items with a wrong option"
     a, b = singles(lesson)[:2]
     assert client.get("/api/review").json() == []  # nothing seen, nothing due
     post_quiz(client, lesson, b, right(b))  # a right first try makes no card
@@ -47,10 +48,11 @@ def test_home_badges_and_progress_shape(client: TestClient) -> None:
     assert body == {"mastery": dict.fromkeys(LESSONS, "notstarted"), "due": 0}
 
 
-@pytest.mark.parametrize("lesson", ALL)
+@pytest.mark.parametrize("lesson", QUIZ)
 def test_mastery_follows_each_action_up_to_mastered(
     client: TestClient, store: SqliteStore, uid: int, lesson: Lesson
 ) -> None:
+    assert len(singles(lesson)) >= 2, "lesson needs two single items with a wrong option"
     item = singles(lesson)[0]
     post_quiz(client, lesson, item, wrong(item))
     assert client.get("/api/progress").json()["mastery"][lesson.id] == "learning"
