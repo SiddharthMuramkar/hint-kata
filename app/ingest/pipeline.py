@@ -10,6 +10,7 @@ from app.ingest.chunk import Chunk, chunk_page, sha256
 from app.ingest.normalize import normalize
 
 Entry = dict[str, Any]
+LINK_KIND = "link"  # linked, never fetched or ingested: no cache file, no hash
 
 
 @dataclass(frozen=True)
@@ -25,7 +26,12 @@ class Page:
     chunks: list[Chunk]
 
 
+def is_link(entry: Entry) -> bool:
+    return entry.get("kind") == LINK_KIND
+
+
 def load_entries(manifest: Path, only: list[str] | None = None) -> list[Entry]:
+    """All manifest entries (link-only ones too), limited to `only` ids when given."""
     entries: list[Entry] = yaml.safe_load(manifest.read_text(encoding="utf-8"))["sources"]
     if only:
         unknown = sorted(set(only) - {e["id"] for e in entries})
@@ -41,11 +47,24 @@ def cache_file(cache: Path, entry: Entry) -> Path:
 
 
 def missing_pages(entries: list[Entry], cache: Path) -> list[Entry]:
-    return [e for e in entries if not cache_file(cache, e).is_file()]
+    return [e for e in entries if not is_link(e) and not cache_file(cache, e).is_file()]
+
+
+def as_markdown(entry: Entry, text: str) -> str:
+    """A `raw` page that is not Markdown (an example workflow, say) becomes one code block."""
+    url = entry.get("fetch_url", "")
+    if entry["kind"] != "raw" or url.endswith(".md"):
+        return text
+    lang = url.rsplit(".", 1)[-1] if "." in url.rsplit("/", 1)[-1] else ""
+    fence = "`````" if "```" in text else "```"
+    return f"{fence}{lang}\n{text.strip()}\n{fence}\n"
 
 
 def build_page(entry: Entry, cache: Path, model: str) -> Page:
-    markdown = normalize(entry["kind"], cache_file(cache, entry).read_text(encoding="utf-8"))
+    if is_link(entry):
+        raise ValueError(f"{entry['id']}: link entries are never ingested")
+    text = cache_file(cache, entry).read_text(encoding="utf-8")
+    markdown = normalize(entry["kind"], as_markdown(entry, text))
     return Page(
         source=entry["track"],
         path=entry["id"],

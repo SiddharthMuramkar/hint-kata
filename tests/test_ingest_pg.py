@@ -12,6 +12,7 @@ from typing import LiteralString
 
 import psycopg
 import pytest
+import yaml
 from pydantic_ai import Embedder
 from pydantic_ai.embeddings import TestEmbeddingModel
 
@@ -20,7 +21,15 @@ from app.ingest.chunk import chunk_page, sha256
 from app.ingest.embed import embed_texts
 from app.ingest.pipeline import Page, build_page, load_entries
 from app.ingest.search import hybrid_search
-from app.ingest.upsert import Plan, apply_plan, check_dims, plan_page, sync_page
+from app.ingest.upsert import (
+    Plan,
+    apply_plan,
+    check_dims,
+    delete_pages,
+    plan_page,
+    stale_pages,
+    sync_page,
+)
 from app.store_pg import PgConn, apply_schema, connect_pg
 from tests.test_ingest_chunk import doc, words
 from tests.test_ingest_cli import ing, make_site
@@ -193,6 +202,9 @@ def test_hybrid_search_fuses_vector_and_keyword_ranks(conn: PgConn) -> None:
     assert hits[0].heading_path == ["FastAPI", "Page title", "A"]
     assert "pooler" in hits[0].text and hits[0].score > hits[1].score > hits[2].score
     assert [h.anchor for h in hybrid_search(conn, query, "pooler", k=2)] == ["a", "c"]
+    # ef_search was raised with SET LOCAL, so it is back to the default once the search is done
+    row = conn.execute("SHOW hnsw.ef_search").fetchone()
+    assert row is not None and row["hnsw.ef_search"] == "40"
 
 
 def test_hybrid_search_understands_web_search_syntax_and_empty_text(conn: PgConn) -> None:
@@ -238,6 +250,53 @@ def test_the_script_ingests_checks_and_resyncs(
     for other in ("fastapi-dependencies", "pydantic-ai-install"):
         assert re.search(rf"{other}\s+\d+ chunks: embedded 0,", out)  # untouched pages cost nothing
     assert ing.main([*args, "--check"]) == 0
+
+
+def test_stale_pages_are_found_and_deleted_with_their_chunks(conn: PgConn) -> None:
+    embeds = Embeds()
+    sync_page(conn, page_of(sections(), "p1"), embeds)
+    sync_page(conn, page_of(sections(), "p2"), embeds)
+    assert stale_pages(conn, {("fastapi", "p1"), ("fastapi", "p2")}) == []
+    stale = stale_pages(conn, {("fastapi", "p1")})
+    assert [(s.source, s.path, s.chunks) for s in stale] == [("fastapi", "p2", 3)]
+    delete_pages(conn, stale)
+    assert count(conn, PAGES) == 1 and count(conn, CHUNKS) == 3  # p1's chunks are untouched
+
+
+def test_the_script_prunes_pages_that_left_the_manifest(
+    conn: PgConn,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(settings, "database_url_unpooled", URL)
+    manifest, cache = make_site(tmp_path)
+    args = ["--manifest", str(manifest), "--cache", str(cache)]
+    assert ing.main(args, embedder=Embedder(TestEmbeddingModel(dimensions=DIMS))) == 0
+    # One page leaves the manifest; another becomes link-only (licence reasons): both must go.
+    removed, linked, kept = yaml.safe_load(manifest.read_text(encoding="utf-8"))["sources"]
+    manifest.write_text(
+        yaml.safe_dump({"sources": [{**linked, "kind": "link"}, kept]}), encoding="utf-8"
+    )
+    capsys.readouterr()
+
+    assert ing.main([*args, "--check"]) == 1  # --check reports them
+    out = capsys.readouterr().out
+    assert re.search(rf"would delete\s+fastapi/{removed['id']}", out) and "--prune" in out
+    assert "2 stale" in out
+    assert ing.main(["--manifest", str(manifest), "--prune", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert re.search(rf"would delete\s+pydantic-ai/{linked['id']}", out)
+    assert "prune: 2 page(s) would be removed" in out and count(conn, PAGES) == 3
+
+    assert ing.main(["--manifest", str(manifest), "--prune"]) == 0
+    out = capsys.readouterr().out
+    assert re.search(rf"deleted\s+fastapi/{removed['id']}", out)
+    assert count(conn, PAGES) == 1
+    assert count(conn, CHUNKS) == len(build_page(kept, cache, settings.embed_model).chunks)
+    assert ing.main([*args, "--check"]) == 0
+    assert ing.main(["--manifest", str(manifest), "--prune"]) == 0
+    assert "prune: 0 page(s) removed" in capsys.readouterr().out
 
 
 def test_plan_page_is_read_only(conn: PgConn) -> None:

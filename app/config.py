@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]  # repo root; keeps paths cwd-indepen
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
 
     openrouter_api_key: str = ""
     tutor_model: str = "openrouter:anthropic/claude-haiku-5.5"

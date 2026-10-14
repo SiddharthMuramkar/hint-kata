@@ -59,6 +59,8 @@ class Hit:
 def hybrid_search(
     conn: PgConn, query_embedding: Sequence[float], query_text: str, k: int = 8
 ) -> list[Hit]:
+    # LOCAL: lasts for this transaction only, so it is safe behind Neon's pooler (PgBouncer).
+    conn.execute("SET LOCAL hnsw.ef_search = 100")
     rows = conn.execute(
         SEARCH, {"emb": Vector(list(query_embedding)), "q": query_text, "k": k}
     ).fetchall()
