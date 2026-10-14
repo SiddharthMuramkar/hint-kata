@@ -202,3 +202,71 @@ def test_fastapi_end_to_end_with_cache(tmp_path: Path, monkeypatch: pytest.Monke
     assert out.startswith("# Title <!-- anchor: title -->")
     assert "```python\na = 1\nb = 2\n```" in out and "```python\nc = 3\n```" in out
     assert calls == ["https://raw/index.md", f"{fd.FASTAPI_RAW}/9.9.9/docs_src/d/t.py"]
+
+
+def test_raw_kind_keeps_the_page_exactly_as_served(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    page = "> keep this\r\n\r\n# Title  \r\n\r\ntrailing space \n"
+    monkeypatch.setattr(fd, "fetch", lambda url: page)
+    entry = {"id": "r", "track": "github", "kind": "raw", "fetch_url": "https://x/y.md"}
+    assert fd.build(entry, tmp_path) == page
+
+
+def test_raw_with_crlf_survives_update_then_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(fd, "fetch", lambda url: "line one\r\nline two\r\n")
+    entry = {"id": "r", "track": "github", "kind": "raw", "fetch_url": "https://x/y.md"}
+    manifest = tmp_path / "sources.json"
+    manifest.write_text(json.dumps({"sources": [entry]}))
+    args = ["--manifest", str(manifest), "--cache", str(tmp_path / "cache")]
+    assert fd.main([*args, "--update"]) == 0
+    assert fd.main([*args, "--check"]) == 0  # the check reads bytes, so CRLF cannot drift
+
+
+def _link_manifest(tmp_path: Path) -> Path:
+    link = {"id": "l", "track": "github", "kind": "link", "url": "https://x/docs/page"}
+    page = {"id": "p", "track": "github", "kind": "raw", "fetch_url": "https://x/p.md"}
+    path = tmp_path / "sources.json"
+    path.write_text(json.dumps({"sources": [link, page]}))
+    return path
+
+
+def test_link_entries_are_never_fetched_or_updated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    asked: list[str] = []
+
+    def fake(url: str) -> str:
+        asked.append(url)
+        return "body\n"
+
+    monkeypatch.setattr(fd, "fetch", fake)
+    manifest, cache = _link_manifest(tmp_path), tmp_path / "cache"
+    assert fd.main(["--manifest", str(manifest), "--cache", str(cache), "--update"]) == 0
+    assert asked == ["https://x/p.md"]  # nothing was requested for the link
+    link, page = json.loads(manifest.read_text())["sources"]
+    assert "sha256" not in link and "fetched_at" not in link
+    assert page["sha256"] == fd.sha256("body\n")
+    assert not (cache / "github" / "l.md").exists()
+
+
+def test_check_reports_link_entries_as_link_not_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(fd, "fetch", lambda url: "body\n")
+    manifest, cache = _link_manifest(tmp_path), tmp_path / "cache"
+    base = ["--manifest", str(manifest), "--cache", str(cache)]
+    assert fd.main([*base, "--update"]) == 0
+    capsys.readouterr()
+    assert fd.main([*base, "--check"]) == 0
+    out = capsys.readouterr().out
+    assert "link     l" in out and "MISSING" not in out
+    assert "1 ok, 0 failed, 1 link-only" in out
+    assert fd.main([*base, "--check", "--only", "l"]) == 0  # only a link: nothing to hash
+
+
+def test_build_refuses_a_link_entry(tmp_path: Path) -> None:
+    with pytest.raises(ValueError):
+        fd.build({"id": "l", "kind": "link", "url": "https://x"}, tmp_path)
