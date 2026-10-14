@@ -1,0 +1,5 @@
+Lesson FA1 teaches FastAPI dependencies around one idea: a dependency is a function FastAPI calls for you, and its parameters are filled in the same way as a route's parameters. The reading has six short sections: what `Depends` does, `Annotated` aliases, sub-dependencies, classes as dependencies, `yield` dependencies (including the default request scope versus `scope="function"`, added in FastAPI 0.121) and a teaser on `dependency_overrides` for lesson FA2. Every API shown was run against FastAPI 0.143.0. The lesson also has 2 warm-up predictions, a 5-item quiz (3 single-choice items whose wrong options are named misconceptions, one ordering item for the `yield` teardown chain, one fill-in-the-blank), and 2 think-deeper questions with binary rubrics. The hands-on task asks for a validated `pagination` dependency and a `get_db` dependency with `yield` that logs "open" and "close"; the hidden tests use overrides to prove the route really goes through both. The starter fails and the solution passes. Start by reading `content/fastapi/fa1-dependencies/lesson.md`.
+
+Closes #13
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
