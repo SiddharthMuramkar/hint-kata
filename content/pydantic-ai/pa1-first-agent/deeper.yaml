@@ -42,7 +42,8 @@ questions:
   - id: d2
     prompt: >-
       Your agent has `instructions="Be helpful."` and its answers are long and inconsistent. How would you
-      improve the instructions, and how would you check that the new version works?
+      improve the instructions, and how would you check that the new version works? The answers must also
+      come back as a category and a priority your code can read.
     rubric:
       - name: specific-behavior
         explanation: >-

@@ -24,4 +24,4 @@ Press **Check my work** in the lesson page. The hidden tests use a `TestModel`, 
 - running the agent gives back a `CityFacts` instance.
 - the instructions mention "concise".
 
-Want to see it work for real? Set `OPENROUTER_API_KEY` and run `python first_agent.py` from your workspace folder. That makes one small paid call.
+Want to see it work for real? Set `OPENROUTER_API_KEY` and run `uv run python first_agent.py` from your workspace folder. That makes one small paid call.

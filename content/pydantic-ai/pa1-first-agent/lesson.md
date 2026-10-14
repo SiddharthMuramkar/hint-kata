@@ -37,7 +37,7 @@ print(result.output)
 
 The agent sends your prompt to the model and hands back a result object. The answer lives in `result.output`. Here it is a plain string, because we did not ask for anything else.
 
-Installing the library is one line. Run `uv add pydantic-ai`, or `pip install pydantic-ai`. It needs Python 3.11 or newer. This repo already has it installed.
+In your own project, installing the library is one line: `uv add pydantic-ai` (or `pip install pydantic-ai`). It needs Python 3.11 or newer. This repo already has the slim package with the OpenRouter extra installed.
 
 Read more: [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/) and [Installation](https://pydantic.dev/docs/ai/overview/install/).
 
@@ -162,7 +162,7 @@ This is better than parsing text for four reasons:
 3. **Described.** The model sees your field names and `Field(description=...)` text, so the schema also guides it.
 4. **Stable.** Your code reads fields. It does not care how the model phrases things.
 
-How does the model return structured data? By default Pydantic AI registers a special **output tool** built from your model's JSON schema. The model "calls" it to give the final answer. There are two other modes: **native output**, where the provider forces JSON that matches the schema, and **prompted output**, where the schema is added to the instructions as text. You rarely need to choose. For some reasoning models a forced tool call would switch their thinking off. Pydantic AI then uses native JSON output for you when the model supports it.
+How does the model return structured data? By default Pydantic AI registers a special **output tool** built from your model's JSON schema. The model "calls" it to give the final answer. There are two other modes: **native output**, where the provider forces JSON that matches the schema, and **prompted output**, where the schema is added to the instructions as text. You rarely need to choose. In the installed version (2.56.0), for some reasoning models a forced tool call would switch their thinking off, so Pydantic AI falls back to native JSON output when the model supports it.
 
 You can also allow more than one outcome with a list: `output_type=[CityLocation, str]`. The model can then return a city, or plain text to ask a follow-up question.
 
