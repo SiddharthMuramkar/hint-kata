@@ -129,3 +129,14 @@ def test_unknown_kind_is_an_error() -> None:
 def test_blank_lines_inside_code_are_kept_and_elsewhere_collapsed() -> None:
     text = "# T\n\n\n\nText.\n\n\n```python\na = 1\n\n\n\nb = 2\n```\n\n\n"
     assert normalize_github(text) == "# T\n\nText.\n\n```python\na = 1\n\n\n\nb = 2\n```\n"
+
+
+def test_html_comments_go_even_across_lines_but_anchor_ids_and_code_stay() -> None:
+    text = (
+        "## Title <!-- anchor: title -->\n\nBefore <!-- one\nline comment --> after.\n\n"
+        "Write `<!-- not a comment -->` in HTML.\n\n```html\n<!-- code -->\n```\n"
+    )
+    out = strip_html(text)
+    assert "## Title <!-- anchor: title -->" in out
+    assert "Before  after." in out and "one" not in out
+    assert "Write `<!-- not a comment -->` in HTML." in out and "<!-- code -->" in out

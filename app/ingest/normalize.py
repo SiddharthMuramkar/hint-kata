@@ -35,7 +35,7 @@ AUTOREF_RE = re.compile(r"\[([^\]]+)\]\[[A-Za-z_]\w*(?:\.\w+)+\]")  # [text][pyd
 FENCE_ATTR_RE = re.compile(r"^(\s*)(`{3,})(\w[\w+-]*)\s*\{([^}]*)\}\s*$")
 TITLE_RE = re.compile(r'title="([^"]*)"')
 LINK_TAG_RE = re.compile(r'<a\s[^>]*?href="([^"]*)"[^>]*>(.*?)</a>', re.IGNORECASE | re.DOTALL)
-COMMENT_RE = re.compile(r"<!--(?!\s*anchor:).*?-->")  # keep `<!-- anchor: id -->`
+COMMENT_RE = re.compile(r"<!--(?!\s*anchor:)[\s\S]*?--!?>")  # keep `<!-- anchor: id -->`
 TAGS = (
     "a abbr b blockquote br code dfn div em hr i img kbd li ol p picture source span strong sub sup"
     " summary details svg table tbody td th thead tr u ul"
@@ -77,16 +77,30 @@ def outside_fences(text: str, fn: Callable[[str], str]) -> str:
 
 
 def strip_html(text: str) -> str:
-    """Drop HTML tags (keep their text and `<a href>` links); leave fenced and inline code alone."""
+    """Drop HTML tags and comments (keep their text and `<a href>` links), paragraph by paragraph.
+    Fenced code and inline code are left alone."""
 
     def clean(part: str) -> str:
         part = LINK_TAG_RE.sub(lambda m: f"[{TAG_RE.sub('', m[2]).strip()}]({m[1]})", part)
         return TAG_RE.sub("", COMMENT_RE.sub("", part))
 
-    def line(ln: str) -> str:
-        return "".join(p if i % 2 else clean(p) for i, p in enumerate(CODE_SPAN_RE.split(ln)))
+    out: list[str] = []
+    para: list[str] = []
 
-    return outside_fences(text, line)
+    def flush() -> None:
+        if para:
+            spans = CODE_SPAN_RE.split("\n".join(para))
+            out.append("".join(p if i % 2 else clean(p) for i, p in enumerate(spans)))
+            para.clear()
+
+    for ln, code in mark_code(text):
+        if code or not ln.strip():
+            flush()
+            out.append(ln)
+        else:
+            para.append(ln)
+    flush()
+    return "\n".join(out)
 
 
 def plain_alerts(text: str) -> str:
