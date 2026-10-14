@@ -137,7 +137,7 @@ items:
     concept: raise-http-exception
     source_section: raising-httpexception
     prompt: 'raise ____(status_code=404, detail="user not found")'
-    answer: HTTPException
+    answer: 're:(fastapi\.)?HTTPException'
     explanation: >-
       You `raise` an `HTTPException`. It stops the function at once, even inside a helper, and the
       client gets the status code and `{"detail": "user not found"}`.

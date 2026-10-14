@@ -2,8 +2,9 @@ questions:
   - id: d1
     prompt: >-
       A teammate returns the database user object straight from a route, and the object has a
-      `hashed_password` field. How would you make sure the hash never reaches a client, and how
-      would you check that it stays that way?
+      `hashed_password` field. Your API has several routes that return users (a single read, a list
+      and an update). How would you make sure the hash never reaches a client from any of them, and
+      how would you check that it stays that way?
     rubric:
       - name: separate-output-model
         explanation: The answer introduces an output model without the secret field.
@@ -36,7 +37,7 @@ questions:
   - id: d2
     prompt: >-
       Your API raises `HTTPException(status_code=409, ...)` in twelve different places when a product is
-      out of stock. Describe a cleaner design. What would you change, and what would you gain?
+      out of stock. Describe a cleaner design. What would you change, what would you gain, and how would you check it?
     rubric:
       - name: custom-exception
         explanation: The answer defines one custom exception for the business failure.

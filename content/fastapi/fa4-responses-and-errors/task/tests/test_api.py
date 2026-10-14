@@ -22,6 +22,18 @@ def test_create_user_is_201_and_has_no_password(client):
     assert response.json() == {"id": 1, "name": "Ann", "email": "ann@example.com"}
 
 
+def test_output_model_has_no_password_field():
+    assert "password" not in api.UserOut.model_fields
+
+
+def test_create_route_documents_user_out_with_201():
+    # The route must be declared with the output model, not filter by hand.
+    schema = api.app.openapi()["paths"]["/users/"]["post"]["responses"]["201"]
+    assert schema["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/UserOut"
+    }
+
+
 def test_password_is_not_in_the_create_response(client):
     response = client.post("/users/", json=NEW_USER)
     assert PASSWORD not in response.text

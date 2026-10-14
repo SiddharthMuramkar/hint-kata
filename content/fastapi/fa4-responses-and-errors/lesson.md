@@ -245,4 +245,4 @@ Before you call a route done, run through these questions.
 - Do business failures use one custom exception with one handler, so the status code is decided in one place?
 - Did you test the failures too: the 404, the 409, the 422, and a check that no response body contains the password, error bodies included?
 
-Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/), [Response Status Code](https://fastapi.tiangolo.com/tutorial/response-status-code/), [Handling Errors](https://fastapi.tiangolo.com/tutorial/handling-errors/), [Extra Models](https://fastapi.tiangolo.com/tutorial/extra-models/).
+Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/), [Response Status Code](https://fastapi.tiangolo.com/tutorial/response-status-code/), [Handling Errors](https://fastapi.tiangolo.com/tutorial/handling-errors/), [Extra Models](https://fastapi.tiangolo.com/tutorial/extra-models/). This site is not affiliated with FastAPI.

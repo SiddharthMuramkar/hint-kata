@@ -38,7 +38,7 @@ def read_user(user_id: int):
 @app.post("/orders/{item}")
 def order(item: str) -> dict[str, str]:
     if STOCK.get(item, 0) <= 0:
-        raise OutOfStock(item)  # noqa: F821  # ty: ignore[unresolved-reference]
+        raise OutOfStock(item)  # noqa: F821
     STOCK[item] -= 1
     return {"ordered": item}
 

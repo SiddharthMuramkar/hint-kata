@@ -30,7 +30,7 @@ Write two Pydantic models:
 
 ## 5. A safe validation error
 
-FastAPI's default 422 body repeats the request body in an `input` key. A signup that has a password but no email would get its password sent back.
+FastAPI's default 422 body repeats the request body in an `input` key (for a missing field, the whole body). A signup that has a password but no email would get its password sent back.
 
 Register a handler for `RequestValidationError` that keeps the status **422** and returns
 
