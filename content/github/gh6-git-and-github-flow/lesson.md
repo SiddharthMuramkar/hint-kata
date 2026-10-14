@@ -124,15 +124,15 @@ git push -u origin feature/greeting
 gh pr create
 ```
 
-1. **Branch.** Start from an up-to-date `main`. The branch is a safe place to work. Nothing reaches `main` until you merge, and others get a chance to look first.
-2. **Commit.** Aim for small commits that each hold one complete change. Say you rename a variable and add tests. Put the rename in one commit and the tests in another. Later you can undo the rename and keep the tests. If both were in one commit, that would take more work.
+1. **Branch.** Start from an up-to-date `main`. Your work on the branch is kept apart from `main`. Nothing reaches `main` until you merge, and others get a chance to look first.
+2. **Commit.** Aim for small commits that each hold one complete change. Say you rename a variable and add tests. Make the rename one commit and the tests a second commit. Later you can undo the rename and keep the tests. If both were in one commit, that would take more work.
 3. **Push.** This sends your branch to GitHub. It backs up your work, lets you open it from another computer, and lets others see it.
-4. **Open a pull request.** A PR asks people to look at your branch. It compares your branch (the *head*) with the branch you want to merge into (the *base*). The **Files changed** tab shows what would change if it merged. Write what you changed and what problem it solves. If it fixes an issue, put `Closes #12` in the body, and the issue closes itself when the PR merges. A **draft** PR means "not done, but have a look".
+4. **Open a pull request.** A PR asks people to look at your branch. It compares your branch (the *head*) with the branch you want to merge into (the *base*). On the **Files changed** tab you see the change a merge would bring. Write what you changed and what problem it solves. If it fixes an issue, put `Closes #12` in the body, and the issue closes itself when the PR merges. A **draft** PR means "not done, but have a look".
 5. **Review.** Reviewers comment on the whole PR or on single lines. You answer with more commits on the same branch and push them. The PR updates by itself, and any checks run again. Lesson GH3 covered reviewing.
 6. **Merge.** When the PR is approved, merge it. Branch protection can block the merge until the rules are met. GitHub keeps the comments and commits of the PR, so later readers can see why the change was made.
 7. **Delete the branch.** The work is done, and a deleted branch cannot be used by accident. Nothing is lost: the PR and its commits stay, and a deleted branch can be restored.
 
-Steps 1 to 3 happen on your computer. Steps 4 to 7 mostly happen on GitHub, and `gh` lets you do them from the terminal. Use one branch for each set of unrelated changes. Then a delay in one change does not hold up the others.
+Steps 1 to 3 happen on your computer. Steps 4 to 7 mostly happen on GitHub, and `gh` lets you do them from the terminal. Give unrelated changes their own branches. Then a delay in one does not hold up the others.
 
 ## Remotes and tracking branches
 
@@ -184,7 +184,7 @@ That is `git branch -vv` after the push. ([git push manual](https://git-scm.com/
 
 ## Short-lived branches
 
-A branch should live for hours or a few days, not weeks. GitHub's advice is to merge a pull request as soon as you can, because that pushes everyone toward smaller PRs. Lesson GH4 showed the other reason: the longer a branch lives, the further `main` moves away from it, and the more conflicts you meet.
+A branch should live for hours or a few days, not weeks. GitHub advises merging a PR early, since that nudges everyone toward smaller PRs. Lesson GH4 showed the other reason: the longer a branch lives, the further `main` moves away from it, and the more conflicts you meet.
 
 - **One branch per change.** Unrelated changes get separate branches and separate PRs.
 - **Start from a fresh `main`.** Run `git switch main`, `git pull`, then `git switch -c <name>`.
