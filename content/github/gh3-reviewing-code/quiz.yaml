@@ -1,0 +1,142 @@
+items:
+  - id: q1
+    type: single
+    concept: useful-review-comment
+    source_section: comments-suggestions-and-decisions
+    prompt: >-
+      A pull request adds a function `def f(n): ...` that retries a network call `n` times. You
+      are the reviewer. Which comment on that line is the most useful?
+    options:
+      - text: "This is confusing."
+        misconception: thinks any criticism counts as feedback
+        feedback: >-
+          It says something is wrong but not what, why or what to do. The author has to guess,
+          and may guess wrong.
+      - text: "I would never write it like this. Please rewrite the function."
+        misconception: confuses a personal preference with a reason
+        feedback: >-
+          It points at the author instead of the code, and gives no reason or direction. A
+          reviewer should say what they want and why.
+      - text: >-
+          `n` means "retries" here but "users" in `count_users(n)` two lines up. Could we name it
+          `max_retries`?
+        correct: true
+        feedback: >-
+          Right. It points at the exact line, gives the reason (the same name has two meanings)
+          and says what you want. It is also phrased as a question, so it is clear this is a
+          small request, not a demand.
+      - text: "LGTM."
+        misconception: thinks approving with no comment is always a good review
+        feedback: >-
+          If the code is fine, a short approval is fine. But here the reviewer saw a naming problem.
+          Saying nothing wastes the chance to share what they noticed.
+  - id: q2
+    type: single
+    concept: author-cannot-approve
+    source_section: comments-suggestions-and-decisions
+    prompt: >-
+      You are the only developer on a repository. You open a PR, then read your own diff and click
+      Review changes. Which decision can you submit?
+    options:
+      - text: Approve, because you wrote the code and know it is correct.
+        misconception: thinks the author can approve their own PR
+        feedback: >-
+          The author of a PR is never a valid approver. That rule is what makes an approval mean
+          "someone other than the author looked at this".
+      - text: Request changes, so that nobody can merge until you fix it.
+        misconception: thinks a solo author can request changes on their own PR
+        feedback: >-
+          On your own PR GitHub only offers Comment. Even if Request changes were possible, it
+          would only block the merge if the repository requires a pull request.
+      - text: Comment. You can leave line comments and suggestions on your own PR, but not approve it.
+        correct: true
+        feedback: >-
+          Right. Comment is the only decision available to the author. It is still useful: you can
+          read the diff slowly and leave notes or suggestions for yourself.
+      - text: None. GitHub does not let you review your own PR at all.
+        misconception: thinks self-review is blocked by GitHub
+        feedback: >-
+          You can comment on your own PR, and the lesson recommends reading your own diff before
+          you ask others. What you cannot do is approve it.
+  - id: q3
+    type: order
+    concept: review-flow
+    source_section: responding-to-feedback
+    prompt: Put the steps of one review round in order.
+    steps:
+      - The author marks the PR ready for review and requests a reviewer
+      - The reviewer reads the Files changed tab and ticks Viewed on each file
+      - The reviewer adds pending line comments, one with a suggestion block
+      - The reviewer submits the review with a decision
+      - The author clicks Commit suggestion on the suggestion
+      - The author resolves the thread and re-requests a review
+    explanation: >-
+      Comments stay pending until the review is submitted, so the author gets one complete
+      message. The author then applies the suggestion, resolves the thread, and asks the reviewer
+      to look again.
+  - id: q4
+    type: blank
+    concept: suggestion-block
+    source_section: comments-suggestions-and-decisions
+    prompt: >-
+      To turn a review comment into a change the author can apply with one click, wrap the new
+      text in a fenced block whose language tag is ____ (the part after the three backticks).
+    answer: 're:(```)?suggestion'
+    explanation: >-
+      A block tagged suggestion shows the author a diff and a "Commit suggestion" button. An
+      ordinary code block (for example tagged python) is only text that nobody can apply with a click.
+  - id: q5
+    type: single
+    concept: easy-to-review-pr
+    source_section: making-your-pr-easy-to-review
+    prompt: >-
+      You rename a module, add a new feature that uses it and bump two dependencies. The diff is
+      1,800 lines. Which way of sending it makes the review best?
+    options:
+      - text: One PR with a very long description that explains everything.
+        misconception: thinks a long description can make up for a large mixed diff
+        feedback: >-
+          A good description helps, but the reviewer must still hold three unrelated changes in
+          their head. The risk of a skim is the same.
+      - text: One PR, but mark it ready only after you tick every file as Viewed.
+        misconception: confuses the reviewer's Viewed checkbox with the author's preparation
+        feedback: >-
+          The Viewed box is a progress tool for the reviewer. It does not make the diff smaller
+          or the purpose clearer.
+      - text: Three PRs, one for the rename, one for the feature and one for the dependency bump.
+        correct: true
+        feedback: >-
+          Right. Each PR serves one purpose, so it is easier to understand, quicker to review and
+          safer to merge. The dependency PR can also get the extra security attention it needs.
+      - text: Open it as a draft and keep it a draft, so nobody feels pressed to review it.
+        misconception: thinks a draft state shrinks the work for reviewers
+        feedback: >-
+          A draft says "not ready yet". It does not change the size of the diff, and at some point
+          it still has to be reviewed.
+  - id: q6
+    type: single
+    concept: request-changes-is-a-signal
+    source_section: comments-suggestions-and-decisions
+    prompt: >-
+      A reviewer submits "Request changes" on a PR. The repository has no ruleset and no branch
+      protection. Can a maintainer with write access merge the PR?
+    options:
+      - text: No. Request changes always blocks the merge until the reviewer approves.
+        misconception: thinks Request changes is always enforced
+        feedback: >-
+          It is only a signal by default. It becomes a block when a ruleset or branch protection
+          requires a pull request.
+      - text: Yes. Without such a rule, Request changes is informational and does not block the merge.
+        correct: true
+        feedback: >-
+          Right. It still tells the team the reviewer is unhappy, so you should talk first. But the
+          platform only enforces it when the repository requires a pull request.
+      - text: No. Only a reviewer with admin rights can ask for changes, so a normal merge is refused.
+        misconception: thinks Request changes needs special rights to enforce
+        feedback: >-
+          Anyone who can review can submit it. Whether it blocks depends on the repository rules.
+      - text: Yes, but only after the author clicks Resolved on every thread.
+        misconception: mixes up resolving threads with the review decision
+        feedback: >-
+          Resolving threads is a separate habit, and some repositories require it. It does not
+          clear a Request changes decision.
