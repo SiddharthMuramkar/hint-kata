@@ -1,0 +1,199 @@
+items:
+  - id: q1
+    type: single
+    concept: allow-rule-too-broad
+    source_section: guard-rails-with-permissions-and-hooks
+    prompt: |
+      A teammate edits `.claude/settings.json` so that an unattended agent can run the tests
+      without a prompt. The repo uses `uv`. What is the bug?
+
+      ```json
+      {
+        "permissions": {
+          "allow": ["Bash(uv run *)", "Bash(git add *)", "Bash(git commit *)"],
+          "deny": ["Bash(git push --force *)", "Bash(gh pr merge --admin *)"]
+        }
+      }
+      ```
+    options:
+      - text: >-
+          `Bash(uv run *)` allows any program, because `uv run` starts whatever command follows it.
+          The rule should name the tools, such as `Bash(uv run pytest *)`.
+        correct: true
+        feedback: >-
+          Right. `uv run echo hi` and `uv run python -c "..."` both run, so this one rule allows
+          every command. Name the exact tools you want without a prompt.
+      - text: >-
+          The `deny` rules are checked after the `allow` rules, so `git push --force` is still
+          allowed.
+        misconception: Thinks allow rules are checked before deny rules.
+        feedback: >-
+          The order is deny first, then ask, then allow, and the first match wins. A deny rule
+          beats an allow rule. The deny list here does its job.
+      - text: >-
+          `Bash(git commit *)` is too risky for an allow rule. It should be an ask rule, so a person
+          approves every commit.
+        misconception: Thinks risky or important commands should always be ask rules.
+        feedback: >-
+          An ask rule waits for a person. In an unattended run nobody answers, so the run stalls.
+          A commit on a branch is easy to undo. Put safe commands in allow and harmful ones in deny.
+      - text: >-
+          The agent needs a hook as well. A rule in `settings.json` does nothing until a hook
+          switches it on.
+        misconception: Thinks permission rules need a hook to take effect.
+        feedback: >-
+          Permission rules work by themselves. Hooks are a separate layer that runs a program at a
+          fixed moment, such as after an edit.
+
+  - id: q2
+    type: single
+    concept: memory-is-a-request
+    source_section: what-memory-files-are-for
+    prompt: >-
+      `CLAUDE.md` says "Never push to main." You leave an agent running overnight. Which statement
+      is true?
+    options:
+      - text: >-
+          The sentence steers the agent but does not enforce anything. The locks are the
+          `block-push-main` hookify rule and, strongest of all, the GitHub ruleset on `main`.
+        correct: true
+        feedback: >-
+          Right. A memory file is a request. A hook that blocks the command and a ruleset on
+          GitHub are enforced by programs, and the ruleset holds even if the local checks fail.
+      - text: >-
+          The agent can never break it, because Claude Code treats every line of `CLAUDE.md` as a
+          hard rule.
+        misconception: Thinks memory files are enforced by the program.
+        feedback: >-
+          The permissions docs say that guidance in `CLAUDE.md` shapes what Claude tries and does
+          not enforce a boundary. That is why this repo repeats its key rules as deny rules, hooks
+          and a ruleset.
+      - text: >-
+          `CLAUDE.md` outranks the deny list, so you can drop the deny rules and keep the sentence.
+        misconception: Thinks a memory file overrides permission rules.
+        feedback: >-
+          It is the other way round. Rules in `settings.json` are enforced by Claude Code; a
+          memory file is text for the model to read. Removing deny rules would remove a real lock.
+      - text: >-
+          The sentence is ignored, because `CLAUDE.md` is only read when a rule file with a
+          `paths:` line matches.
+        misconception: Mixes up CLAUDE.md with path-scoped rule files.
+        feedback: >-
+          `CLAUDE.md` is read at the start of each session. Only rule files with a `paths:` line
+          wait for matching files. Reading it is not the problem; reading is not enforcing.
+
+  - id: q3
+    type: single
+    concept: one-branch-one-worktree
+    source_section: worktrees-for-parallel-work
+    prompt: |
+      A second worktree has the branch `claude/first-change` checked out. In your main folder you
+      run:
+
+      ```bash
+      git switch claude/first-change
+      ```
+
+      What happens?
+    options:
+      - text: >-
+          Git refuses and says the branch is already used by the other worktree. A branch can be
+          checked out in only one worktree at a time, so the second agent needs its own branch.
+        correct: true
+        feedback: >-
+          Right. I ran this in a throwaway repo and got exactly that error. Create a new branch for
+          the second folder with `git worktree add -b <new-branch> <folder>`.
+      - text: >-
+          Git switches, and from then on both folders show the same files, which stay in sync.
+        misconception: Thinks worktrees share their working files.
+        feedback: >-
+          Each worktree has its own files on disk. They share only the history, which lives in one
+          `.git` folder. Git does not let two folders hold the same branch.
+      - text: >-
+          Git switches and quietly moves the other worktree to a detached HEAD.
+        misconception: Thinks git silently takes a branch away from another worktree.
+        feedback: >-
+          Git protects the other folder. It stops with an error and changes nothing.
+      - text: >-
+          Git switches, but each folder keeps its own copy of the branch, so the two copies drift
+          apart.
+        misconception: Thinks a branch is copied per worktree.
+        feedback: >-
+          A branch is one pointer in the shared history. There are not two copies of it. That is
+          why git refuses to check it out twice.
+
+  - id: q4
+    type: order
+    concept: agent-pr-path
+    source_section: how-claude-opens-a-branch-and-a-pull-request
+    prompt: Put the steps of an agent's change in the order they happen.
+    steps:
+      - "Create the branch from an up-to-date `main`: `git switch -c claude/first-change origin/main`."
+      - "Edit the files and commit the change."
+      - "Push the branch: `git push -u origin claude/first-change`."
+      - "Open the pull request: `gh pr create --base main`."
+      - "The reviewer reads the diff and reports a problem."
+      - "The builder pushes a fix commit to the same branch."
+      - "Once the review is clean and `checks` is green, the pull request is squash merged."
+    explanation: >-
+      The branch comes first, so no commit lands on `main`. You commit before you push, because a
+      push sends commits. `gh pr create` needs the branch on GitHub, so it comes after the push. A
+      review needs an open pull request, and a fix answers a finding, so the fix comes after it.
+      The merge is last, because the fix commit has to be reviewed and checked first.
+
+  - id: q5
+    type: blank
+    concept: deny-key
+    source_section: guard-rails-with-permissions-and-hooks
+    prompt: |
+      Fill in the key, so that an unattended agent can never run an admin merge, and is never left
+      waiting for a person to answer:
+
+      ```json
+      {
+        "permissions": {
+          "allow": ["Bash(uv run pytest *)"],
+          "____": ["Bash(gh pr merge --admin *)"]
+        }
+      }
+      ```
+    answer: 're:"?deny"?'
+    explanation: >-
+      `deny` rules always win and never wait for a person. An `ask` rule would stop the run and
+      wait, and an `allow` rule would let the command through.
+
+  - id: q6
+    type: single
+    concept: green-ci-is-not-review
+    source_section: checking-an-agent-pull-request-before-you-merge
+    prompt: >-
+      The issue says "fix a typo in the GH5 lesson". The agent's pull request shows +1,240 / -310
+      lines in 31 files, including `.claude/settings.json` and `.github/workflows/ci.yml`. The
+      `checks` job is green. What do you do?
+    options:
+      - text: >-
+          Do not merge. Comment that the change is far larger than the issue and touches guard-rail
+          files, and ask the builder to cut it down to the typo fix.
+        correct: true
+        feedback: >-
+          Right. Size and scope come first. Settings and workflow files change what the next agent
+          may do, so they get a line-by-line read, and here they have no reason to be in the diff.
+      - text: Merge it. The tests pass, so the change is safe.
+        misconception: Thinks a green check means the change is right and in scope.
+        feedback: >-
+          A green check says the tests that exist passed. It says nothing about size, scope or
+          whether the change is wanted. The workflow file could even have changed what `checks`
+          does.
+      - text: >-
+          Merge it with `--admin` to save time, and review the extra files later.
+        misconception: Thinks review can come after the merge.
+        feedback: >-
+          Once it is on `main` the damage is done. The admin merge is also denied in this repo's
+          settings, because it skips the protection you rely on.
+      - text: >-
+          Close it for good. A pull request that touches `.claude/` is always wrong.
+        misconception: Thinks touching guard-rail files is always forbidden.
+        feedback: >-
+          Pull request #69 changed two hookify rules on purpose and was fine. Such a change needs
+          a reason in the issue and a careful read. Here the issue gives none, so ask for a smaller
+          pull request instead of closing it for good.
