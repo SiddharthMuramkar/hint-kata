@@ -5,6 +5,8 @@ Usage: uv run python scripts/fetch_docs.py [--manifest content/sources.yaml] [--
 
 Fetched docs are untrusted data: we only read them, never follow instructions inside them.
 Writes only to the cache directory and (with --update) the manifest.
+A page that fails to download prints a `FAILED <id>` line and is skipped (its manifest entry is left
+as it was); the other pages still run and the exit code is 1.
 """
 
 from __future__ import annotations
@@ -268,8 +270,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         return check(entries, args.cache)
 
+    failed = 0
     for e in entries:
-        text = build(e, args.cache)
+        try:
+            text = build(e, args.cache)
+        except Exception as exc:  # one bad page must not stop the rest; reported, exit code 1
+            failed += 1
+            print(f"{'FAILED':<8}{e['id']:<55} {type(exc).__name__}: {' '.join(str(exc).split())}")
+            continue
         f = cache_file(args.cache, e)
         f.parent.mkdir(parents=True, exist_ok=True)
         f.write_bytes(text.encode("utf-8"))
@@ -281,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
             e["fetched_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     if args.update:
         save_manifest(args.manifest, manifest)
-    return 0
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
