@@ -14,7 +14,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from app.traces import Annotation, Checkpoint, Citation, Step, Trace  # noqa: E402
+from app.traces import Annotation, Checkpoint, Citation, Step, StepKind, Trace  # noqa: E402
 
 DOCS = "https://docs.github.com/en/pull-requests/"
 PR_DOC = Citation(
@@ -53,7 +53,7 @@ def build(repo: str, number: int) -> Trace:
     steps: list[Step] = []
 
     def add(
-        kind: str,
+        kind: StepKind,
         actor: str,
         title: str,
         summary: str,

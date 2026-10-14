@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from app.config import settings
 
@@ -12,6 +12,13 @@ from app.config import settings
 class Citation(BaseModel):
     url: str
     title: str
+
+    @field_validator("url")
+    @classmethod
+    def http_only(cls, url: str) -> str:
+        if not url.startswith(("http://", "https://")):
+            raise ValueError("citation url must be http or https")
+        return url
 
 
 class Annotation(BaseModel):
@@ -28,9 +35,25 @@ class Checkpoint(BaseModel):
     explanation: str
 
 
+StepKind = Literal[
+    "user_prompt",
+    "instructions",
+    "model_request",
+    "tool_call",
+    "tool_result",
+    "retry",
+    "final_output",
+    "git_commit",
+    "pr_opened",
+    "ci_check",
+    "review_comment",
+    "merge",
+]
+
+
 class Step(BaseModel):
     idx: int
-    kind: str
+    kind: StepKind
     actor: str
     title: str
     summary: str

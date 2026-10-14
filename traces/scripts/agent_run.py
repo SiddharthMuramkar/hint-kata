@@ -28,7 +28,7 @@ from pydantic_ai.messages import (  # noqa: E402
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel  # noqa: E402
 
-from app.traces import Annotation, Checkpoint, Citation, Step, Trace  # noqa: E402
+from app.traces import Annotation, Checkpoint, Citation, Step, StepKind, Trace  # noqa: E402
 
 models.ALLOW_MODEL_REQUESTS = False  # the script never talks to a real model
 
@@ -81,7 +81,9 @@ def clip(text: str, n: int = 300) -> str:
 def build_steps(messages: list[ModelMessage]) -> list[Step]:
     steps: list[Step] = []
 
-    def add(kind: str, actor: str, title: str, summary: str, payload: str = "", **extra) -> None:
+    def add(
+        kind: StepKind, actor: str, title: str, summary: str, payload: str = "", **extra
+    ) -> None:
         steps.append(
             Step(
                 idx=len(steps),

@@ -41,11 +41,19 @@ def test_load_and_validate() -> None:
     assert load_trace("../fx-trace", FIXTURES) is None
 
 
-def test_model_rejects_unknown_kind() -> None:
+def test_model_rejects_bad_values() -> None:
     data = json.loads((FIXTURES / "fastapi/fx-trace/trace.json").read_text())
-    data["kind"] = "video"
-    with pytest.raises(ValidationError):
-        Trace.model_validate(data)
+    for mutate in (
+        lambda d: d.update(kind="video"),
+        lambda d: d["steps"][0].update(kind="user_promt"),
+        lambda d: d["steps"][0]["annotation"].update(
+            citations=[{"url": "javascript:alert(1)", "title": "x"}]
+        ),
+    ):
+        bad = json.loads(json.dumps(data))
+        mutate(bad)
+        with pytest.raises(ValidationError):
+            Trace.model_validate(bad)
 
 
 def test_public_view_strips_answers() -> None:
