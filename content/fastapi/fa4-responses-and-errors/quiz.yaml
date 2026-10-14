@@ -1,0 +1,158 @@
+items:
+  - id: q1
+    type: single
+    concept: return-type-filters
+    source_section: input-models-and-output-models
+    prompt: |-
+      Here are the models and the route. A client posts `{"name": "Ann", "email": "a@x.io", "password": "pw"}`. What JSON does the client get back?
+
+      ```python
+      class BaseUser(BaseModel):
+          name: str
+          email: str
+
+      class UserIn(BaseUser):
+          password: str
+
+      @app.post("/users/")
+      def create_user(user: UserIn) -> BaseUser:
+          return user
+      ```
+    options:
+      - text: '`{"name": "Ann", "email": "a@x.io"}`'
+        correct: true
+        feedback: >-
+          Right. The route returns a `UserIn`, but FastAPI filters the output down to the fields of
+          the declared return type, `BaseUser`. The password is dropped.
+      - text: '`{"name": "Ann", "email": "a@x.io", "password": "pw"}`'
+        misconception: Thinks the returned object decides the fields, not the annotation.
+        feedback: >-
+          This is tempting because the function really returns a `UserIn`. But FastAPI serializes
+          using the return type, and it deliberately does not follow the inheritance to the extra
+          field. That is the filter at work.
+      - text: A 500 error, because `UserIn` is not the same class as `BaseUser`.
+        misconception: Thinks a subclass cannot satisfy a return annotation.
+        feedback: >-
+          A `UserIn` is a `BaseUser`, so the types agree. Editors accept this code and FastAPI
+          accepts it as well.
+      - text: A 422 error, because the response contains a password.
+        misconception: Confuses response checks with request validation.
+        feedback: >-
+          A 422 is for invalid request data. FastAPI never rejects a response for holding too many
+          fields. It just filters them out.
+  - id: q2
+    type: single
+    concept: spot-the-leak
+    source_section: input-models-and-output-models
+    prompt: >-
+      Four routes receive `user: UserIn` (name, email, password). `UserOut` has name and email only.
+      Which one leaks the password?
+    options:
+      - text: '`def f(user: UserIn) -> UserIn: return user`'
+        correct: true
+        feedback: >-
+          Right. The contract says `UserIn`, so the password is part of the allowed output. Nothing
+          filters it.
+      - text: '`def f(user: UserIn) -> UserOut: return user`'
+        misconception: Thinks returning an object with extra fields leaks them.
+        feedback: >-
+          The extra field is filtered. FastAPI serializes with `UserOut`, which has no password.
+          Remember that the annotation, not the object you return, sets the output fields.
+      - text: '`@app.post("/", response_model=UserOut) def f(user: UserIn) -> Any: return user`'
+        misconception: Thinks `Any` switches filtering off.
+        feedback: >-
+          `Any` only tells your editor not to worry. FastAPI still filters with `response_model`,
+          so the password stays inside.
+      - text: '`def f(user: UserIn) -> dict: return {"name": user.name, "email": user.email}`'
+        misconception: Thinks a plain dict is unsafe by nature.
+        feedback: >-
+          This one builds the dict by hand and leaves the password out. It has no model filter, so
+          it relies on you being careful, but it does not leak here.
+  - id: q3
+    type: single
+    concept: exclude-unset
+    source_section: input-models-and-output-models
+    prompt: |-
+      The model has `tax: float = 10.5`. The route uses `response_model_exclude_unset=True` and returns `Item(name="Foo", tax=10.5)`. What does the JSON contain?
+
+      ```python
+      class Item(BaseModel):
+          name: str
+          tax: float = 10.5
+
+      @app.get("/item", response_model=Item, response_model_exclude_unset=True)
+      def read_item():
+          return Item(name="Foo", tax=10.5)
+      ```
+    options:
+      - text: '`{"name": "Foo", "tax": 10.5}`'
+        correct: true
+        feedback: >-
+          Right. `tax` was set explicitly, even though the value equals the default. "Unset" means
+          "never given a value", not "equal to the default".
+      - text: '`{"name": "Foo"}`'
+        misconception: Reads "unset" as "equal to the default".
+        feedback: >-
+          That would be the result for `Item(name="Foo")`. Here `tax=10.5` was passed in, so Pydantic
+          knows it was set. To drop values that equal the default, you would use
+          `response_model_exclude_defaults` instead.
+      - text: '`{"name": "Foo", "tax": null}`'
+        misconception: Thinks removed fields turn into null.
+        feedback: >-
+          Excluded fields are left out of the JSON. They are not sent as `null`.
+      - text: A 500 error, because `tax` was passed although it has a default.
+        misconception: Thinks passing a default value is invalid.
+        feedback: >-
+          Passing a value for a field that has a default is perfectly valid.
+  - id: q4
+    type: single
+    concept: response-validation-error
+    source_section: the-return-type-is-the-contract
+    prompt: >-
+      A route is annotated `-> UserOut`, but a bug makes it return `{"name": "Ann"}` with no `email`.
+      What does the client get?
+    options:
+      - text: A 500 server error, because the response breaks the contract.
+        correct: true
+        feedback: >-
+          Right. The mistake is in your code, not in the request, so FastAPI answers with a server
+          error instead of sending a body that looks fine but is wrong.
+      - text: 'A 200 with `{"name": "Ann"}`, because missing fields are skipped.'
+        misconception: Thinks the output model only filters and never validates.
+        feedback: >-
+          The return type is used for validation too. Required fields must be present, or the
+          response is refused.
+      - text: A 422 with a list of the missing fields.
+        misconception: Mixes up request validation and response validation.
+        feedback: >-
+          A 422 blames the client for a bad request. Here the client did nothing wrong, so a 422 would
+          be misleading. The error is a 500.
+      - text: 'A 200 with `{"name": "Ann", "email": null}`.'
+        misconception: Thinks FastAPI fills in missing values with null.
+        feedback: >-
+          FastAPI never invents values. `email` has no default in `UserOut`, so there is nothing to
+          fill in.
+  - id: q5
+    type: blank
+    concept: raise-http-exception
+    source_section: raising-httpexception
+    prompt: 'raise ____(status_code=404, detail="user not found")'
+    answer: HTTPException
+    explanation: >-
+      You `raise` an `HTTPException`. It stops the function at once, even inside a helper, and the
+      client gets the status code and `{"detail": "user not found"}`.
+  - id: q6
+    type: order
+    concept: custom-exception-handler
+    source_section: overriding-error-handlers
+    prompt: >-
+      You want a failing stock check to produce a clean 409 response. Put the steps in the order in
+      which they happen at run time.
+    steps:
+      - A request reaches the route and the code runs the stock check
+      - The check raises your custom OutOfStock exception
+      - FastAPI finds the handler registered for OutOfStock
+      - The handler returns a JSONResponse with status 409
+    explanation: >-
+      The exception is raised first, then FastAPI looks up the handler registered for its class, and
+      the handler builds the response. Your route code never has to know about status codes.
