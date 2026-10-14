@@ -8,9 +8,11 @@ from app.config import settings
 from app.content import QuizItem, load_lessons
 from app.main import app
 from app.quiz import grade_item, score, scramble
+from app.store import open_store
 
 FIXTURES = Path(__file__).parent / "fixtures" / "content"
 ITEMS = {q.id: q for q in load_lessons(FIXTURES)["fx-demo"].quiz}
+RIGHT_ORDER = [scramble(ITEMS["q2"]).index(i) for i in range(3)]
 
 
 def blank(answer: str) -> QuizItem:
@@ -115,10 +117,10 @@ def test_wrong_then_second_try_then_third_rejected(client: TestClient) -> None:
 def test_surprise_and_done(client: TestClient) -> None:
     assert post(client, "q1", 1, confidence="sure")["surprise"] is True
     assert post(client, "q1", 0, try_no=2, confidence="sure")["surprise"] is False
-    post(client, "q2", [0, 1, 2])
+    post(client, "q2", RIGHT_ORDER)
     done = post(client, "q3", "depends")
     assert done["done"] is True
-    assert done["score"] == pytest.approx(1 / 3)
+    assert done["score"] == pytest.approx(2 / 3)
 
 
 def test_get_hides_answers(client: TestClient) -> None:
@@ -147,3 +149,36 @@ def test_lesson_page_includes_quiz(client: TestClient) -> None:
     html = client.get("/lessons/fx-demo").text
     assert 'id="quiz"' in html
     assert "/static/js/quiz.js" in html
+
+
+def test_only_quiz_attempts_count(client: TestClient) -> None:
+    store = open_store(settings.hintkata_db_path)
+    store.add_attempt(
+        store.ensure_user("owner"), "fx-demo", "q1", "review", "0", True, "sure", 1, 1
+    )
+    store.close()
+    data = client.get("/api/quiz/fx-demo").json()
+    assert data["score"] == 0
+    assert data["items"][0]["answered"] is False
+    assert post(client, "q1", 0)["status"] == 200  # the review attempt did not use up try 1
+
+
+def test_wrong_first_try_survives_reload(client: TestClient) -> None:
+    post(client, "q1", 1)
+    first = client.get("/api/quiz/fx-demo").json()["items"][0]
+    assert (first["answered"], first["can_retry"]) == (True, True)
+    post(client, "q2", RIGHT_ORDER, confidence="guessing")
+    post(client, "q3", "depends")
+    assert post(client, "q3", "x", try_no=1)["status"] == 409
+    assert client.get("/api/quiz/fx-demo").json()["items"][0]["can_retry"] is True
+    assert post(client, "q1", 0, try_no=2)["done"] is True
+    assert client.get("/api/quiz/fx-demo").json()["items"][0]["can_retry"] is False
+
+
+def test_attempt_is_persisted(client: TestClient) -> None:
+    post(client, "q1", 1, confidence="guessing")
+    store = open_store(settings.hintkata_db_path)
+    (row,) = store.attempts_for(store.ensure_user("owner"), "fx-demo")
+    store.close()
+    assert (row["kind"], row["item_id"], row["answer"], row["correct"]) == ("quiz", "q1", "1", 0)
+    assert (row["confidence"], row["try_no"], row["elapsed_ms"]) == ("guessing", 1, 5)

@@ -14,6 +14,7 @@ from app.routes.check import router as check_router
 from app.routes.quiz import router as quiz_router
 from app.routes.review import router as review_router
 from app.routes.review import templates
+from app.routes.trace import router as trace_router
 
 HERE = Path(__file__).parent
 
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(trace_router)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 app.include_router(check_router)
 app.include_router(quiz_router)
