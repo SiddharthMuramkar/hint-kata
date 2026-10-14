@@ -1,0 +1,312 @@
+sources:
+  - id: fastapi-tutorial-dependencies
+    track: fastapi
+    title: "Dependencies - First Steps"
+    url: https://fastapi.tiangolo.com/tutorial/dependencies/
+    fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/dependencies/index.md
+    kind: fastapi_raw
+    version: "0.143.0"
+    license: MIT
+    attribution: "Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/dependencies/), © 2018 Sebastián Ramírez, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: fastapi-tutorial-classes-as-dependencies
+    track: fastapi
+    title: "Classes as Dependencies"
+    url: https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/
+    fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/dependencies/classes-as-dependencies.md
+    kind: fastapi_raw
+    version: "0.143.0"
+    license: MIT
+    attribution: "Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/), © 2018 Sebastián Ramírez, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: fastapi-tutorial-dependencies-with-yield
+    track: fastapi
+    title: "Dependencies with yield"
+    url: https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/
+    fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/dependencies/dependencies-with-yield.md
+    kind: fastapi_raw
+    version: "0.143.0"
+    license: MIT
+    attribution: "Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/), © 2018 Sebastián Ramírez, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: fastapi-tutorial-testing
+    track: fastapi
+    title: "Testing"
+    url: https://fastapi.tiangolo.com/tutorial/testing/
+    fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/testing.md
+    kind: fastapi_raw
+    version: "0.143.0"
+    license: MIT
+    attribution: "Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/testing/), © 2018 Sebastián Ramírez, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: fastapi-advanced-testing-dependencies
+    track: fastapi
+    title: "Testing Dependencies with Overrides"
+    url: https://fastapi.tiangolo.com/advanced/testing-dependencies/
+    fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/advanced/testing-dependencies.md
+    kind: fastapi_raw
+    version: "0.143.0"
+    license: MIT
+    attribution: "Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/advanced/testing-dependencies/), © 2018 Sebastián Ramírez, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: fastapi-advanced-async-tests
+    track: fastapi
+    title: "Async Tests"
+    url: https://fastapi.tiangolo.com/advanced/async-tests/
+    fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/advanced/async-tests.md
+    kind: fastapi_raw
+    version: "0.143.0"
+    license: MIT
+    attribution: "Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/advanced/async-tests/), © 2018 Sebastián Ramírez, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-overview-install
+    track: pydantic-ai
+    title: "Installation"
+    url: https://pydantic.dev/docs/ai/overview/install/
+    fetch_url: https://pydantic.dev/docs/ai/overview/install/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/overview/install/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-core-concepts-agent
+    track: pydantic-ai
+    title: "Agents"
+    url: https://pydantic.dev/docs/ai/core-concepts/agent/
+    fetch_url: https://pydantic.dev/docs/ai/core-concepts/agent/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/core-concepts/agent/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-core-concepts-output
+    track: pydantic-ai
+    title: "Output"
+    url: https://pydantic.dev/docs/ai/core-concepts/output/
+    fetch_url: https://pydantic.dev/docs/ai/core-concepts/output/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/core-concepts/output/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-models-overview
+    track: pydantic-ai
+    title: "Models Overview"
+    url: https://pydantic.dev/docs/ai/models/overview/
+    fetch_url: https://pydantic.dev/docs/ai/models/overview/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/models/overview/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-tools-toolsets-tools
+    track: pydantic-ai
+    title: "Function Tools"
+    url: https://pydantic.dev/docs/ai/tools-toolsets/tools/
+    fetch_url: https://pydantic.dev/docs/ai/tools-toolsets/tools/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/tools-toolsets/tools/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-core-concepts-dependencies
+    track: pydantic-ai
+    title: "Dependencies"
+    url: https://pydantic.dev/docs/ai/core-concepts/dependencies/
+    fetch_url: https://pydantic.dev/docs/ai/core-concepts/dependencies/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/core-concepts/dependencies/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: pydantic-ai-guides-testing
+    track: pydantic-ai
+    title: "Unit Testing"
+    url: https://pydantic.dev/docs/ai/guides/testing/
+    fetch_url: https://pydantic.dev/docs/ai/guides/testing/index.md
+    kind: pydantic_ai_md
+    version: "2.56.0"
+    license: MIT
+    attribution: "Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/guides/testing/), © Pydantic Services Inc. 2024 to present, MIT License."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-get-started-using-github-github-flow
+    track: github
+    title: "GitHub flow"
+    url: https://docs.github.com/en/get-started/using-github/github-flow
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/get-started/using-github/github-flow
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, GitHub flow (https://docs.github.com/en/get-started/using-github/github-flow), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-pull-requests-get-started-about-pull-requests
+    track: github
+    title: "About pull requests"
+    url: https://docs.github.com/en/pull-requests/get-started/about-pull-requests
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/get-started/about-pull-requests
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, About pull requests (https://docs.github.com/en/pull-requests/get-started/about-pull-requests), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-pull-requests-reference-pull-request-reviews
+    track: github
+    title: "Pull request reviews"
+    url: https://docs.github.com/en/pull-requests/reference/pull-request-reviews
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/reference/pull-request-reviews
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Pull request reviews (https://docs.github.com/en/pull-requests/reference/pull-request-reviews), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-pull-requests-reference-status-checks
+    track: github
+    title: "Status checks"
+    url: https://docs.github.com/en/pull-requests/reference/status-checks
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/reference/status-checks
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Status checks (https://docs.github.com/en/pull-requests/reference/status-checks), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-pull-requests-reference-pull-request-merges
+    track: github
+    title: "Pull request merges"
+    url: https://docs.github.com/en/pull-requests/reference/pull-request-merges
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/reference/pull-request-merges
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Pull request merges (https://docs.github.com/en/pull-requests/reference/pull-request-merges), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-pull-requests-how-tos-review-pull-requests-approving-a-pull-request-with-required-reviews
+    track: github
+    title: "Approving a pull request with required reviews"
+    url: https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Approving a pull request with required reviews (https://docs.github.com/en/pull-requests/how-tos/review-pull-requests/approving-a-pull-request-with-required-reviews), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-repositories-configuring-branches-and-merges-in-your-repository-managing-rulesets-about-rulesets
+    track: github
+    title: "About rulesets"
+    url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, About rulesets (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-repositories-configuring-branches-and-merges-in-your-repository-managing-rulesets-available-rules-for-rulesets
+    track: github
+    title: "Available rules for rulesets"
+    url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Available rules for rulesets (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-actions-get-started-quickstart
+    track: github
+    title: "Quickstart for GitHub Actions"
+    url: https://docs.github.com/en/actions/get-started/quickstart
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/get-started/quickstart
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Quickstart for GitHub Actions (https://docs.github.com/en/actions/get-started/quickstart), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-actions-get-started-understand-github-actions
+    track: github
+    title: "Understanding GitHub Actions"
+    url: https://docs.github.com/en/actions/get-started/understand-github-actions
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/get-started/understand-github-actions
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Understanding GitHub Actions (https://docs.github.com/en/actions/get-started/understand-github-actions), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-actions-reference-workflows-and-actions-workflow-syntax
+    track: github
+    title: "Workflow syntax for GitHub Actions"
+    url: https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/reference/workflows-and-actions/workflow-syntax
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Workflow syntax for GitHub Actions (https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-actions-reference-workflows-and-actions-events-that-trigger-workflows
+    track: github
+    title: "Events that trigger workflows"
+    url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/reference/workflows-and-actions/events-that-trigger-workflows
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Events that trigger workflows (https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
+
+  - id: github-actions-tutorials-build-and-test-code-python
+    track: github
+    title: "Building and testing Python"
+    url: https://docs.github.com/en/actions/tutorials/build-and-test-code/python
+    fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/tutorials/build-and-test-code/python
+    kind: github_article
+    version: "live"
+    license: CC-BY-4.0
+    attribution: "Adapted from GitHub Docs, Building and testing Python (https://docs.github.com/en/actions/tutorials/build-and-test-code/python), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted."
+    sha256: ""
+    fetched_at: ""
