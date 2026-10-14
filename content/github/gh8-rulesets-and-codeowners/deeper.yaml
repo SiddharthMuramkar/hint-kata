@@ -1,0 +1,103 @@
+questions:
+  - id: d1
+    prompt: >-
+      You work alone on a public repo, and an AI agent reads each diff before you merge. Design the
+      ruleset for `main`. Say which rules you would turn on to make something automatic gate every
+      merge, how many approvals you would ask for and why, who goes on the bypass list, and which
+      part of your review process GitHub cannot enforce.
+    rubric:
+      - name: automatic-gate
+        explanation: The answer puts a machine check in front of every merge.
+        pass_anchor: >-
+          Requires a pull request and a named required status check, such as the CI job `checks`, so
+          that a test run must pass before any merge.
+        fail_anchor: >-
+          Names no required status check, or relies only on people reviewing and on trust.
+      - name: zero-approvals-reason
+        explanation: >-
+          The answer picks the approval count and gives the reason from the self-approval limit.
+        pass_anchor: >-
+          Asks for 0 approvals, because a pull request author cannot approve their own pull request,
+          so 1 approval could never be met by one person.
+        fail_anchor: >-
+          Asks for 1 or more approvals with no second reviewer and no bypass, or says 0 with no
+          reason.
+      - name: empty-bypass-list
+        explanation: The answer keeps the exit door shut, and says why.
+        pass_anchor: >-
+          Leaves the bypass list empty (or allows bypass for pull requests only) and says that the
+          rules should bind the owner and any tool that uses the owner's access.
+        fail_anchor: >-
+          Puts the owner or the admin role on the bypass list with no mention that this turns the
+          rules off for that person.
+      - name: unenforced-review
+        explanation: The answer separates what GitHub enforces from what a person does.
+        pass_anchor: >-
+          Says the agent's review is not a GitHub approval and is not enforced, so a person still
+          has to read the findings and decide.
+        fail_anchor: >-
+          Treats the agent's review as an approval, or as something that blocks a merge.
+    model_answer: >-
+      I would make one ruleset on the default branch with a pull request rule, a required status
+      check for the CI job `checks`, a rule that blocks force pushes and a rule that blocks
+      deletions. The required check is the automatic gate: nothing merges until the tests pass.
+      I would ask for 0 approvals. A pull request author cannot approve their own pull request, and
+      I would be the author of all of them, so a rule that asks for 1 approval could never be met.
+      I would leave the bypass list empty, so the rules also bind me and any tool that runs with my
+      access. If something breaks, I can set the ruleset to disabled for a moment. The agent reviewer
+      is useful, but its findings are not a GitHub approval. GitHub cannot see it and cannot demand
+      it, so I still have to read the findings myself and decide what to merge.
+    hints:
+      - If one person writes every pull request, what happens to a rule that asks for 1 approval?
+      - Which of your gates can GitHub check by itself, and which only work because you follow a habit?
+
+  - id: d2
+    prompt: >-
+      A teammate says: "I added a CODEOWNERS file that names me as the owner of `/payments/`. Now
+      nobody can merge a change to payments without my approval." Is that right? Say where the file
+      must be for it to work, what else turns it into a gate, what can go wrong when the owner also
+      writes the pull request, and what else you would do about the CODEOWNERS file itself.
+    rubric:
+      - name: base-branch
+        explanation: The answer knows which version of the file GitHub reads.
+        pass_anchor: >-
+          Says the file must be on the base branch of the pull request (for example `main`), so it
+          has to be merged before the pull requests that need it.
+        fail_anchor: >-
+          Says the file works from the pull request's own branch, or does not say which branch
+          matters.
+      - name: needs-a-rule
+        explanation: The answer separates asking for a review from requiring one.
+        pass_anchor: >-
+          Says CODEOWNERS only requests a review, and that the merge waits for the owner only when a
+          rule requires code owner review (`require_code_owner_review` or "Require review from Code
+          Owners").
+        fail_anchor: >-
+          Says the file alone blocks merges, or says it does nothing at all without a rule.
+      - name: self-approval-trap
+        explanation: The answer sees the problem of an owner who is also the author.
+        pass_anchor: >-
+          Says an author cannot approve their own pull request, so with the rule on, the owner's own
+          pull requests cannot merge unless another owner approves or the owner can bypass.
+        fail_anchor: >-
+          Says the owner can approve their own changes, or does not see a problem.
+      - name: owner-of-the-file
+        explanation: The answer protects the CODEOWNERS file itself.
+        pass_anchor: >-
+          Suggests giving the CODEOWNERS file its own owner, for example `/.github/CODEOWNERS @owner`,
+          so a change to the file also needs the owner's review.
+        fail_anchor: >-
+          Does not mention protecting the file, or says it needs no protection.
+    model_answer: >-
+      Not by itself. First, GitHub reads the CODEOWNERS file from the base branch of the pull
+      request, so the file has to be merged into `main` before it helps any other pull request. The
+      file can live in `.github/`, the root or `docs/`. Second, the file only asks the owner for a
+      review. To make the approval a gate, the ruleset needs code owner review turned on, with
+      `require_code_owner_review: true`. Third, if the owner also writes the pull request, they
+      cannot approve their own work. With the rule on, those pull requests are stuck unless a second
+      owner approves or the owner is on the bypass list. Fourth, I would give the CODEOWNERS file an
+      owner too, with a line like `/.github/CODEOWNERS @owner`. Otherwise a pull request that
+      removes the owner's name needs no owner's approval.
+    hints:
+      - Which branch does GitHub read the file from, for a pull request into `main`?
+      - Who is asked for a review when the owner opens the pull request, and who is allowed to approve it?

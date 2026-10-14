@@ -1,0 +1,36 @@
+checks:
+  - name: nightly.yml has schedule, workflow_dispatch and concurrency
+    args:
+      - api
+      - repos/{repo}/contents/.github/workflows/nightly.yml
+      - --jq
+      - >-
+        .content | @base64d as $f
+        | ($f | test("(?m)^[ \\t]*schedule:[ \\t\\r]*(#.*)?$"))
+        and ($f | test("(?m)^[ \\t]*workflow_dispatch:[ \\t\\r]*(#.*)?$"))
+        and ($f | test("(?m)^[ \\t]*concurrency:[ \\t\\r]*(#.*)?$"))
+    expect: "true"
+  - name: nightly.yml has top-level permissions contents read, and nothing else
+    args:
+      - api
+      - repos/{repo}/contents/.github/workflows/nightly.yml
+      - --jq
+      - >-
+        .content | @base64d
+        | test("(?m)^permissions:[ \\t\\r]*(#[^\\n]*)?\\n[ \\t]+[\"']?contents[\"']?:[ \\t]*[\"']?read[\"']?[ \\t\\r]*(#[^\\n]*)?(\\n[ \\t\\r]*(#[^\\n]*)?)*(\\n[^ \\t\\r\\n#]|\\z)")
+    expect: "true"
+  - name: a workflow_dispatch run of nightly.yml finished with success
+    args:
+      - run
+      - list
+      - -R
+      - "{repo}"
+      - --workflow
+      - nightly.yml
+      - --limit
+      - "100"
+      - --json
+      - event,conclusion
+      - --jq
+      - '[.[] | select(.event=="workflow_dispatch" and .conclusion=="success")] | length'
+    expect: 're:[1-9][0-9]*'

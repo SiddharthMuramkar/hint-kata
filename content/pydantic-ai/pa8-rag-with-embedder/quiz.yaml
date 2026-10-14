@@ -1,0 +1,184 @@
+items:
+  - id: q1
+    type: single
+    concept: embed-query-vs-documents
+    source_section: turning-text-into-vectors
+    prompt: >-
+      You index doc chunks, and later you answer questions typed into a search box. Which Embedder
+      calls do you use?
+    options:
+      - text: embed_query for the chunks you store, and embed_documents for the text the person types.
+        misconception: Swaps the two names.
+        feedback: >-
+          Read the names as the job. Documents are the content you index. A query is the question
+          you search with. With the names swapped, a model that treats them differently will do the
+          wrong thing on both sides.
+      - text: >-
+          Either method for both. With OpenRouter's OpenAI model the request is the same, so the
+          name makes no difference.
+        misconception: Thinks a choice that makes no difference today never matters.
+        feedback: >-
+          Tempting, because in 2.56.0 the OpenAI-style model sends the same request for both. But
+          the docs say other providers, such as Google, use the type. Choose the right method now,
+          and your code keeps working if you switch model.
+      - text: embed_documents for the chunks you store, and embed_query for the text the person types.
+        correct: true
+        feedback: >-
+          Right. Some models treat a query and a document differently, so you name which one you
+          are embedding. The two kinds of vector are meant to be compared with each other.
+      - text: >-
+          embed_documents for both, because a vector from embed_query cannot be compared with a
+          stored one.
+        misconception: Thinks the two methods make vectors that do not belong together.
+        feedback: >-
+          They do belong together. embed_query exists so the question is prepared the way a
+          search needs. Its vector is compared with the stored document vectors.
+  - id: q2
+    type: single
+    concept: test-embedding-model-ties
+    source_section: testing-without-a-network
+    prompt: >-
+      You test your search function with Embedder(TestEmbeddingModel()). The index holds four
+      chunks about four topics, and you search for "cats". What do you see?
+    options:
+      - text: >-
+          The chunk about cats comes first, because the fake model gives similar texts similar
+          vectors.
+        misconception: Thinks TestEmbeddingModel computes something like meaning.
+        feedback: >-
+          It does not look at the text at all. It returns the same vector for every input. Meaning
+          needs a real model or vectors you write yourself.
+      - text: >-
+          Every chunk gets the same score, because every vector is the same. The test cannot show
+          a ranking.
+        correct: true
+        feedback: >-
+          Right. Identical vectors give identical cosine scores. To test a ranking, subclass
+          TestEmbeddingModel and return vectors you chose.
+      - text: >-
+          The search raises an error, because the fake model has no real vectors to compare, only
+          placeholders.
+        misconception: Thinks the fake model cannot be used for search code.
+        feedback: >-
+          Its vectors are ordinary lists of floats, so search code runs on them. They just give no
+          useful ranking.
+      - text: >-
+          Longer chunks score higher, because the fake model builds its vectors from the length of
+          the text.
+        misconception: Thinks the fake vectors depend on the text.
+        feedback: >-
+          The vector does not change with the text, its length or its words. All four chunks get
+          the same one.
+  - id: q3
+    type: single
+    concept: chunk-code-fence
+    source_section: chunking-by-headings
+    prompt: |-
+      This chunker must never cut a code block in two:
+
+      chunks, current = [], []
+      for line in text.splitlines():
+          if line.startswith("## "):
+              chunks.append("\n".join(current))
+              current = []
+          current.append(line)
+      chunks.append("\n".join(current))
+
+      A page has a fenced shell snippet that holds the line "## install the tools" as a comment.
+      What happens?
+    options:
+      - text: >-
+          Nothing. A fence is a block of its own, so lines inside it are never read as headings.
+        misconception: Thinks a plain line scan understands Markdown blocks.
+        feedback: >-
+          This loop only checks how each line starts. It has no idea a fence is open, so it
+          cannot skip the lines inside one unless you write that.
+      - text: >-
+          The "### " subsection headings split the chunk too, because they also start with
+          "## ".
+        misconception: Thinks startswith("## ") also matches "### ".
+        feedback: >-
+          The third character of "### " is a hash, not a space, so it does not match. That is
+          not the bug here.
+      - text: >-
+          The ``` lines that open and close the fence split the chunk, because they start a new
+          block.
+        misconception: Thinks the fence markers themselves start a new chunk.
+        feedback: >-
+          Only a line that starts with "## " starts a new chunk in this loop. The fence markers
+          are added to the current chunk like any other line.
+      - text: >-
+          The comment looks like a heading, so the code block is cut. The loop must track open
+          fences.
+        correct: true
+        feedback: >-
+          Right. The loop reads one line at a time and knows nothing about fences. A line that
+          starts with "## " inside a fence is code, so the loop has to remember when a fence is open.
+  - id: q4
+    type: single
+    concept: rrf-uses-ranks
+    source_section: hybrid-search-with-rrf
+    prompt: >-
+      A hybrid search has one list ordered by cosine distance and one ordered by a keyword score.
+      Reciprocal rank fusion adds 1 / (60 + rank) for each list. Why use the rank and not add the
+      two scores?
+    options:
+      - text: >-
+          The two scores are different kinds of number, so adding them is unfair. Ranks can be
+          compared.
+        correct: true
+        feedback: >-
+          Right. A cosine distance and a text-search rank have unrelated scales. Ranks put both
+          lists on the same footing.
+      - text: >-
+          Ranks are much cheaper for the database to compute than scores, so the query runs
+          faster.
+        misconception: Thinks the choice is about speed.
+        feedback: >-
+          The database computes the scores anyway to sort each list. Fusion by rank is chosen
+          because the scales do not match, not to save time.
+      - text: >-
+          Keyword scores are always bigger than cosine scores, so they would drown out the vector
+          list.
+        misconception: Assumes one score scale is always larger than the other.
+        feedback: >-
+          Neither is always bigger. They have no fixed relation, so which one dominates would
+          change from query to query. Ranks remove that problem.
+      - text: >-
+          A chunk found by only one list must be dropped, and ranks make that easy to see in the
+          merged result.
+        misconception: Thinks fusion keeps only chunks that both lists found.
+        feedback: >-
+          A chunk found by one list stays in the result. It earns one term instead of two, so it
+          ranks below chunks that both lists liked.
+  - id: q5
+    type: order
+    concept: rag-pipeline-order
+    source_section: what-rag-adds-and-what-it-does-not
+    prompt: >-
+      Put the steps of a RAG pipeline in the order they happen, from a doc page to a cited answer.
+    steps:
+      - Split the page into chunks at its headings
+      - Embed the chunks with embed_documents
+      - Store each vector with its url and anchor
+      - Embed the question with embed_query and search the stored vectors
+      - Put the best chunks in the prompt and cite their url#anchor
+    explanation: >-
+      You cannot embed a chunk before you cut it, and you cannot store a vector before you have
+      it. The search needs the stored vectors, so the question comes after the store. Only the
+      chunks the search returns go into the prompt, and the citation comes from the url and
+      anchor you stored next to each vector.
+  - id: q6
+    type: blank
+    concept: pgvector-cosine-operator
+    source_section: storing-vectors-in-postgres
+    prompt: |-
+      Fill in the operator for cosine distance. The index was built with vector_cosine_ops, and
+      the nearest chunks must come first:
+
+      SELECT chunk_key FROM chunks ORDER BY embedding ____ %(emb)s LIMIT 8
+    answer: '<=>'
+    explanation: >-
+      `<=>` is cosine distance, which is one minus the cosine similarity. A smaller distance
+      means nearer, so the default ascending order puts the nearest chunk first. The operator
+      `<->` is L2 distance, which the cosine index is not built for.

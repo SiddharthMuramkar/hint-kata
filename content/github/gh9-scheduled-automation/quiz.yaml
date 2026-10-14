@@ -1,0 +1,187 @@
+items:
+  - id: q1
+    type: single
+    concept: concurrency-queue-validation
+    source_section: concurrency-groups
+    prompt: |
+      A teammate wants every run in a group to wait its turn, with none lost. They write this, and
+      GitHub reports a workflow validation error. What is the bug?
+
+      ```yaml
+      on:
+        workflow_dispatch:
+      concurrency:
+        group: embed
+        queue: max
+        cancel-in-progress: true
+      ```
+    options:
+      - text: >-
+          `queue: max` cannot be combined with `cancel-in-progress: true`. To keep every waiting
+          run, remove `cancel-in-progress` or set it to `false`.
+        correct: true
+        feedback: >-
+          Right. The two options ask for opposite things. One keeps up to 100 waiting runs, the other
+          cancels runs that are in the way. GitHub rejects the pair when it validates the file.
+      - text: >-
+          The group name must be an expression such as `${{ github.ref }}`. A fixed word like `embed`
+          is not allowed.
+        misconception: Thinks a concurrency group name has to be built from a context value.
+        feedback: >-
+          A group can be any string or an expression. A fixed name is common, and it is what this
+          repo's `embed` job uses. It is not the cause of the error.
+      - text: >-
+          `queue` is not a concurrency property. Only `group` and `cancel-in-progress` exist.
+        misconception: Thinks concurrency has only the two long-standing keys.
+        feedback: >-
+          The docs describe an optional `queue` property with two values, `single` (the default) and
+          `max`. The error comes from mixing it with `cancel-in-progress: true`.
+      - text: >-
+          `concurrency` can only be set inside a job. It is not allowed at the top level of a
+          workflow.
+        misconception: Thinks concurrency works at job level only.
+        feedback: >-
+          You can set `concurrency` at the top of the workflow or inside one job. Both are valid.
+
+  - id: q2
+    type: single
+    concept: cron-off-the-hour
+    source_section: run-a-workflow-on-a-schedule
+    prompt: >-
+      You want a job to run once a day at about 03:00 UTC in a public repo. Which `cron` line is the
+      best choice?
+    options:
+      - text: >-
+          `"17 3 * * *"`. Five fields: minute 17, hour 3, every day. The minute is off the hour, so
+          the run is less likely to be delayed.
+        correct: true
+        feedback: >-
+          Right. Runs that start at the top of the hour meet the heaviest load, and under very high
+          load some may be dropped. A minute such as 17 keeps you away from that crowd.
+      - text: >-
+          `"0 3 * * *"`. Minute 0 of hour 3 is the exact time you asked for, so it is the safest.
+        misconception: Thinks the exact start of the hour is the safest minute to pick.
+        feedback: >-
+          The start of every hour is a busy time for scheduled runs. They can be late, and some
+          queued jobs can be dropped. The docs advise a different minute.
+      - text: >-
+          `"3 0 * * *"`. This also means 03:00, because the two numbers can be in either order.
+        misconception: Thinks the hour comes before the minute in a cron line.
+        feedback: >-
+          The first field is the minute and the second is the hour. `3 0 * * *` runs at 00:03 UTC.
+      - text: >-
+          `"@daily"`. It is short, and every cron tool understands it.
+        misconception: Thinks the cron macros work in Actions.
+        feedback: >-
+          Actions does not support `@daily` or the other macros. Write all five fields.
+
+  - id: q3
+    type: single
+    concept: schedule-auto-disable
+    source_section: when-a-schedule-goes-quiet
+    prompt: >-
+      A public repo has `nightly.yml` on `main` with a daily `cron` line. Nobody has pushed or opened
+      anything for about two months. The Actions tab shows no new scheduled runs and no errors.
+      What is the most likely cause, and what do you do?
+    options:
+      - text: >-
+          GitHub switched the scheduled workflow off after 60 days with no repository activity. Turn
+          it back on with the enable button, or with `gh workflow enable nightly.yml`.
+        correct: true
+        feedback: >-
+          Right. Nothing fails. The runs just stop. `gh workflow list --all` shows the disabled
+          workflow, and enabling it brings the schedule back.
+      - text: >-
+          The `cron` line expires after 60 days. Edit the file and give it a new end date.
+        misconception: Thinks a cron line carries an expiry date.
+        feedback: >-
+          A cron line has no end date. It is the whole workflow that GitHub switches off, and it
+          does so because of repository inactivity.
+      - text: >-
+          The `GITHUB_TOKEN` expired, so the schedule cannot start. Create a new secret.
+        misconception: Mixes up the job token's lifetime with the schedule.
+        feedback: >-
+          GitHub makes a new `GITHUB_TOKEN` for each job, and it only lives as long as the job. It
+          has nothing to do with whether the schedule fires.
+      - text: >-
+          GitHub deleted the workflow file. Write it again and push it.
+        misconception: Thinks an auto-disabled workflow loses its file.
+        feedback: >-
+          The file is still on `main`. The workflow is disabled, not deleted. You switch it back on.
+
+  - id: q4
+    type: single
+    concept: token-pull-request-needs-approval
+    source_section: pull-requests-opened-by-automation
+    prompt: >-
+      A weekly workflow opens a pull request using the default `GITHUB_TOKEN`. Your `checks`
+      workflow has `on: pull_request`. You open the pull request page a minute later. What do you
+      see?
+    options:
+      - text: >-
+          A `checks` run that is waiting in an approval required state. The merge box has a banner,
+          and someone with write access must choose **Approve workflows to run**.
+        correct: true
+        feedback: >-
+          Right. For a pull request that a workflow opens or updates with the `GITHUB_TOKEN`, the
+          `opened`, `synchronize` and `reopened` events create runs, but GitHub holds them until a
+          person approves.
+      - text: >-
+          No run at all, because nothing made with the `GITHUB_TOKEN` can start a workflow.
+        misconception: Applies the old no-new-runs rule to every event, with no exception for pull requests.
+        feedback: >-
+          Most events from the token still start nothing, for example a push. A pull request is
+          now the exception. The run is created and waits for approval.
+      - text: >-
+          `checks` starts at once and runs just like it would for a pull request from a person.
+        misconception: Thinks a pull request made with the token behaves like one made by a person.
+        feedback: >-
+          The run is held until someone with write access approves it. A GitHub App token or a
+          personal access token would skip that step, but the default token does not.
+      - text: >-
+          `checks` is skipped for good. Only a personal access token can ever start CI on a bot's
+          pull request.
+        misconception: Thinks pull requests from automation can never run checks without a bigger token.
+        feedback: >-
+          There is an approval path. A person approves the held run. A personal access token or a
+          GitHub App token is an extra option, and it comes with a bigger credential to guard.
+
+  - id: q5
+    type: order
+    concept: concurrency-pending-replaced
+    source_section: concurrency-groups
+    prompt: >-
+      A workflow uses `concurrency: group: embed` with `cancel-in-progress: false` and the default
+      `queue` setting. Three runs, A, B and C, are triggered one after another. Run C is triggered
+      while A is still running. Put these events in the order they happen.
+    steps:
+      - "Run A starts and takes the group `embed`."
+      - "Run B is triggered, and it waits as `pending`."
+      - "Run C is triggered, and GitHub cancels the pending run B so that C waits in its place."
+      - "Run A finishes."
+      - "Run C starts."
+    explanation: >-
+      By default a group has one running run and at most one pending run. A newer pending run
+      replaces an older one, so B never starts. `cancel-in-progress: false` means A is left to
+      finish. With `queue: max`, B would have kept its place.
+
+  - id: q6
+    type: blank
+    concept: workflow-dispatch-trigger
+    source_section: start-a-run-by-hand
+    prompt: |
+      Fill in the trigger that adds a "Run workflow" button and lets
+      `gh workflow run nightly.yml -f note=hi` start this workflow:
+
+      ```yaml
+      on:
+        ____:
+          inputs:
+            note:
+              type: string
+      ```
+    answer: "re:workflow_dispatch:?"
+    explanation: >-
+      `workflow_dispatch` is the manual trigger. It is also the event that `gh workflow run`
+      creates. Each `-f name=value` sets one input. The file must be on the default branch for the
+      event to start a run.

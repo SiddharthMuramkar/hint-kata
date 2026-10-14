@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      Your agent has two tools and a structured output type. You run it under TestModel() with its
+      default settings. Which tools does it call, and where do the argument values come from?
+    note: >-
+      By default TestModel calls every tool once. It makes up the argument values from each
+      tool's schema, so a string argument becomes "a" and a number becomes 0.0. It does not read
+      your prompt. Then it returns a structured answer that fits your output type.
+  - id: w2
+    prompt: >-
+      A test file imports an agent that was created with Agent("openai:gpt-5.2"). The laptop has no
+      API key set. Does the import line work? What would you add to the Agent so that it does?
+    note: >-
+      Without a key, creating the Agent raises UserError at once, because Pydantic AI builds the
+      model object when it sees a model name. Passing defer_model_check=True waits until the first
+      run, so a test can import the agent and then swap the model with agent.override(...).
