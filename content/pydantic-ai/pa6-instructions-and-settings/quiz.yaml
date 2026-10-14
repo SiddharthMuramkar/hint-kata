@@ -1,0 +1,150 @@
+items:
+  - id: q1
+    type: single
+    concept: system-prompt-with-history
+    source_section: instructions-or-a-system-prompt
+    prompt: >-
+      Your agent is built with system_prompt="Be brief." You load a stored history with two earlier
+      turns. It was saved without any system prompt, and you pass it as message_history. What does
+      the model get about "Be brief." on this run?
+    options:
+      - text: Nothing. A run adds its own system prompt only when the history is empty.
+        correct: true
+        feedback: >-
+          Right. A system prompt is a part of the first request, so it lives in the history. With a
+          non-empty history the agent assumes it is already there. A history that lost it stays
+          without one. Instructions do not have this problem.
+      - text: It is added at the top, as on a first run.
+        misconception: Thinks a system prompt is rebuilt on every run, like instructions.
+        feedback: >-
+          That is how instructions behave. A system prompt is added only when the history is empty,
+          so on this run it is missing.
+      - text: It is added again after your new prompt, as a reminder.
+        misconception: Thinks Pydantic AI repeats the system prompt as a reminder.
+        feedback: >-
+          Nothing like that happens. The agent does not add a reminder. If a history needs its
+          system prompt back, you have to put it back yourself.
+      - text: The run raises an error because the history has no system prompt.
+        misconception: Thinks a missing system prompt is validated.
+        feedback: >-
+          Pydantic AI does not check a history for a system prompt. The run goes ahead without it,
+          which is why the gap is easy to miss.
+  - id: q2
+    type: single
+    concept: dynamic-instructions-per-run
+    source_section: static-dynamic-and-per-run-instructions
+    prompt: >-
+      An @agent.instructions function writes "Use a {tone} tone." from ctx.deps. Run 1 uses
+      Deps(tone="formal"). Run 2 passes run 1's history and Deps(tone="casual"). Which tone is in
+      the instructions of the model's second request?
+    options:
+      - text: Casual only. The function runs again for this run, with the new deps.
+        correct: true
+        feedback: >-
+          Right. Dynamic instructions run each time the agent builds a request, and only the
+          current agent's instructions are sent. Old copies in the history are left out.
+      - text: Formal only. The function runs once per conversation and its text stays in the history.
+        misconception: Thinks dynamic instructions behave like a dynamic system prompt.
+        feedback: >-
+          That describes a dynamic system prompt, which is stored in the history. Dynamic
+          instructions are not stored for reuse. They are evaluated again.
+      - text: Both, with formal first and casual after it.
+        misconception: Thinks old instruction text is kept and stacked on the new one.
+        feedback: >-
+          Old requests keep a copy of the instructions they were sent with, but that copy is not
+          sent again. The model sees one set, from the agent you run now.
+      - text: Formal, because the function runs when the agent is created.
+        misconception: Thinks dynamic instructions are evaluated when the agent is built.
+        feedback: >-
+          They are evaluated when a request is built. That is why they can read the deps of the
+          current run.
+  - id: q3
+    type: single
+    concept: settings-merge
+    source_section: which-setting-wins
+    prompt: >-
+      A model instance has settings max_tokens=500 and timeout=30. The agent has model_settings
+      max_tokens=300. One run passes model_settings max_tokens=100. Which settings does the model
+      request carry?
+    options:
+      - text: max_tokens=100 and timeout=30
+        correct: true
+        feedback: >-
+          Right. The three places merge key by key, and the later place wins for the keys it
+          names. The run wins max_tokens, and timeout comes through from the model.
+      - text: max_tokens=100 only, because the run's settings replace everything below them.
+        misconception: Thinks run settings replace the whole settings dict instead of merging.
+        feedback: >-
+          A run that names one key leaves the others alone. The timeout set on the model is still
+          there.
+      - text: max_tokens=300 and timeout=30, because the agent is more specific than the run.
+        misconception: Thinks agent settings beat run settings.
+        feedback: >-
+          The order is model, then agent, then run, and a later place wins. The run is the last
+          word, so its value of 100 is used.
+      - text: max_tokens=500 and timeout=30, because settings on the model cannot be lowered.
+        misconception: Thinks model-level settings are locked.
+        feedback: >-
+          Model settings are only the base defaults. The agent and the run can both override them.
+  - id: q4
+    type: single
+    concept: no-temperature-on-claude-5
+    source_section: provider-settings-and-the-temperature-rule
+    prompt: >-
+      This site calls Claude 5.x models through OpenRouter. A teammate wants the grader to give the
+      same marks every time, so they suggest adding temperature=0 to its model settings. What is
+      the right call?
+    options:
+      - text: >-
+          Leave temperature unset, set max_tokens, and get steadier marks from rubric anchors and
+          several samples.
+        correct: true
+        feedback: >-
+          Right. These models take no sampling settings, and on the OpenRouter path Pydantic AI
+          kept the key and printed no warning in the check. The grader takes three samples and marks
+          a criterion uncertain when they disagree.
+      - text: Add temperature=0. Pydantic AI drops it for Claude 5.x on every provider path, so it is harmless.
+        misconception: Thinks Pydantic AI always removes sampling settings for these models.
+        feedback: >-
+          The Anthropic adapter does that, by the source. On the OpenRouter path the check kept the
+          key and gave no warning, so nothing protects you there.
+      - text: Add temperature=0 and top_p=1 together, which makes the model fully repeatable.
+        misconception: Thinks sampling settings can make a model fully repeatable.
+        feedback: >-
+          Even where temperature is accepted, a value of 0 does not make output fully repeatable.
+          And this site sets neither of these two keys.
+      - text: Add temperature=0 on the run only, so the agent-level settings stay clean.
+        misconception: Thinks the layer decides whether a key is allowed.
+        feedback: >-
+          The layer only decides which value wins. A key set on any layer ends up in the merged
+          request.
+  - id: q5
+    type: order
+    concept: instructions-run-flow
+    source_section: static-dynamic-and-per-run-instructions
+    prompt: >-
+      Put these steps in order for a second run that continues a conversation and uses a dynamic
+      instructions function.
+    steps:
+      - "start: you call run_sync with message_history from an earlier run and a new deps object"
+      - "functions: the agent calls each @agent.instructions function with a RunContext that holds the new deps"
+      - "join: the static text and the function texts are joined with blank lines into one instructions string"
+      - "request: the model gets the old messages and your new prompt, with this one instructions string beside them"
+      - "record: the finished run holds the new request with a copy of these instructions, which later runs do not send"
+    explanation: >-
+      The functions run when the request is built, so they see the new deps. Only that one joined
+      string goes to the model. The old requests' copies of instructions stay in the history as a
+      record, and the next run builds fresh instructions again.
+  - id: q6
+    type: blank
+    concept: run-settings-argument
+    source_section: which-setting-wins
+    prompt: |-
+      Fill in the argument name that sets model settings for one run only:
+
+      agent.run_sync("hi", ____=ModelSettings(max_tokens=100))
+    answer: 're:model_settings=?'
+    explanation: >-
+      On a model instance the argument is called settings. On Agent(...) and on a run it is called
+      model_settings. The run's value is merged on top of the agent's and the model's, and it wins
+      for the keys it names.

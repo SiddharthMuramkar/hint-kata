@@ -1,0 +1,20 @@
+items:
+  - id: w1
+    prompt: >-
+      An agent has instructions="Be brief." You chat for three turns and pass the history back each
+      time. Then you change the instructions in your code to "Reply in French." and send a fourth
+      turn with the same history. In which language do you expect the fourth reply, and why?
+    note: >-
+      French. Instructions are rebuilt by the agent you run now. Old requests keep a copy of the
+      instructions they were sent with, but those copies are not sent again. A system prompt would
+      have behaved differently, because it lives in the history. The reading shows how to check
+      this with a fake model.
+  - id: w2
+    prompt: >-
+      Your agent has a default max_tokens of 1000. For one call you want a much shorter reply, and
+      you want every other setting of the agent to stay as it is. Where would you put the shorter
+      limit, and what happens to the agent's other settings?
+    note: >-
+      Put it in model_settings on that one run. Settings from the model, the agent and the run are
+      merged key by key, and the run wins for the keys it names. The agent's other settings stay.
+      The reading shows the merge order.
