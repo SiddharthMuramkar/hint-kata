@@ -24,7 +24,7 @@ If `claude --version` prints a version number, go to step 2A. If the command is 
 
 ## 2A. With Claude Code
 
-1. Start it in the terminal: `claude`. If it asks whether you trust the folder, read the question and answer for your own repo only.
+1. Start it in Manual mode, so that it asks before each command: `claude --permission-mode manual`. (Since version 2.1.283 the normal starting mode is auto mode, where a classifier reviews actions and most commands run with no prompt. For this task you want to see every command.) If it asks whether you trust the folder, read the question and answer for your own repo only. If you started it with plain `claude`, press `Shift+Tab` until the status bar at the bottom shows manual mode.
 2. Paste this prompt:
 
 ```text
@@ -35,7 +35,7 @@ The pull request body must say what changed and end with the line "Generated wit
 Do not merge it.
 ```
 
-3. Claude Code asks permission before it runs commands. Read each command before you accept. Say no to anything that touches a secret, pushes to `main`, or merges. If it tries `git push origin main`, decline and tell it to use the branch.
+3. In Manual mode, Claude Code asks permission before it runs commands. Check that the status bar still shows manual mode, then read each command before you accept. Say no to anything that touches a secret, pushes to `main`, or merges. If it tries `git push origin main`, decline and tell it to use the branch.
 4. When it prints the pull request address, you can leave Claude Code with `/exit`.
 
 ## 2B. By hand, if Claude Code is not installed

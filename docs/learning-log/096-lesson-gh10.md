@@ -6,7 +6,7 @@ The three checks in `task/check.yaml` are read-only `gh` calls. I ran them with 
 
 | Repo | A `claude/` branch | `Claude Code` in its body | A successful pull request run |
 |---|---|---|---|
-| `siddharth-0044/hint-kata` | got 0, fails | got 0, fails | got 47, passes |
+| `siddharth-0044/hint-kata` | got 0, fails | got 0, fails | 47 at the time I ran it, passes |
 | `octocat/Hello-World` | got 0, fails | got 0, fails | got 0, fails |
 | a repo that does not exist | GraphQL "Could not resolve to a Repository" | same error | HTTP 404 |
 
@@ -15,6 +15,8 @@ hint-kata names its branches `issue-<n>-<slug>`, so the two `claude/` checks fai
 Deviations from the brief: I added `--limit 100` to the two `gh pr list` checks, because `gh` lists only 30 by default and an older practice repo could hide the `claude/` pull request. The task tells a learner who has no Claude Code to write "Written by hand, because Claude Code is not installed" in the body. That passes the check and stays true, whereas the brief's "Generated with Claude Code" line would be false for a by-hand change.
 
 One lesson learned: a memory file is a request, not a lock. `CLAUDE.md` says "never read the env file", and the repo says it again as a deny rule, a hookify rule and a GitHub ruleset on `main`, because only the last three are enforced by a program. Write the rule in memory so the agent knows it, and put a lock behind every rule that matters.
+
+Review fixes (second round). Since Claude Code 2.1.283 the starting mode is auto mode, where a classifier replaces most prompts. The task now tells the learner to start in Manual mode (`claude --permission-mode manual`, or `Shift+Tab` until the status bar shows manual mode), and the guard-rails section says that deny rules and hooks still apply in auto mode. The memory section now says the context window starts empty and that CLAUDE.md, rules and Claude's own auto-memory notes carry over, and the 200-line target links to the memory page. The deeper question d2 now asks outright for the guard-rail files. Smaller fixes: six commands, not five; the full `disallowedTools` list; the full allow list; six hookify rules use a Bash pattern and two use conditions; the Stop versus SubagentStop point is linked and marked as not tested; `/usr/bin/git` is marked as my own extrapolation. I ran the three checks again against `siddharth-0044/hint-kata`: 0, 0 and 47.
 
 Closes #96
 

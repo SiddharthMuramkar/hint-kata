@@ -59,7 +59,8 @@ questions:
     prompt: >-
       An agent opens a pull request for the issue "fix a typo". The `checks` job is green. Name
       four things you check in the diff itself before you merge, and for each one say what you look
-      for.
+      for. One of the four must be which files deserve a line-by-line read because they control
+      what the next agent may do.
     rubric:
       - name: size-and-scope
         explanation: The answer compares the change with what was asked.
