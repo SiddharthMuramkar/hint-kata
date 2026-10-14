@@ -20,6 +20,15 @@
     p.append("Sources: ");
     list.forEach((c) => {
       const a = document.createElement("a");
+      if (c.n) { // retrieved docs: a web page, opened in a new tab
+        if (!/^https?:\/\//.test(c.url)) return;
+        a.href = c.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = "[" + c.n + "] " + (c.title || c.url.replace(/^https?:\/\/([^/]+).*/, "$1"));
+        p.append(a, " ");
+        return;
+      }
       a.href = c.href;
       a.textContent = "§" + c.title;
       p.append(a, " ");

@@ -26,11 +26,12 @@ def apply_schema(url_unpooled: str) -> int:
     return row["v"]
 
 
-def connect_pg(url: str) -> PgConn:
+def connect_pg(url: str, *, connect_timeout: int | None = None) -> PgConn:
     """Open a connection (autocommit off). The schema must already be applied, because
     register_vector needs the vector extension. On a pooled Neon URL (PgBouncer, transaction
-    mode) never use a session SET; use SET LOCAL inside a transaction."""
-    conn = PgConn.connect(url, row_factory=dict_row)
+    mode) never use a session SET; use SET LOCAL inside a transaction. `connect_timeout` is in
+    seconds (None: wait as long as the OS does)."""
+    conn = PgConn.connect(url, row_factory=dict_row, connect_timeout=connect_timeout)
     register_vector(conn)
     conn.commit()  # end the type-lookup transaction; do not sit idle in transaction
     return conn
