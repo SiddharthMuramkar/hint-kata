@@ -1,0 +1,21 @@
+checks:
+  - name: the environment practice exists
+    args: ["api", "repos/{repo}/environments", "--jq", "[.environments[].name] | index(\"practice\") != null"]
+    expect: "true"
+  - name: the environment practice has a secret named PRACTICE_TOKEN
+    args: ["api", "repos/{repo}/environments/practice/secrets", "--jq", "[.secrets[].name] | index(\"PRACTICE_TOKEN\") != null"]
+    expect: "true"
+  - name: the workflow has top-level permissions contents read only, and a job with environment practice
+    args:
+      - api
+      - repos/{repo}/contents/.github/workflows/secrets-practice.yml
+      - --jq
+      - >-
+        .content | @base64d as $f
+        | ([$f | match("(?m)^permissions:[ \\t\\r]*(#[^\\n]*)?\\n((?:[ \\t]+[^\\n]*(?:\\n|$))+)").captures[1].string
+        | split("\n")[] | sub("#.*$"; "") | gsub("^\\s+|\\s+$"; "") | select(. != "")] == ["contents: read"])
+        and ($f | test("(?m)^[ \\t]+environment:[ \\t]*[\"']?practice[\"']?[ \\t\\r]*(#.*)?$"))
+    expect: "true"
+  - name: a run of the workflow finished with success
+    args: ["run", "list", "-R", "{repo}", "--workflow", "secrets-practice.yml", "--json", "conclusion", "--jq", "[.[] | select(.conclusion==\"success\")] | length"]
+    expect: 're:[1-9][0-9]*'
