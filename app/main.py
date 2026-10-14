@@ -12,8 +12,8 @@ from markupsafe import Markup
 from app.config import settings
 from app.content import Lesson, Source, load_lessons, load_sources
 from app.routes.check import router as check_router
-from app.routes.tutor import router as tutor_router
 from app.routes.trace import router as trace_router
+from app.routes.tutor import router as tutor_router
 
 HERE = Path(__file__).parent
 
