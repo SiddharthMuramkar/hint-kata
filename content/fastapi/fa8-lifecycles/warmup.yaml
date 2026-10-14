@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A dependency is written as `try: yield conn` and `finally: pool.release(conn)`. The
+      route that uses it raises a `RuntimeError`. Do you think `pool.release(conn)` still runs?
+      Take a guess before you read.
+    note: >-
+      Yes. FastAPI throws the route's exception into the dependency at the `yield` line, so the
+      `finally` block runs. The client still gets a 500. This is why the "give it back" step
+      belongs in `finally`.
+  - id: w2
+    prompt: >-
+      Your app has a lifespan that opens a connection pool. In a test you write
+      `client = TestClient(app)` and call `client.get("/rows")`, with no `with` block. Do you
+      think the pool was opened? Take a guess before you read.
+    note: >-
+      No. A bare `TestClient(app)` does not run the lifespan. Start-up and shutdown run only
+      when you use the client as a context manager: `with TestClient(app) as client:`.
