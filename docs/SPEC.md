@@ -87,6 +87,7 @@ Rules come from `docs/research/learning-science.md`.
 - After 2 turns with no progress the tutor names the error and gives the next rung (no Socratic loops).
 - Citations: the reply contains `[§section-id]` markers. The server keeps only markers that match this lesson's sections and renders them as links (section anchor + the section's source URL). Invalid markers are dropped.
 - Streaming over SSE; final reply stored in `chats` so a refresh keeps the history.
+- Caching: the tutor's rules (role, ladder, citation, untrusted-text and format rules) are one static `instructions=` string, so `openrouter_cache_instructions` puts the cache marker on it. Static instructions are cached; dynamic parts are not. The per-turn facts (lesson text, ceiling, learner state) stay in the `@agent.instructions` function and retrieved docs stay in the learner's turn. Keep the static text at 512+ tokens (the Haiku 5.5 minimum) and free of anything that varies per turn. `tests/test_tutor_cache.py` checks the marker on the wire.
 
 ## 8. Watch-it-run traces
 

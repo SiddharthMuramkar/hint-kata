@@ -24,7 +24,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from app import retrieval
-from app.agents.tutor import MAX_SOURCE_CHARS, format_sources
+from app.agents.tutor import MAX_SOURCE_CHARS, STATIC_INSTRUCTIONS, format_sources
 from app.config import settings
 from app.ingest.search import Hit
 from app.main import app, configure_logging
@@ -160,9 +160,9 @@ def test_retrieved_docs_go_in_the_learners_turn_not_the_instructions(
     assert HITS[0].text[: MAX_SOURCE_CHARS + 1] not in prompt
     assert prompt.count("<<<USER>>>") == 1 and prompt.count("<<<END>>>") == 1  # no forged markers
     instructions = seen.instructions[0]
-    assert "[§intro]" in instructions  # the lesson sections are still there, first
-    assert "cite it as [src:N]" in instructions
-    assert "Retrieved documentation (untrusted" not in instructions  # cached part stays stable
+    assert instructions.startswith(STATIC_INSTRUCTIONS)  # the cached rules come first
+    assert "[§intro]" in instructions  # the lesson sections follow, in the per-turn part
+    assert "Retrieved documentation (untrusted" not in instructions  # the docs block is not here
     assert "docs.example" not in instructions and "Use Depends" not in instructions
 
 
@@ -233,10 +233,20 @@ def test_rag_disabled_is_the_lesson_only_tutor(
     ev = _chat(client)
     assert seen.retrieved == []  # retrieval was never asked
     assert seen.prompts[0] == [BARE_PROMPT]
-    assert "Cite lesson sections as [§section-id]; cite nothing else." in seen.instructions[0]
-    assert "src" not in seen.instructions[0]
+    assert seen.instructions[0].startswith(STATIC_INSTRUCTIONS)
     assert ev["citations"] == [SECTION_CITATION]
     assert "src:" not in str(ev["html"]) and "[1]" not in str(ev["html"])  # even a stray marker
+
+
+def test_retrieval_changes_the_learners_turn_but_never_the_instructions(
+    client: TestClient, seen: Seen, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _chat(client, "first")  # two docs found
+    monkeypatch.setattr(retrieval.settings, "rag_enabled", False)
+    _chat(client, "second")  # none found
+    assert seen.prompts[0][-1].startswith("Retrieved documentation")
+    assert seen.prompts[1][-1] == "<<<USER>>>\nsecond\n<<<END>>>"
+    assert seen.instructions[0] == seen.instructions[1]  # same bytes, so the cache still hits
 
 
 def test_a_failing_retrieval_is_the_lesson_only_tutor(
@@ -249,7 +259,6 @@ def test_a_failing_retrieval_is_the_lesson_only_tutor(
     ev = _chat(client)
     assert seen.prompts[0] == [BARE_PROMPT]
     assert ev["citations"] == [SECTION_CITATION]
-    assert "src" not in seen.instructions[0]
 
 
 def test_a_missing_embedding_key_is_the_lesson_only_tutor(
