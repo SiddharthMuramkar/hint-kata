@@ -80,11 +80,10 @@ questions:
           Bundles several changes into one big PR because "nobody else will read it".
       - name: other-checks-and-limits
         explanation: >-
-          The answer names another safety net and is honest that it is not the same as a human approval.
+          The answer names another safety net and says it is not a human approval.
         pass_anchor: >-
-          Relies on required checks and a ruleset that needs a PR (with zero approvals), and may
-          use an automated or agent review, while saying a tool's findings are input and not an
-          approval, and that the author still cannot approve their own PR.
+          Names another safety net (required checks, a ruleset that needs a PR, or an automated
+          or agent review) and says that its result is input to a decision, not a human approval.
         fail_anchor: >-
           Says an agent or CI replaces a human reviewer completely, or says the author can approve
           their own PR to get past the rule.

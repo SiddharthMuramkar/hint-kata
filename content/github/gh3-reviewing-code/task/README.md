@@ -51,7 +51,7 @@ Now open the PR in the browser with `gh pr view --web` and click the **Files cha
 ## 4. Leave a comment with a suggestion block
 
 1. On **Files changed**, hover over line 2 of `REVIEW.md` and click the blue comment icon.
-2. In the comment box, click the **suggestion** icon (a small plus-and-minus symbol). GitHub fills the box with the line, inside a fenced block that starts with three backticks and the word `suggestion`.
+2. In the comment box, click the **suggestion** icon (a small diff symbol). GitHub fills the box with the line, inside a fenced block that starts with three backticks and the word `suggestion`.
 3. Fix the typo inside the block, so it says `Reviews catch mistakes before they reach main.` Add a short sentence above the block, for example "Typo in this word."
 4. Click **Start a review**. The comment is now pending, which means only you can see it.
 5. Click **Review changes** at the top of the page. Leave the summary short, choose **Comment** (the only option that is open to the author of the PR) and click **Submit review**.

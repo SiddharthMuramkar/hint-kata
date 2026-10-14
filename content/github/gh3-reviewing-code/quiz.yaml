@@ -65,7 +65,7 @@ items:
     prompt: Put the steps of one review round in order.
     steps:
       - The author marks the PR ready for review and requests a reviewer
-      - The reviewer reads the Files changed tab and ticks Viewed on each file
+      - The reviewer opens the Files changed tab and starts a review
       - The reviewer adds pending line comments, one with a suggestion block
       - The reviewer submits the review with a decision
       - The author clicks Commit suggestion on the suggestion

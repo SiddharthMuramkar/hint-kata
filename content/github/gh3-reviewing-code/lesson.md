@@ -115,7 +115,7 @@ When you submit a review, you choose a decision. These are the same three you me
 | Approve | "This is ready to merge." |
 | Request changes | "Please fix this before the PR merges." |
 
-Two facts matter here. First, **Request changes** is only a signal, unless the repository requires a pull request through a ruleset or branch protection. Then it can hold up the merge until the same reviewer approves. Second, **an author cannot approve their own PR**. On a PR you wrote, you can only submit **Comment**. That is why a solo developer can still leave review comments and suggestions on their own work. It is a way to read your own diff slowly and leave yourself notes. It does not give you a second opinion.
+Two facts matter here. First, **Request changes** is only a signal, unless the repository requires a pull request through a ruleset or branch protection. Then a Request changes from a reviewer with write access holds up the merge until that same reviewer approves. Second, **an author cannot approve their own PR**. On a PR you wrote, you can only submit **Comment**. That is why a solo developer can still leave review comments and suggestions on their own work. It is a way to read your own diff slowly and leave yourself notes. It does not give you a second opinion.
 
 The `gh` command line can leave a whole-PR review, such as `gh pr review --comment --body "..."`. It cannot attach a comment to one line or write a suggestion block. For that you use the browser.
 
@@ -126,7 +126,7 @@ You have a review. Now what? See [Incorporating feedback in your pull request](h
 1. **Read all of it before you change anything.** Some comments depend on each other.
 2. **Apply the suggestions you agree with.** If you have write access, click **Commit suggestion**. GitHub makes one commit on the PR branch, and you type a short, meaningful commit message for it. The person who suggested the change is named as a co-author. To fold several suggestions into one commit, click **Add suggestion to batch** on each, then **Commit suggestions** once.
 3. **Answer what you do not apply.** If you disagree, say why. A reviewer cannot know that you chose not to change something unless you write it. If the idea is good but too big for this PR, open an issue to track it and link the issue in your reply.
-4. **Resolve threads.** When a comment is dealt with, mark its conversation as **Resolved**, so that the PR shows what is still open. See [Resolving reviews](https://docs.github.com/en/pull-requests/concepts/resolving-reviews). Some repositories require every thread to be resolved before the merge, so an open thread is an open question.
+4. **Resolve threads.** When a comment is dealt with, mark its conversation as **Resolved**, so that the PR shows what is still open. Some repositories require every thread to be resolved before the merge, so an open thread is an open question.
 5. **Re-request a review.** After substantial changes, ask the reviewer to look again. In the **Reviewers** sidebar, click the sync icon next to their name, or run `gh pr edit --add-reviewer <login>`.
 
 If a repository requires approvals and also dismisses stale ones, pushing a new commit to an approved PR removes the approval. You need a new one before you merge.

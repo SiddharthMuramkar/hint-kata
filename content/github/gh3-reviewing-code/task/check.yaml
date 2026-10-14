@@ -1,13 +1,13 @@
 checks:
   - name: A review comment with a suggestion block exists
-    args: ["api", "repos/{repo}/pulls/comments?per_page=100", "--jq", "[.[]|select(.body|contains(\"```suggestion\"))]|length"]
+    args: ["api", "repos/{repo}/pulls/comments?per_page=100&sort=created&direction=desc", "--jq", "[.[]|select(.body|contains(\"```suggestion\"))]|length"]
     expect: "re:[1-9][0-9]*"
   - name: A commit on a pull request mentions a suggestion
     args: ["pr", "list", "-R", "{repo}", "--state", "all", "--limit", "30", "--json", "commits", "--jq", "[.[].commits[]|select(.messageHeadline|test(\"suggestion\";\"i\"))]|length"]
     expect: "re:[1-9][0-9]*"
   - name: A review thread is resolved
-    args: ["api", "graphql", "-f", "query={search(query:\"repo:{repo} is:pr\", type:ISSUE, first:50){nodes{... on PullRequest{reviewThreads(first:50){nodes{isResolved}}}}}}", "--jq", "[.data.search.nodes[].reviewThreads.nodes[]|select(.isResolved)]|length"]
+    args: ["api", "graphql", "-f", "query={search(query:\"repo:{repo} is:pr sort:created-desc\", type:ISSUE, first:50){nodes{... on PullRequest{reviewThreads(first:50){nodes{isResolved}}}}}}", "--jq", "[.data.search.nodes[].reviewThreads.nodes[]|select(.isResolved)]|length"]
     expect: "re:[1-9][0-9]*"
   - name: A pull request was marked ready for review
-    args: ["api", "graphql", "-f", "query={search(query:\"repo:{repo} is:pr\", type:ISSUE, first:50){nodes{... on PullRequest{timelineItems(itemTypes:[READY_FOR_REVIEW_EVENT], first:5){nodes{__typename}}}}}}", "--jq", "([.data.search.nodes[].timelineItems.nodes|length]|add) // 0"]
+    args: ["api", "graphql", "-f", "query={search(query:\"repo:{repo} is:pr sort:created-desc\", type:ISSUE, first:50){nodes{... on PullRequest{timelineItems(itemTypes:[READY_FOR_REVIEW_EVENT], first:5){nodes{__typename}}}}}}", "--jq", "([.data.search.nodes[].timelineItems.nodes|length]|add) // 0"]
     expect: "re:[1-9][0-9]*"
