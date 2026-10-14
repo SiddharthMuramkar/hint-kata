@@ -16,3 +16,14 @@ This page is the index, in merge order. Read the files top to bottom to re-learn
 | #31 | [007 — Streaming tutor with hint ladder and citations](learning-log/007-tutor.md) |
 | #32 | [006 — Rubric grader agent and think-deeper UI](learning-log/006-grader.md) |
 | #33 | [009 — Spaced review queue with fsrs and the Today page](learning-log/009-review-queue.md) |
+| #34 | [015 — lesson — Testing FastAPI apps](learning-log/015-lesson-fa2.md) |
+| #35 | [013 — lesson — Dependencies](learning-log/013-lesson-fa1.md) |
+| #36 | [012 — lesson PA1 — Your first agent](learning-log/012-lesson-pa1.md) |
+| #37 | [014 — lesson PA2 — Tools and dependencies](learning-log/014-lesson-pa2.md) |
+| #38 | [016 — lesson GH1 — Is this PR ready to merge?](learning-log/016-lesson-gh1.md) |
+| #39 | [017 — lesson GH2 — Your first CI workflow](learning-log/017-lesson-gh2.md) |
+| #40 | [021 — mastery rule and map on the home page](learning-log/021-mastery.md) |
+| #62 | [018 — end-to-end acceptance suite for phase 1](learning-log/018-acceptance.md) |
+| #66 | [063 — a reveal schedules a re-test card](learning-log/063-reveal-retest.md) |
+| #69 | [069 — Tighten hookify env-file and push-to-main patterns](learning-log/069-hookify-false-positives.md) |
+| — | [020 — Docs pass: phase 1 closed, phase 2 opened](learning-log/020-docs-pass.md) |

@@ -1,0 +1,69 @@
+questions:
+  - id: d1
+    prompt: >-
+      A teammate returns the database user object straight from a route, and the object has a
+      `hashed_password` field. Your API has several routes that return users (a single read, a list
+      and an update). How would you make sure the hash never reaches a client from any of them, and
+      how would you check that it stays that way?
+    rubric:
+      - name: separate-output-model
+        explanation: The answer introduces an output model without the secret field.
+        pass_anchor: "Declares a UserOut (no hashed_password) as the return type or response_model of the route."
+        fail_anchor: "Says 'be careful' or 'delete the field before returning' without an output model."
+      - name: filter-by-declaration
+        explanation: The answer explains that FastAPI filters the response using the declared model, so the guarantee does not depend on each developer remembering.
+        pass_anchor: "Notes that FastAPI drops fields not in the declared model even if the returned object has them."
+        fail_anchor: "Treats the filter as something written by hand in every route."
+      - name: applies-to-every-route
+        explanation: The answer covers every route that returns users, not only one.
+        pass_anchor: "Checks other routes (lists, updates) and gives each an output model, or shares one UserOut."
+        fail_anchor: "Fixes a single route and ignores the others."
+      - name: tests-the-response
+        explanation: The answer proposes a test that fails if the secret ever appears in a response.
+        pass_anchor: "Writes a test that calls the routes and asserts the password or hash is absent from the JSON."
+        fail_anchor: "Relies on reading the code once and no test."
+    model_answer: >-
+      I would define an output model, for example `UserOut`, that has only the fields a client may
+      see. It would have no `hashed_password`. Then I would declare it on the route, as the return
+      type or as `response_model`. FastAPI filters the response with that model, so even if the
+      route returns the database object with the hash, the field is dropped. This does not depend on
+      each developer remembering to remove it. I would do this for every route that returns users,
+      including the list and update routes, or reuse one shared `UserOut`. Finally I would add a
+      test that calls those routes with a test client and asserts that neither the password nor the
+      hash appears anywhere in the response body, so a future change cannot quietly bring it back.
+    hints:
+      - What could you declare on the route so that FastAPI itself removes fields the client must not see?
+      - How could a test fail loudly if someone changes a route and the secret leaks again?
+  - id: d2
+    prompt: >-
+      Your API raises `HTTPException(status_code=409, ...)` in twelve different places when a product is
+      out of stock. Describe a cleaner design. What would you change, what would you gain, and how would you check it?
+    rubric:
+      - name: custom-exception
+        explanation: The answer defines one custom exception for the business failure.
+        pass_anchor: "Creates an OutOfStock exception class that business code raises instead of HTTPException."
+        fail_anchor: "Keeps raising HTTPException in every place, only moving the text to a constant."
+      - name: one-handler
+        explanation: The answer registers one handler that turns the exception into the HTTP response.
+        pass_anchor: "Uses @app.exception_handler(OutOfStock) to return a JSONResponse with status 409."
+        fail_anchor: "Does not say where the status code is chosen."
+      - name: benefits
+        explanation: The answer names a real benefit, such as one place to change the status code or response shape, or business code that does not depend on HTTP.
+        pass_anchor: "Says the status code and body shape live in one place, and the stock check can be reused outside a route."
+        fail_anchor: "Says 'it looks nicer' without a concrete gain."
+      - name: tests-the-handler
+        explanation: The answer checks the 409 status and the detail text with a test.
+        pass_anchor: "Plans a test that triggers the failure and asserts status 409 and the body."
+        fail_anchor: "Does not mention testing the new behavior."
+    model_answer: >-
+      I would create one custom exception class, `OutOfStock`, that carries the product id. The
+      business code raises it and knows nothing about HTTP. In one place I would register a handler
+      with `@app.exception_handler(OutOfStock)` that returns a `JSONResponse` with status 409 and a
+      body such as `{"detail": "..."}`. The gain is that the status code and the shape of the error
+      live in one function. If the team decides to change the wording or the code, I change one
+      place, not twelve. The stock check also no longer depends on FastAPI, so I can reuse it in a
+      script or a test. I would write a test that triggers the failure and asserts the 409 status and
+      the detail text.
+    hints:
+      - Which part of your code should know about HTTP status codes, and which part should only know about stock?
+      - What happens to the twelve places if the team later wants a different body for this error?
