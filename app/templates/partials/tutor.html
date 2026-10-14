@@ -1,0 +1,19 @@
+<section id="tutor" data-lesson="{{ lesson_id }}">
+  <h2>Ask the tutor <small class="muted">Hint level: <span id="tutor-level">L1</span></small></h2>
+  <div id="tutor-log" aria-live="polite"></div>
+  <form id="tutor-form">
+    <textarea name="message" rows="3" maxlength="4000" required placeholder="Say what you tried or where you are stuck"></textarea>
+    <p>
+      <button type="submit">Send</button>
+      {% set items = lesson.quiz | map(attribute="id") | list + lesson.deeper | map(attribute="id") | list %}
+      {% if items %}
+      <select id="tutor-item" aria-label="Item to reveal">
+        {% for i in items %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+      </select>
+      <button id="tutor-reveal" type="button">Show me the answer</button>
+      {% endif %}
+    </p>
+  </form>
+  <pre id="tutor-answer" hidden></pre>
+</section>
+<script src="/static/js/tutor.js" defer></script>

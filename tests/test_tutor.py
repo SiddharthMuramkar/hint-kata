@@ -1,0 +1,121 @@
+import json
+from collections.abc import Iterator
+from pathlib import Path
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from pydantic_ai import models
+from pydantic_ai.models.test import TestModel
+
+from app.config import settings
+from app.main import app
+from app.routes.tutor import get_tutor
+from app.tutor_rules import (
+    LADDER,
+    apply_ceiling,
+    compute_ceiling,
+    no_progress,
+    validate_citations,
+)
+
+models.ALLOW_MODEL_REQUESTS = False
+FIXTURES = Path(__file__).parent / "fixtures" / "content"
+REPLY = "See [§intro] and [§nope]. ```python\nx=1\n```"
+
+
+def test_ladder_has_seven_rungs() -> None:
+    assert [r[:2] for r in LADDER] == [f"L{i}" for i in range(7)]
+
+
+@pytest.mark.parametrize(
+    ("attempts", "quiz", "revealed", "expected"),
+    [
+        (0, False, False, 1),
+        (2, False, False, 3),
+        (9, False, False, 6),
+        (5, True, False, 2),
+        (0, True, False, 1),
+        (0, False, True, 6),
+    ],
+)
+def test_compute_ceiling(attempts: int, quiz: bool, revealed: bool, expected: int) -> None:
+    assert compute_ceiling(attempts, quiz, revealed) == expected
+
+
+def test_apply_ceiling_strips_fences_below_l4_only() -> None:
+    text = "a\n```py\nx=1\n```\nb\n~~~\ny=2\n~~~\n"
+    low = apply_ceiling(text, 3)
+    assert "```" not in low and "~~~" not in low and "x=1" not in low
+    assert "[code withheld at hint level L3 — attempt the task first]" in low
+    assert apply_ceiling(text, 4) == text
+
+
+def test_validate_citations_drops_unknown_and_keeps_order() -> None:
+    text, ids = validate_citations("[§b] x [§zzz] [§a] [§b]", {"a", "b"})
+    assert ids == ["b", "a"]
+    assert "zzz" not in text and "[§a]" in text
+
+
+def test_no_progress() -> None:
+    same = [{"role": "user", "content": "I'm stuck"}, {"role": "assistant", "content": "?"}]
+    assert no_progress([*same, {"role": "user", "content": "  I'M STUCK "}])
+    assert not no_progress([*same, {"role": "user", "content": "now try Depends"}])
+    assert not no_progress(same)
+
+
+@pytest.fixture
+def client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[TestClient]:
+    monkeypatch.setattr(settings, "content_root", str(FIXTURES))
+    monkeypatch.setattr(settings, "hintkata_db_path", str(tmp_path / "t.db"))
+    with TestClient(app) as c, get_tutor().override(model=TestModel(custom_output_text=REPLY)):
+        yield c
+
+
+def _events(body: str) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    for block in body.strip().split("\n\n"):
+        lines = dict(line.split(": ", 1) for line in block.splitlines() if ": " in line)
+        if "event" in lines:
+            out[lines["event"]] = json.loads(lines["data"])
+    return out
+
+
+def _chat(client: TestClient, message: str = "help", item: str | None = None) -> dict[str, Any]:
+    r = client.post("/api/tutor/fx-demo", json={"message": message, "active_item": item})
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/event-stream")
+    assert "event: token" in r.text and "event: html" in r.text and "event: citations" in r.text
+    return _events(r.text)
+
+
+def test_chat_streams_enforces_ceiling_and_persists(client: TestClient) -> None:
+    ev = _chat(client)
+    assert "```" not in str(ev["html"]) and "<pre" not in str(ev["html"])
+    assert "nope" not in str(ev["html"])
+    assert [c["id"] for c in ev["citations"]] == ["intro"]
+    assert ev["citations"][0]["href"] == "#intro"
+    turns = client.get("/api/tutor/fx-demo/history").json()
+    assert [t["role"] for t in turns] == ["user", "assistant"]
+    assert turns[0]["text"] == "help"
+    assert turns[1]["ceiling"] == "L1" and "nope" not in turns[1]["html"]
+
+
+def test_reveal_logs_event_and_lifts_ceiling(client: TestClient) -> None:
+    r = client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q1"})
+    assert r.json()["answer"] == "A function"
+    assert client.post("/api/tutor/fx-demo/reveal", json={"item_id": "d1"}).json()["answer"] == (
+        "Reuse and testability."
+    )
+    assert client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q3"}).json()["answer"] == (
+        "Depends"
+    )
+    assert client.post("/api/tutor/fx-demo/reveal", json={"item_id": "zz"}).status_code == 404
+    ev = _chat(client)
+    assert "x=1" in str(ev["html"])  # ceiling 6 keeps the code
+    assert client.get("/api/tutor/fx-demo/history").json()[1]["ceiling"] == "L6"
+
+
+def test_unknown_lesson_is_404(client: TestClient) -> None:
+    assert client.post("/api/tutor/nope", json={"message": "x"}).status_code == 404
+    assert client.get("/api/tutor/nope/history").status_code == 404
