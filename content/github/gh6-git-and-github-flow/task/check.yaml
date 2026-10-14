@@ -1,0 +1,13 @@
+checks:
+  - name: the branch feature/greeting exists on GitHub
+    args: ["api", "repos/{repo}/branches/feature/greeting", "--jq", ".name"]
+    expect: 'feature/greeting'
+  - name: the branch history has 3 or more commits (your 2, plus the commit it started from)
+    args: ["api", "repos/{repo}/commits?sha=feature/greeting&per_page=10", "--jq", "length"]
+    expect: 're:[3-9]|10'
+  - name: exactly one open pull request comes from feature/greeting
+    args: ["pr", "list", "-R", "{repo}", "--head", "feature/greeting", "--state", "open", "--json", "number", "--jq", "length"]
+    expect: '1'
+  - name: that pull request holds exactly 2 commits
+    args: ["pr", "list", "-R", "{repo}", "--head", "feature/greeting", "--state", "open", "--json", "commits", "--jq", ".[0].commits|length"]
+    expect: '2'

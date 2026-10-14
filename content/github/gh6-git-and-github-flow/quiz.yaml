@@ -1,0 +1,166 @@
+items:
+  - id: q1
+    type: single
+    concept: commit-snapshot-parent
+    source_section: a-commit-is-a-snapshot-with-a-parent
+    prompt: >-
+      You run `git cat-file -p HEAD` and see a `tree` line, a `parent` line, author and committer
+      lines, and a message. What does the `parent` line tell git?
+    options:
+      - text: The branch this commit was made on.
+        misconception: Thinks a commit records the branch it was made on.
+        feedback: >-
+          A commit records no branch. Branch names live outside the commit and move forward as you
+          work. The parent is another commit.
+      - text: The files that changed since the last commit.
+        misconception: Thinks a commit stores only a diff.
+        feedback: >-
+          The `tree` line points at a snapshot of the whole project. The changes are worked out by
+          comparing that snapshot with the snapshot of the parent.
+      - text: >-
+          The id of the commit that came right before this one. Git follows these links to build
+          the history.
+        correct: true
+        feedback: >-
+          Right. Each commit points back at its parent, and `git log` walks that chain. The first
+          commit of a repo has no parent line, and a merge commit has two.
+      - text: The remote the commit was pushed to.
+        misconception: Mixes up history links with remotes.
+        feedback: >-
+          A commit knows nothing about remotes. The `origin/...` bookmarks in your repo are what
+          track where GitHub's branches are.
+
+  - id: q2
+    type: single
+    concept: branch-pointer
+    source_section: a-branch-is-a-movable-pointer
+    prompt: >-
+      `feature/greeting` and `main` both point at commit A. You are on `feature/greeting` and make
+      one new commit, B. What do the two names point at now?
+    options:
+      - text: "`main` still points at A. `feature/greeting` points at B."
+        correct: true
+        feedback: >-
+          Right. Only the branch you are on moves forward. Commit B has A as its parent, and `main`
+          stays where it was.
+      - text: Both point at B, because they started at the same commit.
+        misconception: Thinks branches that share a commit move together.
+        feedback: >-
+          Each branch is its own name. Only the branch you are standing on moves when you commit.
+      - text: Both still point at A. A branch moves only when you push.
+        misconception: Thinks a branch moves only on push.
+        feedback: >-
+          Committing moves your local branch at once. Pushing only updates GitHub's copy of it.
+      - text: Both point at A, but A now includes your change.
+        misconception: Thinks a commit is edited in place.
+        feedback: >-
+          A commit never changes. Git makes a new commit, B, with A as its parent.
+
+  - id: q3
+    type: order
+    concept: github-flow-order
+    source_section: the-github-flow-loop
+    prompt: >-
+      Put the steps of GitHub flow in order for one change.
+    steps:
+      - "Create a branch from an up-to-date `main`: `git switch -c feature/greeting`."
+      - "Commit your change on that branch."
+      - "Push the branch to GitHub: `git push -u origin feature/greeting`."
+      - "Open a pull request from the branch into `main`."
+      - "A reviewer reads the pull request and approves it."
+      - "Merge the pull request."
+      - "Delete the branch."
+    explanation: >-
+      The branch comes first, so your commits never land on `main`. You commit before you push,
+      because a push sends commits. A pull request needs the branch to exist on GitHub, so the push
+      comes before it. Review comes before the merge. Deleting the branch comes last: do it earlier
+      and an open pull request is closed. If the reviewer asks for changes, you commit and push
+      again, but that loop happens inside the review step.
+
+  - id: q4
+    type: single
+    concept: push-set-upstream
+    source_section: remotes-and-tracking-branches
+    prompt: |
+      You made a new local branch with `git switch -c feature/greeting` and committed once. You
+      now run this command:
+
+      ```bash
+      git push
+      ```
+
+      Git stops with `fatal: The current branch feature/greeting has no upstream branch.` What is
+      the bug?
+    options:
+      - text: There is no remote called `origin`, so you must run `git remote add` first.
+        misconception: Reads the error as a missing remote.
+        feedback: >-
+          The error is about the upstream of the branch, not about the remote. A clone already has
+          `origin`, and `git remote -v` shows it.
+      - text: You must run `git pull` before git allows a first push.
+        misconception: Thinks every push needs a pull first.
+        feedback: >-
+          A new branch has nothing to pull yet. Git is only asking where this branch should go.
+      - text: Pushes are only allowed from `main`, so switch back to it first.
+        misconception: Thinks only the default branch can be pushed.
+        feedback: >-
+          Any branch can be pushed, and feature branches are made to be pushed. A ruleset may stop
+          pushes to `main` itself, but that is a different message.
+      - text: >-
+          The branch has no upstream yet. The first push needs `git push -u origin
+          feature/greeting`, which also creates the branch on GitHub.
+        correct: true
+        feedback: >-
+          Right. `-u` (short for `--set-upstream`) pushes the branch and records the link. After
+          that, plain `git push` and `git pull` work. Git even prints this fix in its message.
+
+  - id: q5
+    type: blank
+    concept: fetch-vs-pull
+    source_section: remotes-and-tracking-branches
+    prompt: |
+      You want to download new commits from GitHub and move your `origin/main` bookmark, without
+      changing any of your own branches or files. Fill in the git command:
+
+      ```bash
+      git ____ origin
+      ```
+    answer: 're:(git\s+)?fetch(\s+origin)?'
+    explanation: >-
+      `git fetch` only updates the `origin/...` bookmarks, so it is safe at any time. `git pull`
+      does a fetch and then brings the upstream branch into the branch you are on, which can change
+      your files.
+
+  - id: q6
+    type: single
+    concept: commit-message
+    source_section: good-commit-messages
+    prompt: >-
+      Your checker tool crashes on files that do not end with a newline. You fix `greeting.txt` by
+      adding one. Which commit message is the best?
+    options:
+      - text: "`update`"
+        misconception: Thinks a shorter message is always better.
+        feedback: >-
+          It is short, but it says nothing. The diff already shows that a file was updated. A
+          message should add the reason.
+      - text: >-
+          The subject `Add trailing newline to greeting.txt`, a blank line, and a body that says the
+          checker crashes on files with no final newline.
+        correct: true
+        feedback: >-
+          Right. A short subject in the imperative, a blank line, and a body that explains why. The
+          diff shows what changed, and the body says the reason.
+      - text: >-
+          One long subject line that tells the whole story: what changed, why, and what else was
+          cleaned up.
+        misconception: Believes the whole story belongs in the subject line.
+        feedback: >-
+          A long subject is hard to scan in `git log --oneline`, where only that first line is
+          shown. Keep the subject short, then a blank line, then the body for the why.
+      - text: >-
+          No message in git. Explain the change in the pull request description instead.
+        misconception: Thinks the pull request text can replace the commit message.
+        feedback: >-
+          Git refuses an empty message by default. The pull request text lives on GitHub, but
+          `git log` and `git blame` on your computer show only commit messages.

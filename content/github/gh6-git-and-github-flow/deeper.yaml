@@ -1,0 +1,110 @@
+questions:
+  - id: d1
+    prompt: >-
+      You start a change with `git switch -c feature/greeting`, make two commits, and then run
+      `git push -u origin feature/greeting`. Explain what each of these three steps does to the
+      commits, the branch names and the remote. In your answer, say what `-u` adds, and what
+      `git status` can tell you afterwards because of it.
+    rubric:
+      - name: new-branch-is-a-pointer
+        explanation: The answer says what `git switch -c` creates.
+        pass_anchor: >-
+          Says it creates a new branch name that points at the commit you are on, and moves you
+          onto it. May add that no files are copied.
+        fail_anchor: >-
+          Says it copies the project, makes a new repository, or does not say what the new branch
+          points at.
+      - name: commits-move-the-branch
+        explanation: The answer explains what the two commits do.
+        pass_anchor: >-
+          Says each commit is a new snapshot whose parent is the previous commit, and that the
+          branch name moves forward to it while `main` stays where it was.
+        fail_anchor: >-
+          Says the commits go onto `main`, or that an earlier commit is edited, or that a branch
+          moves only when you push.
+      - name: push-creates-remote-branch
+        explanation: The answer says what the push does on the GitHub side.
+        pass_anchor: >-
+          Says the push sends the commits to GitHub and creates the branch `feature/greeting`
+          there (so `origin/feature/greeting` exists locally too).
+        fail_anchor: >-
+          Says the push merges the work into `main`, opens a pull request, or does not say that a
+          branch is created on the remote.
+      - name: upstream-and-status
+        explanation: The answer explains what `-u` adds and what it enables.
+        pass_anchor: >-
+          Says `-u` records an upstream link between the local branch and the remote branch, so
+          plain `git push` and `git pull` work without arguments and `git status` can say whether
+          the branch is up to date, ahead or behind.
+        fail_anchor: >-
+          Says `-u` means force, update or upload everything, or does not mention the link
+          between the two branches.
+    model_answer: >-
+      `git switch -c feature/greeting` creates a new branch name that points at the commit I am
+      on, and moves me onto it. Nothing is copied, so it costs almost nothing. Each commit I make
+      is a new snapshot whose parent is the previous commit, and the name `feature/greeting` moves
+      forward to it. `main` stays where it was. `git push -u origin feature/greeting` sends those
+      commits to GitHub and creates the branch `feature/greeting` there. Git also moves the
+      bookmark `origin/feature/greeting` in my clone. The `-u` flag adds one more thing: it records
+      the remote branch as the upstream of my local branch. After that, plain `git push` and
+      `git pull` need no arguments, and `git status` can tell me that my branch is up to date,
+      ahead of or behind `origin/feature/greeting`.
+    hints:
+      - Which names move when you commit, and which stay where they are?
+      - What does git remember after `-u` that it did not know before?
+
+  - id: d2
+    prompt: >-
+      Describe how one change travels through this repo, from the first step to the deleted
+      branch. Say what you create first and what the branch is called, the steps in order on your
+      computer and on GitHub, how the change reaches `main` and which rules apply there, and what
+      happens to the branch afterwards. Then explain why a short-lived branch is better than one
+      that stays open for weeks.
+    rubric:
+      - name: issue-branch-pr
+        explanation: The answer knows the repo's unit of work.
+        pass_anchor: >-
+          Says a task starts as an issue, gets its own branch named `issue-<n>-<slug>`, and is
+          delivered by exactly one pull request.
+        fail_anchor: >-
+          Says work is committed straight to `main`, or that one branch or PR holds several
+          unrelated tasks.
+      - name: flow-in-order
+        explanation: The answer lists the steps of the flow in a workable order.
+        pass_anchor: >-
+          Names branch, commit, push, pull request, merge and delete the branch, in that order,
+          with the push before the pull request.
+        fail_anchor: >-
+          Opens the pull request before pushing, skips the push, or deletes the branch before the
+          merge.
+      - name: main-rules
+        explanation: The answer knows how `main` is protected and how merges happen.
+        pass_anchor: >-
+          Says nothing is pushed directly to `main` and there are no force pushes, that a pull
+          request with passing checks is required, and that merging is by squash (one commit per
+          PR).
+        fail_anchor: >-
+          Says you may push to `main` directly, or that merges keep every commit of the branch.
+      - name: short-lived-reason
+        explanation: The answer gives a real reason for short-lived branches.
+        pass_anchor: >-
+          Gives at least one concrete reason: fewer conflicts because `main` moves less in the
+          meantime, smaller PRs that are easier to review, or no stale branch to reuse by mistake
+          after a squash.
+        fail_anchor: >-
+          Gives no reason, or says only that it is "cleaner" or "best practice".
+    model_answer: >-
+      A task starts as an issue. I make a branch called `issue-<n>-<slug>` from an up-to-date
+      `main`, and there is one branch and one pull request for each issue. On my computer I make
+      small commits, with messages that say why, and push the branch with `git push -u origin
+      <branch>`. Then I open the pull request with `gh pr create`. The CI job `checks` runs on it.
+      Nothing is pushed straight to `main` and force pushes are blocked. The ruleset on `main`
+      needs a pull request with passing checks, and the only merge method is squash, so each PR
+      becomes one commit and history on `main` is a straight line. After the merge the branch is
+      deleted (the repo does this itself), and I update my clone with `git switch main` and
+      `git pull`. A short-lived branch means `main` has little time to move away from it, so there
+      are fewer conflicts. The PR is small, so it is easy to review. And I never reuse an old
+      branch after a squash merge, which would bring the old commits back.
+    hints:
+      - Which steps happen on your computer, and which happen on GitHub?
+      - What goes wrong when a branch stays open while `main` keeps moving?
