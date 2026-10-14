@@ -1,7 +1,7 @@
 {% if lesson.deeper %}
 <section id="deeper" class="card" data-lesson="{{ lesson_id }}">
   <h2>Think deeper</h2>
-  <p class="muted">Answer in your own words. You get 3 tries; each is graded against a rubric.</p>
+  <p class="muted">Answer in your own words. You get 3 tries; each is graded against a rubric. The grader reads your answer three times; a criterion counts as met when at least two of the three readings say it is met, and an "uncertain" label means they did not all agree.</p>
   {% for q in lesson.deeper %}
   <div class="deeper-q" data-question="{{ q.id }}">
     <p><strong>{{ q.prompt }}</strong></p>
