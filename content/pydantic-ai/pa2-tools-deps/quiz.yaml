@@ -1,0 +1,124 @@
+items:
+  - id: q1
+    type: single
+    concept: tool-schema-from-docstring
+    source_section: what-a-tool-is
+    prompt: >-
+      An agent has one tool, get_forecast(city: str), with a clear docstring. What does the
+      model use to decide whether to call it?
+    options:
+      - text: The tool name, the docstring description and the parameter schema that Pydantic AI builds from the function.
+        correct: true
+        feedback: >-
+          Right. The model is shown the name, the description from the docstring and a JSON
+          schema of the parameters, and it chooses from those.
+      - text: Only the function name. The docstring is for human readers and is ignored.
+        misconception: Thinks the tool's docstring is ignored.
+        feedback: >-
+          Tempting, because docstrings are usually for people. But the first lines become the
+          tool description and the Args entries become parameter descriptions, so the docstring
+          is the main hint the model has.
+      - text: Your code compares the prompt with the tool name and calls the tool when they match.
+        misconception: Thinks the application code decides when a tool is called.
+        feedback: >-
+          No keyword matching happens. The model replies with a tool call and the agent runs it.
+          The decision is the model's.
+      - text: The agent calls every registered tool on every run, then lets the model pick a result.
+        misconception: Thinks all tools always run.
+        feedback: >-
+          Tools only run when the model asks for them. TestModel does call all tools, but that
+          is a testing shortcut, not how a real model behaves.
+  - id: q2
+    type: single
+    concept: model-retry
+    source_section: asking-the-model-to-retry
+    prompt: >-
+      A tool raises ModelRetry("City not found, try the full name"). What happens next?
+    options:
+      - text: The message goes back to the model as a retry prompt, and the agent makes another model request.
+        correct: true
+        feedback: >-
+          Right. The model reads the hint and can call the tool again with better arguments.
+          The trace in this lesson shows exactly this.
+      - text: Pydantic AI repeats the HTTP request or the function call until it works.
+        misconception: Thinks ModelRetry retries the HTTP request.
+        feedback: >-
+          ModelRetry does not re-run your function by itself. It sends feedback to the model,
+          and the model decides what to try next.
+      - text: The run crashes with the exception, like any other error.
+        misconception: Thinks a tool error always ends the run.
+        feedback: >-
+          Ordinary exceptions do crash the run. ModelRetry is the special case that turns a
+          mistake into feedback. Note the retry limit: one retry per tool by default.
+      - text: The message is shown to the user and the run stops.
+        misconception: Thinks the retry message is for the end user.
+        feedback: >-
+          The hint is written for the model, not the user. The user only sees the final answer.
+  - id: q3
+    type: single
+    concept: deps-type
+    source_section: dependencies-instead-of-globals
+    prompt: >-
+      What does deps_type=Deps do in Agent("...", deps_type=Deps)?
+    options:
+      - text: It tells type checkers what ctx.deps is. The real Deps instance is passed later with deps= at run time.
+        correct: true
+        feedback: >-
+          Right. You pass the class here and an instance in agent.run_sync(..., deps=...).
+          RunContext[Deps] then gives you typed access in tools.
+      - text: It creates a Deps object for each run automatically.
+        misconception: Thinks the agent builds the dependencies itself.
+        feedback: >-
+          The agent never builds the object. You build it, with a real client or with a fake
+          one in a test, and pass it in.
+      - text: It sends the contents of Deps to the model as extra context.
+        misconception: Thinks dependencies are visible to the model.
+        feedback: >-
+          Deps stay on your side. The model never sees them unless a tool returns part of them.
+      - text: It makes Deps a global that every tool can import.
+        misconception: Thinks deps_type creates a global.
+        feedback: >-
+          The point is the opposite. Tools read deps from ctx, so no global is needed and
+          each run can have different data.
+  - id: q4
+    type: order
+    concept: tool-call-loop
+    source_section: watch-it-run
+    prompt: Put the steps of one run that uses a tool in the order they happen.
+    steps:
+      - "model_request: the agent sends the prompt and the tool list to the model"
+      - "tool_call: the model replies with a tool name and arguments"
+      - "tool_result: the agent runs the tool and records its return value"
+      - "model_request: the agent sends the history, now with the result, to the model"
+      - "final_output: the model replies with plain text and the run ends"
+    explanation: >-
+      The model never runs the tool. It asks, your code answers, and the model is called again
+      until it replies with text. A ModelRetry would add a retry step after the tool call,
+      then another model request.
+  - id: q5
+    type: blank
+    concept: tool-decorator
+    source_section: choosing-the-decorator
+    prompt: |-
+      Fill in the decorator name for a tool that needs the run context:
+
+      @agent.____
+      def price_of(ctx: RunContext[Deps], item: str) -> float: ...
+    answer: 're:(@?agent\.)?tool'
+    explanation: >-
+      @agent.tool is for functions that take ctx as their first parameter. @agent.tool_plain is
+      for functions that need nothing from the run.
+  - id: q6
+    type: blank
+    concept: agent-override
+    source_section: testing-tools-without-a-key
+    prompt: |-
+      Fill in the method that swaps the model for the length of a with block, even when the
+      agent is called deep inside your app:
+
+      with agent.____(model=TestModel()):
+          run_my_app()
+    answer: 're:(agent\.)?override\(?'
+    explanation: >-
+      agent.override can replace the model, the deps or the toolsets for the duration of the
+      block, so you do not have to change the code that calls the agent.

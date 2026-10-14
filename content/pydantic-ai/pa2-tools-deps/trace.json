@@ -1,0 +1,292 @@
+{
+  "id": "pydantic-ai-agent-run",
+  "kind": "pydantic_ai_run",
+  "title": "Inside an agent run: a tool call, a retry and an answer",
+  "objectives": [
+    "Follow the message flow of one Pydantic AI run, node by node.",
+    "Explain what ModelRetry does when a tool rejects its arguments."
+  ],
+  "source": {
+    "generator": "FunctionModel",
+    "script": "traces/scripts/agent_run.py",
+    "pydantic_ai_version": "2.56.0",
+    "nodes": [
+      "UserPromptNode",
+      "ModelRequestNode",
+      "CallToolsNode",
+      "ModelRequestNode",
+      "CallToolsNode",
+      "ModelRequestNode",
+      "CallToolsNode",
+      "End"
+    ],
+    "captured_at": "2026-10-14"
+  },
+  "steps": [
+    {
+      "idx": 0,
+      "kind": "user_prompt",
+      "actor": "user",
+      "title": "The learner's question",
+      "summary": "The prompt starts a run.",
+      "payload_excerpt": "Do I need an umbrella in SF today?",
+      "metrics": {},
+      "annotation": {
+        "why": "Every run starts from one prompt. Run state lives in the message history.",
+        "concept_tags": [
+          "agent.run",
+          "message history"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 1,
+      "kind": "instructions",
+      "actor": "developer",
+      "title": "Instructions travel with the prompt",
+      "summary": "Instructions are sent on every request but are not saved in history.",
+      "payload_excerpt": "You are a weather assistant. Use get_forecast; never guess the weather.",
+      "metrics": {},
+      "annotation": {
+        "why": "`instructions=` is re-sent each request, so it always reflects the agent's current code.",
+        "concept_tags": [
+          "instructions"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 2,
+      "kind": "model_request",
+      "actor": "agent",
+      "title": "Request 1 to the model",
+      "summary": "The agent sends the message history and the tool list to the model.",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "One graph node per model call. A run is a loop of request, then tool calls, then request.",
+        "concept_tags": [
+          "agent.iter",
+          "nodes"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": {
+        "type": "predict_next",
+        "prompt": "The model has the question and one tool, get_forecast. What does the agent do next?",
+        "options": [
+          "Answer directly",
+          "Call get_forecast",
+          "Ask the user a question"
+        ],
+        "answer": 1,
+        "explanation": "The instructions say never to guess, so the model returns a get_forecast tool call."
+      }
+    },
+    {
+      "idx": 3,
+      "kind": "tool_call",
+      "actor": "model",
+      "title": "The model calls get_forecast",
+      "summary": "The model returns a tool call instead of text.",
+      "payload_excerpt": "{\"city\": \"SF\"}",
+      "metrics": {
+        "input_tokens": 58,
+        "output_tokens": 5
+      },
+      "annotation": {
+        "why": "The model cannot run code. It names a tool and arguments; the agent runs it.",
+        "concept_tags": [
+          "tools",
+          "RunContext"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": {
+        "type": "predict_next",
+        "prompt": "The model called get_forecast with city='SF', which the tool rejects with ModelRetry. What happens?",
+        "options": [
+          "The run crashes",
+          "The error goes to the user",
+          "The message goes back to the model for another try"
+        ],
+        "answer": 2,
+        "explanation": "ModelRetry becomes a retry prompt in the history, and the model gets another request."
+      }
+    },
+    {
+      "idx": 4,
+      "kind": "retry",
+      "actor": "tool",
+      "title": "The tool asked the model to try again",
+      "summary": "get_forecast raised ModelRetry; the message goes back to the model.",
+      "payload_excerpt": "City not found, try the full name\n\nFix the errors and try again.",
+      "metrics": {},
+      "annotation": {
+        "why": "Raising ModelRetry turns a tool failure into feedback the model can act on; no crash.",
+        "concept_tags": [
+          "ModelRetry",
+          "tools"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 5,
+      "kind": "model_request",
+      "actor": "agent",
+      "title": "Request 2 to the model",
+      "summary": "The agent sends the message history and the tool list to the model.",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "One graph node per model call. A run is a loop of request, then tool calls, then request.",
+        "concept_tags": [
+          "agent.iter",
+          "nodes"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 6,
+      "kind": "tool_call",
+      "actor": "model",
+      "title": "The model calls get_forecast",
+      "summary": "The model returns a tool call instead of text.",
+      "payload_excerpt": "{\"city\": \"San Francisco\"}",
+      "metrics": {
+        "input_tokens": 72,
+        "output_tokens": 11
+      },
+      "annotation": {
+        "why": "The model cannot run code. It names a tool and arguments; the agent runs it.",
+        "concept_tags": [
+          "tools",
+          "RunContext"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 7,
+      "kind": "tool_result",
+      "actor": "tool",
+      "title": "The tool answered",
+      "summary": "get_forecast returned a value.",
+      "payload_excerpt": "Rain, 14 C.",
+      "metrics": {},
+      "annotation": {
+        "why": "The tool return value is added to history as a ToolReturnPart.",
+        "concept_tags": [
+          "tools",
+          "RunContext"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 8,
+      "kind": "model_request",
+      "actor": "agent",
+      "title": "Request 3 to the model",
+      "summary": "The agent sends the message history and the tool list to the model.",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "One graph node per model call. A run is a loop of request, then tool calls, then request.",
+        "concept_tags": [
+          "agent.iter",
+          "nodes"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/",
+            "title": "Agents"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 9,
+      "kind": "final_output",
+      "actor": "model",
+      "title": "The model answers",
+      "summary": "Plain text ends the run.",
+      "payload_excerpt": "Rain, 14 C. Yes, bring an umbrella to San Francisco today.",
+      "metrics": {
+        "input_tokens": 76,
+        "output_tokens": 23,
+        "total_tokens": 245,
+        "requests": 3
+      },
+      "annotation": {
+        "why": "A text answer with no tool call ends the run. FunctionModel scripted all of this, so no API key was needed.",
+        "concept_tags": [
+          "FunctionModel",
+          "testing"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/guides/testing/",
+            "title": "Testing with FunctionModel"
+          }
+        ]
+      },
+      "checkpoint": null
+    }
+  ],
+  "takeaways": [
+    "A run is a loop: model request, tool calls, model request, until the model returns text.",
+    "ModelRetry feeds a tool error back to the model instead of failing the run.",
+    "FunctionModel lets you script the model, so tests and traces need no API key."
+  ]
+}
