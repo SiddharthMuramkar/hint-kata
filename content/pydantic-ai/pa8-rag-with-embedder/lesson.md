@@ -2,7 +2,7 @@
 id: pa8-rag-with-embedder
 track: pydantic-ai
 title: "RAG with Embedder and pgvector"
-minutes: 30
+minutes: 40
 pins:
   pydantic-ai: "2.56.0"
   pgvector: "0.5.1"
@@ -15,15 +15,7 @@ A model only knows what was in its training data. It has not read your docs, and
 
 ## What RAG adds and what it does not
 
-The [Embeddings guide](https://pydantic.dev/docs/ai/guides/embeddings/#using-embeddings-for-rag) lists the steps of a RAG pipeline you build yourself:
-
-1. Split your documents into chunks, if you need to.
-2. Embed each chunk.
-3. Store each vector with its metadata, such as the URL and the heading.
-4. Embed the user's question.
-5. Search the stored vectors for the closest chunks.
-6. Optionally rerank the short list.
-7. Hand the text to the agent, through a tool.
+The [Embeddings guide](https://pydantic.dev/docs/ai/guides/embeddings/#using-embeddings-for-rag) describes a RAG pipeline that you build yourself. You cut your documents into chunks, if they need it. You embed each chunk and keep its vector next to some metadata, such as the URL and the heading. When a question arrives, you embed the question too, and search the stored vectors for the closest chunks. If you want, you rerank the few you kept. Last, the text reaches the agent. The guide does that through a tool. This site does it before the model call, as the last paragraph of this section explains.
 
 What this gives you:
 
@@ -38,7 +30,7 @@ What it does **not** give you:
 - **It does not make the text safe.** Retrieved text goes into the prompt. The last section of this lesson is about that.
 - **It is not always needed.** The guide says you do not have to split every document. If the whole text fits and is about one thing, one embedding can be enough. The guide also points to a provider-managed option, `FileSearchTool`, where the provider does the chunking and the search for you. This lesson builds the pipeline yourself.
 
-Where is this site today? The pipeline in `app/ingest/` can chunk the cached docs, embed them and store them in Neon. The tutor you chat with does not call that search yet. It still answers from the text of the current lesson. So the code we read here is built and tested, but it is a step ahead of the tutor.
+Where is this site today? The pipeline in `app/ingest/` chunks the cached docs, embeds them and stores them in Neon. Since pull request #115 the tutor uses it. When `DATABASE_URL` and `OPENROUTER_API_KEY` are both set, the tutor embeds your question, searches the ingested docs, and puts the best pieces in front of the model. The search is limited to the lesson's track, so a Pydantic AI lesson sees only Pydantic AI pages. If either setting is missing, or the search fails, the tutor answers from the text of the current lesson, as it did before. The section "Turn on RAG for the tutor" in `docs/runbooks/ingestion.md` has the steps. Note where the search runs. The server does it before the model is called. It is not a tool the model can choose to use.
 
 ## Turning text into vectors
 
@@ -105,7 +97,7 @@ class CountingModel(TestEmbeddingModel):
 
 Now a text that says "cats" twice has the vector `[2.0, 0.0]`, and you know the right answer before the test runs. The hands-on task at the end of this lesson uses this idea.
 
-One more switch. The docs say `models.ALLOW_MODEL_REQUESTS = False` also blocks embedding calls, so an embedder you forgot to override cannot reach the provider. We saw it. With the flag off, both `embed_query` and `embed_documents` on a real `Embedder` raised `RuntimeError: Model requests are not allowed, since ALLOW_MODEL_REQUESTS is False`. The same embedder with `override(model=TestEmbeddingModel())` still worked. Two things to watch for. With no API key set, we saw the missing-key error first, not the block. And with only `pydantic-ai-slim[openrouter]` installed, importing the OpenAI-style embedding model raised an `ImportError` until we installed `tiktoken`. This repo lists `tiktoken` in `pyproject.toml` for that reason.
+One more switch. The docs say that `models.ALLOW_MODEL_REQUESTS = False` stops embedding calls too, not only chat calls. In a test suite this is a guard: a real embedder that you forgot to swap fails loudly and does not send a paid request. We saw it. With the flag off, both `embed_query` and `embed_documents` on a real `Embedder` raised `RuntimeError: Model requests are not allowed, since ALLOW_MODEL_REQUESTS is False`. The same embedder with `override(model=TestEmbeddingModel())` still worked. Two things to watch for. With no API key set, we saw the missing-key error first, not the block. And with only `pydantic-ai-slim[openrouter]` installed, importing the OpenAI-style embedding model raised an `ImportError` until we installed `tiktoken`. This repo lists `tiktoken` in `pyproject.toml` for that reason.
 
 ## Chunking by headings
 
@@ -140,7 +132,7 @@ CREATE INDEX idx_chunks_embedding ON chunks
 
 - **`vector(1536)`** is a column that holds exactly 1536 numbers. The guide says the column size must match the embedder's size, and matching sizes alone do not make vectors comparable. They must come from the same model setup. That is why `app/ingest/upsert.py` reads the column size and stops if `EMBED_DIMS` does not match. It never starts to pay for embeddings it cannot store.
 - **`<=>` is cosine distance.** It is one minus the cosine similarity, so a smaller number means nearer. You search with `ORDER BY embedding <=> query_vector LIMIT 8`. The RAG example page uses `<->` instead. That is the straight-line (L2) distance. For vectors of length 1 the two give the same order. We checked that. Cosine looks only at the direction, so it does not care how long a vector is. That is the number you compute by hand in the task.
-- **HNSW** is an index that finds close vectors without comparing against every row. It is approximate: it can miss a true neighbour in return for speed. `m` and `ef_construction` set how the index is built. At query time, `hnsw.ef_search` sets how many candidates it looks at. `app/ingest/search.py` sets it to 100 with `SET LOCAL`, which lasts for one transaction only, so it is safe behind Neon's pooler. The index uses `vector_cosine_ops` because the query uses `<=>`. The [pgvector README](https://github.com/pgvector/pgvector) says the index and the operator must be the same kind. The RAG example page says an HNSW `vector` index supports up to 2,000 dimensions. 1536 fits. The 3072 numbers that one Google model returns by default do not, unless you ask for fewer.
+- **HNSW** is an index that finds close vectors without comparing against every row. It is approximate: it can miss a true neighbour in return for speed. `m` and `ef_construction` set how the index is built. At query time, `hnsw.ef_search` sets how many candidates it looks at. `app/ingest/search.py` sets it to 100 with `SET LOCAL`, which lasts for one transaction only, so it is safe behind Neon's pooler. The index uses `vector_cosine_ops` because the query uses `<=>`. The [pgvector README](https://github.com/pgvector/pgvector) says to add an index for each distance function you want to use, so this site builds the cosine one because it queries with `<=>`. The RAG example page says an HNSW `vector` index supports up to 2,000 dimensions. 1536 fits. The 3072 numbers that one Google model returns by default do not, unless you ask for fewer.
 
 In Python you wrap a list in `pgvector.Vector` before you hand it to psycopg. `Vector([1, 2.5, 3]).to_text()` gives `'[1.0,2.5,3.0]'`, which is what Postgres reads. Remember that we did not run a database for this lesson. The Postgres facts above come from this site's own schema and code and from the docs.
 
@@ -170,13 +162,13 @@ We ran it on two lists. By meaning the order was A, B, C. By keywords it was B, 
 | D | none | 2 | 1/62 = 0.016129 |
 | C | 3 | none | 1/63 = 0.015873 |
 
-B wins, although A was first by meaning, because both lists put B near the top. A chunk that only one list found still appears, lower down. The SQL does the same in one query. It takes 40 candidates from each side, joins them with a `FULL OUTER JOIN`, adds the two `1 / (60 + rank)` terms, breaks ties by `chunk_key`, and returns the top 8 with the URL, the anchor, the heading trail and the text.
+B wins, although A was first by meaning, because both lists put B near the top. A chunk that only one list found still appears, lower down. The SQL does the same in one query. It takes 40 candidates from each side, joins them with a `FULL OUTER JOIN`, adds the two `1 / (60 + rank)` terms, breaks ties by `chunk_key`, and returns the top 8 with the URL, the anchor, the heading trail and the text. It can also keep only the pages of one track (a `source` argument), inside both candidate lists. The tutor uses this to stay within the lesson's track and asks for 6 chunks. When it filters, and the installed pgvector extension is 0.8.0 or newer, it also turns on `hnsw.iterative_scan`, because an approximate index scan that is filtered can come back with too few rows.
 
 ## Citations from url and anchor
 
 A retrieved chunk is useful only if the reader can check it. Each stored page has a URL, and each chunk has an anchor. The `Hit` in `app/ingest/search.py` joins them: `url#anchor`. For the chunk "Chunking" of the Embeddings page that is `https://pydantic.dev/docs/ai/guides/embeddings/#chunking`, and a reader lands on the right heading.
 
-The anchor comes from the heading, the way doc sites make heading ids: lowercase, words joined by hyphens. If a page repeats a heading, the repeats get `-1`, `-2`. When a tiny section is merged into a bigger neighbour, the bigger one owns the anchor, so the link points at the heading above the real content. You can see the same idea on this site. The tutor cites lesson sections as `[§section-id]`, and the server drops every marker that is not a real section of the lesson.
+The anchor comes from the heading, the way doc sites make heading ids: lowercase, words joined by hyphens. If a page repeats a heading, the repeats get `-1`, `-2`. When a tiny section is merged into a bigger neighbour, the bigger one owns the anchor, so the link points at the heading above the real content. You can see the same idea on this site. The tutor cites lesson sections as `[§section-id]`, and the server drops every marker that is not a real section of the lesson. Retrieved docs get the same care since #115. The tutor numbers the pieces it was given and cites them as `[src:N]`. Each number is a `url#anchor` link under the reply, and the server deletes any `[src:N]` with a number that was not handed out in that turn.
 
 A citation shows where text came from. It does not prove the model used the text well. At least check that every link in the answer is one of the hits you retrieved. Drop the ones that are not.
 
@@ -188,8 +180,8 @@ Even official docs are text from the internet. They can be changed, and a page c
 
 Habits that help:
 
-- **Mark the data as data.** Put the chunks between delimiters and tell the model that text inside them is material to read, never orders to follow. The tutor does this with the learner's words, between `<<<USER>>>` and `<<<END>>>`. Delimiters lower the risk. They do not remove it.
-- **Limit what the agent can do.** This is the strong defence. An agent that can only write text can only write wrong text. An agent with a tool that sends email or deletes files can be talked into using it. The tutor has no tools.
+- **Mark the data as data.** Put the chunks between delimiters and tell the model that text inside them is material to read, never orders to follow. The tutor does this twice. The learner's words go between `<<<USER>>>` and `<<<END>>>`. The retrieved docs go between `<<<DOCS>>>` and `<<<END-DOCS>>>`, with a note that this is reference text and never orders. Each piece is cut at about 1,200 characters. The code also shrinks any run of `<<<` inside the text, so a chunk cannot print a fake closing delimiter. Delimiters lower the risk. They do not remove it.
+- **Limit what the agent can do.** This is the strong defence. An agent that can only write text can only write wrong text. An agent with a tool that sends email or deletes files can be talked into using it. The tutor has no tools. Its search runs on the server before the model is called, so the model cannot ask for more.
 - **Keep the amount small.** Return a few chunks, not a dump.
 - **Filter before you search.** The guide says to store things like permissions next to each vector. Leave out chunks the user may not read, or the model will quote them.
 - **Check citations.** Show the source, so a person can see where a claim came from.

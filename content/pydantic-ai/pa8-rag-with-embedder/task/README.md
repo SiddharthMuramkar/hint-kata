@@ -7,7 +7,7 @@ Open `rag.py` in your workspace. It has three TODO comments.
 1. **`chunk(text)`**: return a list of chunks, one per `## ` section.
    - A line that starts with `## ` (two hashes and a space) starts a new chunk. A line that starts with `# ` or `### ` does not.
    - A chunk is its heading line plus everything up to the next `## ` heading. Strip the ends. Text before the first `## ` heading is a chunk of its own. Leave out empty chunks.
-   - Never split inside a code fence. A fence opens on a line that starts with three backticks or three tildes, and it closes on the next line that starts with the same three characters. A `## ` line inside a fence is code, so it must not start a chunk. Read the lesson section "Chunking by headings".
+   - Never split inside a code fence. A fence opens on a line that starts with three backticks or three tildes (leading spaces do not matter), and it closes on the next line that starts with the same three characters (again, leading spaces do not matter). A `## ` line inside a fence is code, so it must not start a chunk. Read the lesson section "Chunking by headings".
 2. **`index(chunks, embedder)`**: return a list of `(chunk, vector)` pairs, in the same order as the chunks.
    - Use `await embedder.embed_documents(chunks)`, once, for all the chunks.
    - If there are no chunks, return `[]` and do not call the model.
