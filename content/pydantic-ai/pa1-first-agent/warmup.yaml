@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      You write `Agent("gpt-5")` with no provider prefix. You have not run it yet.
+      What do you think happens?
+    note: >-
+      Pydantic AI 2 does not guess the provider. It raises a `UserError` ("Unknown model")
+      and suggests a prefixed name such as `openai-chat:gpt-5`. Model strings always look like
+      `provider:model`. It is fine if you guessed wrong. The reading explains why.
+  - id: w2
+    prompt: >-
+      An agent has `output_type=CityFacts`, where `CityFacts` is a Pydantic model with three
+      fields. You call `result = agent.run_sync("Tell me about Paris")`. What type do you
+      expect `result.output` to have?
+    note: >-
+      It is a `CityFacts` instance, not a string and not a dict. Pydantic validates the model's
+      answer against your class, so you read fields such as `result.output.city` directly.
