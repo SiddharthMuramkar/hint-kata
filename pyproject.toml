@@ -35,6 +35,9 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ty.src]
+exclude = ["content/**/task/**", "workspace/**", ".cache/**"]
+
 [tool.ty.environment]
 python-version = "3.13"
 
