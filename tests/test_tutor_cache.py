@@ -14,17 +14,21 @@ from pydantic_ai.providers.openrouter import OpenRouterProvider
 from app.agents.tutor import STATIC_INSTRUCTIONS, TutorDeps, make_tutor
 from app.tutor_rules import LADDER
 
-REPLY = {
-    "id": "gen-1",
-    "object": "chat.completion",
-    "created": 0,
-    "model": "anthropic/claude-haiku-5.5",
-    "provider": "Anthropic",
-    "choices": [
-        {"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "ok"}}
-    ],
-    "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
-}
+
+def sse(delta: dict[str, Any], finish: str | None = None) -> str:
+    chunk = {
+        "id": "gen-1",
+        "object": "chat.completion.chunk",
+        "created": 0,
+        "model": "anthropic/claude-haiku-5.5",
+        "provider": "Anthropic",
+        "choices": [{"index": 0, "delta": delta, "finish_reason": finish}],
+        "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+    }
+    return f"data: {json.dumps(chunk)}\n\n"
+
+
+STREAM = sse({"role": "assistant", "content": "ok"}) + sse({}, "stop") + "data: [DONE]\n\n"
 
 
 def deps(title: str = "Demo", ceiling: int = 2, **more: Any) -> TutorDeps:
@@ -33,12 +37,13 @@ def deps(title: str = "Demo", ceiling: int = 2, **more: Any) -> TutorDeps:
 
 
 async def wire(*turns: TutorDeps) -> list[dict[str, Any]]:
-    """Run the real tutor agent once per deps and return every request body it sent."""
+    """Stream one reply per deps from the real tutor agent, as the route does, and return every
+    request body it sent."""
     bodies: list[dict[str, Any]] = []
 
     def answer(request: httpx2.Request) -> httpx2.Response:
         bodies.append(json.loads(request.content))
-        return httpx2.Response(200, json=REPLY)
+        return httpx2.Response(200, headers={"content-type": "text/event-stream"}, content=STREAM)
 
     model = OpenRouterModel(
         "anthropic/claude-haiku-5.5",
@@ -51,16 +56,19 @@ async def wire(*turns: TutorDeps) -> list[dict[str, Any]]:
     # Only for this block: the transport is the mock above, so no request can leave the machine.
     with override_allow_model_requests(True), tutor.override(model=model):
         for d in turns:
-            await tutor.run("hi", deps=d)
+            async with tutor.run_stream("hi", deps=d) as result:
+                await result.get_output()
     return bodies
 
 
 @pytest.mark.anyio
 async def test_only_the_static_instructions_carry_the_cache_marker() -> None:
     (body,) = await wire(deps())
+    assert body["stream"] is True  # the route streams, so this is the request it really makes
     messages = body["messages"]
     assert [m["role"] for m in messages] == ["system", "system", "user"]
     static, dynamic, user = messages
+    assert isinstance(static["content"], list), "no marker: the instructions were all dynamic"
     (block,) = static["content"]  # a list of one block: the marker needs a block to sit on
     assert block["text"] == STATIC_INSTRUCTIONS
     assert block["cache_control"]["type"] == "ephemeral"
