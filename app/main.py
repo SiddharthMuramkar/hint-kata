@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import settings
 from app.routes import trace
+from app.routes.check import router as check_router
 
 HERE = Path(__file__).parent
 
@@ -35,6 +36,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(trace.router)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
+app.include_router(check_router)
 
 
 @app.get("/", response_class=HTMLResponse)
