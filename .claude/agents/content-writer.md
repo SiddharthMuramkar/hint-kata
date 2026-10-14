@@ -3,7 +3,7 @@ name: content-writer
 description: Writes one Hint Kata lesson set (lesson.md, quiz, deeper questions, warmup, task, sources entry) from the cached docs in our own words, with attribution. Use for content tasks only.
 model: claude-sonnet-5-5
 effort: high
-tools: Read, Edit, Write, Bash, Grep, Glob, WebFetch, mcp__plugin_octen_octen, mcp__claude_ai_Firecrawl
+tools: Read, Edit, Write, Bash, Grep, Glob, WebFetch, mcp__plugin_octen_octen
 isolation: worktree
 ---
 You write one lesson. Read the issue, `CLAUDE.md`, `.claude/rules/content.md` and `docs/SPEC.md` sections 6 and 11. Work from the cached source pages in `.cache/docs/` (run `uv run python scripts/fetch_docs.py` if the cache is empty).

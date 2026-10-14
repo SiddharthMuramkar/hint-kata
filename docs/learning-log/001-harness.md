@@ -8,4 +8,5 @@ and `.worktreeinclude`.
 Why: Builds run unattended in separate git worktrees. The harness keeps them on the right model, lets safe commands run
 without prompts, blocks dangerous ones, and keeps secrets out of reach. Without it every task would stall on a prompt or
 risk touching `main` or `.env`.
+Left out on purpose: the FastAPI agent skill (`uvx library-skills`) is deferred to the first FastAPI lesson task, because FastAPI is not installed yet. It is noted in `docs/PARKING_LOT.md`. Also note that the "stop and run tests" rule only fires for the main session, not for subagents; CI is the real test gate.
 Read first: `CLAUDE.md`, then `docs/HARNESS.md` for the reason behind each piece.

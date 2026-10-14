@@ -60,8 +60,8 @@
       "Bash(gh secret *)",
       "Read(./.env)",
       "Read(./.env.*)",
-      "!Read(./.env.example)",
-      "Edit(.claude/settings.json)",
+      "Read(!.env.example)",
+      "Edit(.claude/settings*.json)",
       "Edit(.claude/hooks/**)",
       "Edit(.claude/hookify.*)"
     ]
