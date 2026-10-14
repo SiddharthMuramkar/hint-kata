@@ -13,10 +13,12 @@ questions:
         fail_anchor: >-
           Leaves `permissions:` out, uses `write-all`, or gives every job the same wide access.
       - name: write-only-where-needed
-        explanation: The answer gives extra access only to the job that needs it.
+        explanation: >-
+          The answer gives extra access only to the job that needs it. Knowing that a job-level
+          block replaces the top-level one is a bonus, not required.
         pass_anchor: >-
           Adds a write permission such as `pull-requests: write` inside the one job that posts the
-          comment, and not at the top level. Bonus: knows a job-level block replaces the top-level one.
+          comment, and not at the top level.
         fail_anchor: >-
           Puts write permissions at the top level, so the test job and the deploy job get them too.
       - name: key-behind-environment
@@ -30,9 +32,8 @@ questions:
       - name: narrow-exposure
         explanation: The answer limits which steps and which code can see the key.
         pass_anchor: >-
-          Passes the key with `env:` on the one deploy step, keeps it out of the test job, and adds
-          a second layer such as pinning actions by SHA or using a key with limited power that can
-          be rotated.
+          Passes the key with `env:` on the one deploy step, or otherwise keeps it out of the test
+          job and out of steps that do not need it.
         fail_anchor: >-
           Sets the key as a workflow-wide `env:` value, or prints it to check that it works.
     model_answer: >-
@@ -54,8 +55,8 @@ questions:
   - id: d2
     prompt: >-
       A teammate says: "GitHub hides secrets in logs, so it is fine to print them while we debug."
-      Do you agree? Explain why, say what you would do instead, and say what you do if a secret
-      does leak.
+      Do you agree? Explain why, say who could read a printed secret, say what you would do
+      instead, and say what you do if a secret does leak.
     rubric:
       - name: redaction-is-exact-match
         explanation: The answer says why log hiding is not a guarantee.
@@ -68,8 +69,8 @@ questions:
       - name: who-can-see
         explanation: The answer names who can read a leaked value.
         pass_anchor: >-
-          Says logs of a public repo can be read by anyone, and that anyone with write access can
-          write a workflow that reads the secrets.
+          Says logs of a public repo can be read by anyone, or that anyone with write access can
+          write a workflow that reads the secrets (one of the two is enough).
         fail_anchor: >-
           Says only the owner can see the logs, or does not say who might read it.
       - name: safer-debugging

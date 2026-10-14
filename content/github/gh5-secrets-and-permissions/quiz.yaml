@@ -150,7 +150,7 @@ items:
           runs-on: ubuntu-latest
           ____: staging
       ```
-    answer: environment
+    answer: "re:environment:?"
     explanation: >-
       `environment:` names the environment. GitHub then checks that environment's protection rules
       and gives the job its secrets. A typo in the name does not fail. GitHub creates a new empty

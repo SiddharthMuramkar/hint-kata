@@ -125,5 +125,5 @@ Set `PRACTICE_REPO` in `.env`, then press **Check my work**. It runs read-only `
 
 - The environment `practice` exists in your repo.
 - The environment `practice` has a secret named `PRACTICE_TOKEN` (the name only).
-- The file `.github/workflows/secrets-practice.yml` on the default branch has a top-level `permissions:` block with exactly one line, `contents: read`, and a job with the line `environment: practice`.
+- The file `.github/workflows/secrets-practice.yml` on the default branch has a top-level `permissions:` block with exactly one entry, `contents: read` (one space after the colon), and a job with the line `environment: practice`. A job-level `permissions:` block does not count, and neither do `read-all` or `{}`.
 - At least one run of `secrets-practice.yml` finished with the result `success`.

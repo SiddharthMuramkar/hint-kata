@@ -1,6 +1,6 @@
 checks:
   - name: the environment practice exists
-    args: ["api", "repos/{repo}/environments", "--jq", "[.environments[].name] | index(\"practice\") != null"]
+    args: ["api", "repos/{repo}/environments", "--jq", "[.environments[].name | ascii_downcase] | index(\"practice\") != null"]
     expect: "true"
   - name: the environment practice has a secret named PRACTICE_TOKEN
     args: ["api", "repos/{repo}/environments/practice/secrets", "--jq", "[.secrets[].name] | index(\"PRACTICE_TOKEN\") != null"]
@@ -12,9 +12,11 @@ checks:
       - --jq
       - >-
         .content | @base64d as $f
-        | ([$f | match("(?m)^permissions:[ \\t\\r]*(#[^\\n]*)?\\n((?:[ \\t]+[^\\n]*(?:\\n|$))+)").captures[1].string
-        | split("\n")[] | sub("#.*$"; "") | gsub("^\\s+|\\s+$"; "") | select(. != "")] == ["contents: read"])
-        and ($f | test("(?m)^[ \\t]+environment:[ \\t]*[\"']?practice[\"']?[ \\t\\r]*(#.*)?$"))
+        | ([$f | match("(?m)^permissions:[ \\t\\r]*(#[^\\n]*)?\\n((?:[ \\t\\r]*\\n|[ \\t]+[^\\n]*(?:\\n|$))+)").captures[1].string
+        | split("\n")[] | sub("#.*$"; "") | gsub("[ \\t\\r]+"; " ") | gsub("^ | $"; "") | select(. != "")]
+        | (length == 1 and (.[0] | test("^[\"']?contents[\"']?: [\"']?read[\"']?$"))))
+        and ($f | (test("(?m)^[ \\t]+environment:[ \\t]*[\"']?practice[\"']?[ \\t\\r]*(#.*)?$")
+        or test("(?m)^[ \\t]+environment:[ \\t\\r]*\\n[ \\t]+name:[ \\t]*[\"']?practice[\"']?[ \\t\\r]*(#.*)?$")))
     expect: "true"
   - name: a run of the workflow finished with success
     args: ["run", "list", "-R", "{repo}", "--workflow", "secrets-practice.yml", "--json", "conclusion", "--jq", "[.[] | select(.conclusion==\"success\")] | length"]
