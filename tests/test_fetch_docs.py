@@ -167,6 +167,33 @@ def test_update_then_check_roundtrip(
     assert "ok" in capsys.readouterr().out
 
 
+def test_update_skips_a_failed_page_and_exits_1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fake(url: str) -> str:
+        if url.endswith("/bad"):
+            raise OSError("HTTP Error 503\nunavailable")
+        return "ok text\n"
+
+    monkeypatch.setattr(fd, "fetch", fake)
+    base = {"track": "github", "kind": "github_article", "sha256": "old", "fetched_at": "then"}
+    entries = [
+        {**base, "id": "bad", "fetch_url": "https://x/bad"},
+        {**base, "id": "good", "fetch_url": "https://x/good"},
+    ]
+    manifest = tmp_path / "sources.json"
+    manifest.write_text(json.dumps({"sources": entries}))
+    args = ["--manifest", str(manifest), "--cache", str(tmp_path / "cache"), "--update"]
+    assert fd.main(args) == 1
+
+    bad, good = json.loads(manifest.read_text())["sources"]
+    assert (bad["sha256"], bad["fetched_at"]) == ("old", "then")  # left as it was
+    assert good["sha256"] == fd.sha256("ok text\n") and good["fetched_at"] != "then"
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0].split()[:2] == ["FAILED", "bad"] and "OSError" in lines[0]
+    assert len(lines) == 2  # the error text stays on one line
+
+
 def test_check_detects_mismatch_and_missing(tmp_path: Path) -> None:
     cache = tmp_path / "cache"
     manifest = _manifest(tmp_path, sha=fd.sha256("expected"))

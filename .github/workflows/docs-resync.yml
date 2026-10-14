@@ -1,0 +1,130 @@
+name: Docs re-sync
+# plan: every Monday (or by hand) re-fetch the docs and open a PR with the report.
+# embed: when that PR (or any change to content/sources.yaml) lands on main, re-embed what changed.
+# Runbook: docs/runbooks/docs-resync.md
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC. Off the hour on purpose: top-of-hour runs get delayed.
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["content/sources.yaml"]
+permissions:
+  contents: read
+jobs:
+  plan:
+    name: plan
+    if: github.event_name != 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Write access is for this job only, and only the PR step uses it. No repository secrets here.
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: docs-resync-plan
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - name: Fetch the docs and refresh the manifest
+        id: fetch
+        # A page that fails to download is skipped and listed in the report; the last step fails the run.
+        run: |
+          status=0
+          uv run python scripts/fetch_docs.py --update > "$RUNNER_TEMP/fetch.log" 2>&1 || status=$?
+          cat "$RUNNER_TEMP/fetch.log"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Write the report
+        id: report
+        run: |
+          uv run python scripts/resync_report.py --fetch-log "$RUNNER_TEMP/fetch.log" > "$RUNNER_TEMP/resync-report.md"
+          cat "$RUNNER_TEMP/resync-report.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "ids=$(uv run python scripts/resync_report.py --ids-only)" >> "$GITHUB_OUTPUT"
+      # fetched_at changes on every run, so the file always differs. Only a changed sha256 is news.
+      # PRs made with GITHUB_TOKEN do not start the `checks` workflow; the report says what to do.
+      - name: Open or update the plan PR
+        if: steps.report.outputs.ids != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ github.token }}
+          branch: docs-resync
+          base: main
+          add-paths: content/sources.yaml
+          commit-message: "chore(content): weekly docs re-sync (plan)"
+          title: "chore(content): weekly docs re-sync (plan)"
+          body-path: ${{ runner.temp }}/resync-report.md
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          delete-branch: true
+      - name: Fail the run if a page did not download
+        if: steps.fetch.outputs.status != '0'
+        run: |
+          echo "::error::fetch_docs.py exited with ${{ steps.fetch.outputs.status }}. See the log and the report."
+          exit 1
+
+  gate:
+    name: secrets check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      # The expression turns into the word true or false. The secret values are never printed.
+      - id: check
+        run: echo "ready=${{ secrets.OPENROUTER_API_KEY != '' && secrets.DATABASE_URL_UNPOOLED != '' }}" >> "$GITHUB_OUTPUT"
+      - if: steps.check.outputs.ready != 'true'
+        run: echo "::notice::OPENROUTER_API_KEY or DATABASE_URL_UNPOOLED is not set, so the embed job is skipped."
+
+  embed:
+    name: embed
+    needs: gate
+    if: needs.gate.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: docs-resync-embed
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the "before" commit of the push must be there to compare manifests
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.13.1"
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - name: Find the changed source ids
+        id: ids
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: echo "ids=$(uv run python scripts/resync_report.py --old-ref "$BEFORE" --ids-only)" >> "$GITHUB_OUTPUT"
+      - name: Fetch the changed pages
+        if: steps.ids.outputs.ids != ''
+        env:
+          IDS: ${{ steps.ids.outputs.ids }}
+        run: |
+          read -ra ids <<< "$IDS"
+          for id in "${ids[@]}"; do uv run python scripts/fetch_docs.py --only "$id"; done
+      # The only step that sees the secrets.
+      - name: Embed the changed sources
+        if: steps.ids.outputs.ids != ''
+        env:
+          IDS: ${{ steps.ids.outputs.ids }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: |
+          if [ -f scripts/ingest.py ]; then
+            read -ra ids <<< "$IDS"
+            uv run python scripts/ingest.py --only "${ids[@]}"
+          else
+            echo "::notice::scripts/ingest.py is not on main yet, so there is nothing to embed."
+          fi
