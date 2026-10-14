@@ -1,0 +1,93 @@
+questions:
+  - id: d1
+    prompt: >-
+      How would you give every route access to a database session without opening one inside
+      each route function? Describe the pieces and what happens during one request.
+    rubric:
+      - name: shared-yield-function
+        explanation: >-
+          The answer puts session creation in one function that uses `yield`, so the
+          clean-up sits next to the set-up.
+        pass_anchor: >-
+          "Write a `get_db` function that opens the session, yields it, and closes it in a finally block."
+        fail_anchor: >-
+          "Open a session at the top of every route", or "create one global session when the module loads and share it."
+      - name: declared-with-depends
+        explanation: >-
+          Routes receive the session by declaring a parameter with `Depends`. FastAPI calls
+          the function. The route does not call it.
+        pass_anchor: >-
+          "Each route takes `db: Annotated[Session, Depends(get_db)]` and FastAPI passes the session in."
+        fail_anchor: >-
+          "Each route calls `get_db()` itself", or "import the session from a module."
+      - name: per-request-teardown
+        explanation: >-
+          The answer says the code after `yield` runs once per request when it is finished, so
+          the session is closed every time, even after an error.
+        pass_anchor: >-
+          "The close runs after the request, in finally, so it happens once per request even if the route fails."
+        fail_anchor: >-
+          "The session stays open until the server stops", or "closing is optional."
+      - name: reuse-or-testing-benefit
+        explanation: >-
+          The answer names a benefit that comes from the pattern: an alias defined once, or
+          swapping the session in tests.
+        pass_anchor: >-
+          "Define `Db = Annotated[Session, Depends(get_db)]` once", or "override `get_db` in tests with `dependency_overrides`."
+        fail_anchor: >-
+          "It makes the code run faster."
+    model_answer: >-
+      I would write one function, `get_db`, that opens a session, yields it inside a try block,
+      and closes it in the finally block. Routes would not call it. Each route would declare a
+      parameter such as `db: Annotated[Session, Depends(get_db)]`, and FastAPI would call
+      `get_db` for me on every request. The set-up code runs before the route, and the route
+      receives the yielded session. With the default request scope, the code after the yield
+      runs when the request is finished, after the response is sent. Because it is in a finally
+      block, the session closes even when the route raises. I could name the pair once, for
+      example `Db = Annotated[Session, Depends(get_db)]`, so routes just write `db: Db`. In
+      tests I can put a fake in `app.dependency_overrides[get_db]` and the routes do not change.
+    hints:
+      - Which Python keyword lets a function do set-up, hand over a value, then do clean-up?
+      - Who calls the dependency, your route or FastAPI, and how often?
+  - id: d2
+    prompt: >-
+      When would you choose a class as a dependency instead of a function? When would you stay
+      with a function?
+    rubric:
+      - name: class-is-a-callable
+        explanation: >-
+          The answer shows that a class works because it is a callable and FastAPI reads the
+          parameters of `__init__` like a function's.
+        pass_anchor: >-
+          "A class is callable, so FastAPI calls it and fills the `__init__` parameters from the request."
+        fail_anchor: >-
+          "Classes cannot be dependencies", or "you need a special decorator on the class."
+      - name: class-benefit
+        explanation: >-
+          The answer gives a real reason to prefer a class: grouped values with typed
+          attributes and editor help, or helper methods.
+        pass_anchor: >-
+          "With a class I get `page.skip` as a typed attribute and autocomplete, instead of dict keys."
+        fail_anchor: >-
+          "Classes are always faster", or "classes are required for large apps."
+      - name: function-case
+        explanation: >-
+          The answer names a case where a function is better: one simple value, or clean-up
+          with `yield`.
+        pass_anchor: >-
+          "A plain function is simpler for one value, and it is what I need when the dependency has `yield` clean-up."
+        fail_anchor: >-
+          "Never use functions", or no case for functions at all.
+    model_answer: >-
+      A dependency only has to be a callable, and a class is a callable because calling it
+      builds an instance. FastAPI reads the parameters of the class's `__init__` and fills
+      them from the request, just like a function's parameters. I would choose a class when
+      the dependency returns a group of related values, such as `skip` and `limit` for
+      pagination. Then the route gets `page.skip` and `page.limit` as typed attributes, and my
+      editor can autocomplete and warn me. A dict would give me string keys and no help. A
+      class can also hold a small helper method that works on those values. I would stay with
+      a function when I only need one simple value. I would also use a function whenever I need
+      set-up and clean-up with `yield`, because a function with `yield` is the way to do that.
+    hints:
+      - What does Python do when you "call" a class, and what does FastAPI need to see?
+      - What does the route get back, and what does your editor know about it?
