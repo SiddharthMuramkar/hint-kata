@@ -32,7 +32,7 @@ def log_config(store: Store, user_id: int) -> None:
 
 
 def compute_state(store: Store, lesson: Lesson, user_id: int, now: datetime) -> State:
-    """Evidence newer than `now` is ignored. A lesson with no quiz never reaches mastered."""
+    """Attempts newer than `now` are ignored. A lesson with no quiz never reaches mastered."""
     cfg = _config()
     lid = lesson.id
     attempts = [a for a in store.attempts_for(user_id, lid) if a["created_at"] <= now.isoformat()]
