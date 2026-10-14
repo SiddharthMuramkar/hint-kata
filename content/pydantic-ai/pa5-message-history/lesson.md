@@ -88,7 +88,7 @@ The difference matters most when you keep your own list. Look at this loop:
 history = []
 for text in ["one", "two", "three"]:
     result = agent.run_sync(text, message_history=history)
-    history += result.all_messages()   # bug
+    history += result.all_messages()  # bug
 ```
 
 After three turns the list should hold 6 messages. It holds 14. On every turn `all_messages()` already contains the old history, so adding it again copies the past in once more. The model then sees the same conversation repeated, which costs tokens and confuses it.
@@ -96,8 +96,8 @@ After three turns the list should hold 6 messages. It holds 14. On every turn `a
 There are two correct patterns. Pick one and stay with it:
 
 ```python
-history += result.new_messages()    # add only the new turn
-history = result.all_messages()     # or replace the list with the full one
+history += result.new_messages()  # add only the new turn
+history = result.all_messages()  # or replace the list with the full one
 ```
 
 In the hands-on task you will build a small `Chat` class around the first pattern.
@@ -106,7 +106,7 @@ There is one more thing the plain list does not carry: **usage**. If a run gets 
 
 ```python
 second = agent.run_sync("What is my name?", conversation=first.conversation)
-print(second.usage.requests)   # counts the first run too
+print(second.usage.requests)  # counts the first run too
 ```
 
 Do not pass `conversation=` together with `message_history`. Pydantic AI raises a `UserError`, because the conversation already carries the messages. For a simple chat, the list of messages is enough. Reach for `conversation` when you want a limit that spans the whole thread.

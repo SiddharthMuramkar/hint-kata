@@ -1,4 +1,4 @@
-"""Hidden checks for PA5. They use TestModel and FunctionModel, so no API key or network is needed."""
+"""Hidden checks for PA5. They use TestModel and FunctionModel, so no key or network is needed."""
 
 import importlib
 import json
@@ -129,9 +129,7 @@ def test_save_then_load_round_trips_and_the_chat_continues(
     assert user_texts(seen[0]) == ["My name is Ana.", "What is my name?"]
 
 
-def test_loads_json_written_by_the_reference_solution(
-    chat_mod: ModuleType, tmp_path: Path
-) -> None:
+def test_loads_json_written_by_the_reference_solution(chat_mod: ModuleType, tmp_path: Path) -> None:
     path = tmp_path / "stored.json"
     path.write_text(STORED_JSON)
     seen: list[list[ModelMessage]] = []
