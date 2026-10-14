@@ -1,0 +1,5 @@
+This adds `tests/acceptance/`, one end-to-end test for every row of the SPEC section 23 acceptance table. The tests boot the real app on the real lessons in `content/` with a temp database, and they block all model calls. The tutor and the grader are replaced by small `FunctionModel` fakes, so no network or API key is needed. Most tests are parametrised over every lesson, so a new lesson under `content/` is tested without writing anything new. The suite covers the page and attribution, the quiz (feedback, Hard on try 2, due card, score), think-deeper (revision cap, injection flag with no model call), the tutor (SSE, ceilings, reveal, history), the GitHub `gh` checks, traces, the review queue, mastery and the safety rules. Read `tests/acceptance/conftest.py` first, then any test file. Along the way I also made `content.validate()` flag empty blank answers and bad `re:` patterns, kept learner task code out of `ty`, added one missing GitHub source, and fixed quiz prompt whitespace.
+
+Closes #18
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
