@@ -53,15 +53,17 @@ committed (and `.gitignore` must not exclude `*.local.md`) so every worktree and
 | Rule | Event / action | Pattern (regex) |
 |---|---|---|
 | `block-sudo` | bash / block | `(^\|[;&\|]\s*)sudo\s` |
-| `block-rm-rf` | bash / block | `rm\s+-[a-zA-Z]*r[a-zA-Z]*f\|rm\s+-[a-zA-Z]*f[a-zA-Z]*r` |
+| `block-rm-rf` | bash / block | `rm\s+-[a-zA-Z]*r[a-zA-Z]*f\|rm\s+-[a-zA-Z]*f[a-zA-Z]*r\|rm\s+(-\S+\s+)*(-r\b.*-f\b\|-f\b.*-r\b)` |
 | `block-force-push` | bash / block | `git\s+push\b.*(\s-f\b\|--force)` |
-| `block-push-main` | bash / block | `git\s+push\b.*\b(main\|master)\b` |
-| `block-env-bash` | bash / block | `(cat\|head\|tail\|less\|more\|sed\|grep\|source\|\.)\s+[^\|;]*\.env(\.[a-z]+)?\b` (excluding `.env.example`) |
+| `block-push-main` | bash / block | `git\s+push\b.*(\s\|:)(main\|master)(\s\|$)` |
+| `block-env-bash` | bash / block | `(cat\|head\|tail\|less\|more\|sed\|grep\|source\|\.)\s+[^\|;&]*\.env(?!\.example)(\.[a-z]+)?\b` (excludes `.env.example`) |
 | `block-env-edit` | file / block | `file_path` regex `\.env($\|\.(?!example))` |
-| `block-print-secrets` | bash / block | `\b(printenv\|env)\s*$\|echo\s+\$\{?\w*(KEY\|TOKEN\|SECRET)` |
+| `block-print-secrets` | bash / block | `\bprintenv\b\|\benv\s*(\\\|$)\|echo\s+["']?\$\{?\w*(KEY\|TOKEN\|SECRET)` |
 | `stop-run-tests` | stop / block | transcript `not_contains` `pytest` |
 Gaps hookify cannot close (documented so nobody assumes otherwise): the Read tool (covered by `permissions.deny`),
 `/usr/bin/git`, `sh -c '…'`, scripts that open files. GitHub rulesets are the real lock on `main`.
+Also: hookify registers only `Stop`, not `SubagentStop`, so `stop-run-tests` fires only for the main session, never for
+the `builder` / `content-writer` subagents. CI is the real test gate.
 
 ## 5. Plugins (M1)
 | Plugin | Source | Why | How it loads |
@@ -71,7 +73,7 @@ Gaps hookify cannot close (documented so nobody assumes otherwise): the Read too
 | `ponytail@ponytail` | `DietrichGebert/ponytail` | least code that does the job; `/ponytail ultra` is in CLAUDE.md | marketplace declared; already installed at user scope |
 | `pydantic-ai@claude-plugins-official` | external (git-subdir) | V2-accurate Pydantic AI code | `claude plugin install … --scope project` |
 | `octen@octen` | `Octen-Team/octen-mcp` (relative) | doc page fetching and research during content tasks | marketplace declared; OAuth on first call |
-| FastAPI agent skill | `uvx library-skills` into `.claude/skills` | FastAPI conventions matching the installed version | committed file |
+| FastAPI agent skill | `uvx library-skills` into `.claude/skills` | FastAPI conventions matching the installed version | committed file; deferred to the first FastAPI lesson task (see `docs/PARKING_LOT.md`) |
 Firecrawl and Tavily: used through the claude.ai connectors already attached to the owner's account (no keys to
 store). The official plugins exist (`firecrawl@…`, `tavily@…`) and need API keys; optional.
 Phase 2: `neon@claude-plugins-official`, `vercel@claude-plugins-official`, `logfire@claude-plugins-official`.
@@ -92,8 +94,8 @@ Allow (no prompts in unattended runs): `Bash(uv sync *)`, `Bash(uv lock *)`, `Ba
 Deny (agents run with the owner's admin token, so these stop them loosening the guardrails): `Bash(sudo *)`,
 `Bash(git push --force *)`, `Bash(git push -f *)`, `Bash(git reset --hard *)`, `Bash(gh repo delete *)`,
 `Bash(gh repo edit *)`, `Bash(gh api -X DELETE *)`, `Bash(gh api -X PATCH *)`, `Bash(gh api -X PUT *)`,
-`Bash(gh pr merge --admin *)`, `Bash(gh secret *)`, `Read(./.env)`, `Read(./.env.*)`, `!Read(./.env.example)`,
-`Edit(.claude/settings.json)`, `Edit(.claude/hooks/**)`, `Edit(.claude/hookify.*)`, `Edit(.github/workflows/**)` is NOT denied (CI changes go through PR review instead).
+`Bash(gh pr merge --admin *)`, `Bash(gh secret *)`, `Read(./.env)`, `Read(./.env.*)`, `Read(!.env.example)` (carve-out, listed after the two Read denies),
+`Edit(.claude/settings*.json)`, `Edit(.claude/hooks/**)`, `Edit(.claude/hookify.*)`, `Edit(.github/workflows/**)` is NOT denied (CI changes go through PR review instead).
 Never add `Bash(uv run *)` or `Bash(python *)`: runner prefixes pass anything through.
 Ask rules are avoided: in auto mode they prompt and stall.
 
