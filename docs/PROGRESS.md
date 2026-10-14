@@ -2,17 +2,24 @@
 
 Keep this current between tasks (the main session updates it; task PRs add a file under `docs/learning-log/` instead).
 
-## Done
-- 2026-10-14 — Scoping: research (3 waves, fact-checked) in `docs/research/`; SPEC, PLAN, HARNESS, RESUME, PARKING_LOT, LEARNING_LOG written.
-- 2026-10-14 — M0 Bootstrap: public repo `hint-kata`, squash-only + auto-merge, ruleset `protect-main`, secret scanning + push protection, Dependabot, CodeQL default setup, milestone "Phase 1" with 21 issues.
-- 2026-10-14 — M1 Harness (#1 → PR #22). M2 App skeleton (#2 → #23), Store (#3 → #24), Content loader (#4 → #27). M4.1 fetch_docs (#11 → #25).
-- 2026-10-14 — M3 Learning loop: quiz engine (#5 → #30), grader (#6 → #32), tutor (#7 → #31), hands-on checker (#8 → #26), review queue + Today (#9 → #33), trace player + generators (#10 → #28).
+## Phase 1 — done (2026-10-14)
+- M0 Bootstrap: public repo, ruleset, security scanning, Dependabot, CodeQL, 21 issues.
+- M1 Harness (#22). M2 App skeleton (#23), Store (#24), Content loader (#27). M4.1 fetch_docs (#25).
+- M3 Learning loop: quiz (#30), grader (#32), tutor (#31), checker (#26), review queue (#33), traces (#28), mastery map (#40), reveal re-test (#66).
+- M4 Six lessons: PA1 (#36), PA2 (#37), FA1 (#35), FA2 (#34), GH1 (#38), GH2 (#39).
+- M5 Acceptance suite (#62): fresh clone of main → `uv sync --locked`, ruff, ty, 248 tests + 94 acceptance tests green.
+- Harness chore: hookify false positives tightened (#69).
+- Still open for the owner: #19 grader calibration (needs OPENROUTER_API_KEY; steps are on the issue).
 
-## In flight
-- #21 mastery map (PR #40, in review)
-- Lessons: PA1 (#12 → PR #36), FA1 (#13 → #35), PA2 (#14 → #37), FA2 (#15 → #34), GH1 (#16 → #38), GH2 (#17 → #39) — all in review
+## Phase 2 — in flight
+- Sources manifest for nine more lessons (#42 → PR #64, review done, merging)
+- PostgresStore + pgvector schema + CI Postgres (#52 → PR #68, review fixes)
+- Vercel config + runbook (#56 → PR #65, merging)
+- Claude Code session-trace normaliser (#57 → PR #67, review fixes)
+- Lessons being written: FA3 (#43), FA4 (#44), PA3 (#46), PA5 (#48), GH3 (#49), GH4 (#50)
 
 ## Next
-- #18 acceptance tests (after the lessons merge), #19 grader calibration (needs the owner's OPENROUTER_API_KEY), #20 docs pass
-- Housekeeping found in review: exclude content tasks from `ty`, `white-space: pre-wrap` for quiz prompts, `content.validate()` for `re:` blank answers (see docs/PARKING_LOT.md)
-- Known hookify false positive: one Bash command containing `git push` and, later, the word `main` (e.g. `--base main`) is blocked — run the push as its own command
+- Lessons FA5 (#45), PA4 (#47), GH5 (#51); then the remaining ~7 lessons per track
+- Full docs ingestion + embeddings via OpenRouter (#53), RAG tutor mode (#54), scheduled re-sync Action (#55)
+- Owner actions needed before hosting: create a Neon project and type the two database URLs into the local env file and GitHub secrets (docs/runbooks/neon.md); link the Vercel project and set env vars (docs/runbooks/vercel.md); custom domain only after an explicit OK (#58)
+- Phase 3 (#59–#61): accounts, payments, rate limits — outline only
