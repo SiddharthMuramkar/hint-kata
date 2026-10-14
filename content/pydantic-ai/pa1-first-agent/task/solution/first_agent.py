@@ -16,7 +16,7 @@ class CityFacts(BaseModel):
     population: int = Field(description="Approximate number of people")
 
 
-def make_agent() -> Agent:
+def make_agent() -> Agent[None, CityFacts]:
     """Build the agent. It must return a `CityFacts` object when it runs."""
     # The model string comes from TUTOR_MODEL. An empty value counts as missing.
     model = os.getenv("TUTOR_MODEL") or DEFAULT_MODEL
