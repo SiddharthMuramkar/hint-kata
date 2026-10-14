@@ -1,0 +1,293 @@
+{
+  "id": "pydantic-ai-stream-events",
+  "kind": "pydantic_ai_run",
+  "title": "Inside a streamed run: a tool call in pieces, then the answer in pieces",
+  "objectives": [
+    "Tell apart the events for what the model writes and the events for what the agent runs.",
+    "Say when the usage of a streamed run is complete."
+  ],
+  "source": {
+    "generator": "FunctionModel",
+    "script": "traces/scripts/agent_stream.py",
+    "pydantic_ai_version": "2.56.0",
+    "events": [
+      "PartStartEvent",
+      "PartDeltaEvent",
+      "PartEndEvent",
+      "FunctionToolCallEvent",
+      "FunctionToolResultEvent",
+      "PartStartEvent",
+      "FinalResultEvent",
+      "PartDeltaEvent",
+      "PartDeltaEvent",
+      "PartDeltaEvent",
+      "PartEndEvent",
+      "AgentRunResultEvent"
+    ],
+    "captured_at": "2026-10-14"
+  },
+  "steps": [
+    {
+      "idx": 0,
+      "kind": "user_prompt",
+      "actor": "user",
+      "title": "The learner's question",
+      "summary": "The prompt starts a run.",
+      "payload_excerpt": "Do I need an umbrella in San Francisco today?",
+      "metrics": {},
+      "annotation": {
+        "why": "A streamed run starts like any other run: one prompt, then a loop of model requests.",
+        "concept_tags": [
+          "run_stream_events"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 1,
+      "kind": "model_request",
+      "actor": "agent",
+      "title": "Request 1 to the model",
+      "summary": "The agent sends the message history and the tool list. The reply comes back as events.",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "With a streamed run the reply is not one object. It is a stream of events, one part at a time.",
+        "concept_tags": [
+          "streaming",
+          "events"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": {
+        "type": "predict_next",
+        "prompt": "The model's reply to request 1 is a tool call, and it is streaming in. Which event do you see first?",
+        "options": [
+          "FunctionToolCallEvent",
+          "PartStartEvent",
+          "AgentRunResultEvent"
+        ],
+        "answer": 1,
+        "explanation": "The reply arrives as parts. A PartStartEvent opens the tool-call part. FunctionToolCallEvent comes later, when the agent is about to run your function."
+      }
+    },
+    {
+      "idx": 2,
+      "kind": "tool_call",
+      "actor": "model",
+      "title": "The model streams a call to get_forecast",
+      "summary": "A PartStartEvent opened a tool-call part. A PartDeltaEvent carried the rest of the arguments.",
+      "payload_excerpt": "'{\"city\": \"San Fran' | 'cisco\"}'",
+      "metrics": {},
+      "annotation": {
+        "why": "This is the model writing, not your code running. The arguments are only usable once the part ends.",
+        "concept_tags": [
+          "PartStartEvent",
+          "PartDeltaEvent"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 3,
+      "kind": "tool_call",
+      "actor": "agent",
+      "title": "FunctionToolCallEvent: the agent runs get_forecast",
+      "summary": "The model's call is complete. Now the agent calls your function.",
+      "payload_excerpt": "{\"city\": \"San Francisco\"}",
+      "metrics": {},
+      "annotation": {
+        "why": "The Part events described the model writing the call. This event is your function about to run.",
+        "concept_tags": [
+          "FunctionToolCallEvent",
+          "tools"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 4,
+      "kind": "tool_result",
+      "actor": "tool",
+      "title": "FunctionToolResultEvent: the tool answered",
+      "summary": "get_forecast returned a value. The agent will send it to the model.",
+      "payload_excerpt": "Rain, 14 C.",
+      "metrics": {},
+      "annotation": {
+        "why": "The result goes into the history and the next model request streams a new reply.",
+        "concept_tags": [
+          "FunctionToolResultEvent",
+          "tools"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 5,
+      "kind": "model_request",
+      "actor": "agent",
+      "title": "Request 2 to the model",
+      "summary": "The agent sends the message history and the tool list. The reply comes back as events.",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "With a streamed run the reply is not one object. It is a stream of events, one part at a time.",
+        "concept_tags": [
+          "streaming",
+          "events"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 6,
+      "kind": "model_text",
+      "actor": "model",
+      "title": "PartStartEvent: a text part opens",
+      "summary": "The first piece of text arrives inside the start event.",
+      "payload_excerpt": "Yes, ",
+      "metrics": {},
+      "annotation": {
+        "why": "PartStartEvent carries the first piece of a new part. Later pieces arrive as PartDeltaEvent.",
+        "concept_tags": [
+          "PartStartEvent",
+          "text"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 7,
+      "kind": "model_text",
+      "actor": "agent",
+      "title": "FinalResultEvent: this reply is the answer",
+      "summary": "The agent has seen enough to know this response is the final result.",
+      "payload_excerpt": "tool_name=None",
+      "metrics": {},
+      "annotation": {
+        "why": "run_stream stops at the first output that matches the output type. This event marks that point.",
+        "concept_tags": [
+          "FinalResultEvent",
+          "run_stream"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/output/#streamed-results",
+            "title": "Output: streamed results"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 8,
+      "kind": "model_text",
+      "actor": "model",
+      "title": "PartDeltaEvent: the rest of the text arrives in pieces",
+      "summary": "Each piece is a PartDeltaEvent. A PartEndEvent closes the part.",
+      "payload_excerpt": "'bring an umbrella: ' | 'rain is forecast ' | 'in San Francisco today.'",
+      "metrics": {
+        "usage_output_tokens_so_far": 6
+      },
+      "annotation": {
+        "why": "A delta holds only the new piece, never the text so far. Add the pieces up yourself, or let stream_text do it.",
+        "concept_tags": [
+          "PartDeltaEvent",
+          "delta"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": {
+        "type": "predict_next",
+        "prompt": "All the text has arrived. If you read the run's usage right now, do you have the final total?",
+        "options": [
+          "Yes, the answer is complete so the total is complete",
+          "No, trust the total only when the run is finished",
+          "No, usage is only counted for tool calls"
+        ],
+        "answer": 1,
+        "explanation": "The run is not finished until AgentRunResultEvent. A total read mid-stream is partial, so read usage at the end."
+      }
+    },
+    {
+      "idx": 9,
+      "kind": "final_output",
+      "actor": "agent",
+      "title": "AgentRunResultEvent: the run is finished",
+      "summary": "The last event carries the finished run, with its output and total usage.",
+      "payload_excerpt": "Yes, bring an umbrella: rain is forecast in San Francisco today.",
+      "metrics": {
+        "input_tokens": 100,
+        "output_tokens": 20,
+        "total_tokens": 120,
+        "requests": 2,
+        "tool_calls": 1
+      },
+      "annotation": {
+        "why": "Read usage here or after the stream ends. Earlier totals are partial. FunctionModel estimates tokens, so no API key was needed.",
+        "concept_tags": [
+          "AgentRunResultEvent",
+          "usage"
+        ],
+        "citations": [
+          {
+            "url": "https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-all-events",
+            "title": "Agents: streaming all events"
+          }
+        ]
+      },
+      "checkpoint": null
+    }
+  ],
+  "takeaways": [
+    "run_stream_events is an async context manager. It yields every event of the whole run and ends with AgentRunResultEvent.",
+    "Part events show what the model is writing. FunctionTool events show what the agent runs.",
+    "Read usage when the run is finished. A total read mid-stream is partial."
+  ]
+}

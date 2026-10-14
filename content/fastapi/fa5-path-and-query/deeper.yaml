@@ -1,0 +1,106 @@
+questions:
+  - id: d1
+    prompt: >-
+      A route is `GET /items/{item_id}`. It has `item_id: int` and
+      `limit: Annotated[int, Query(le=100)] = 10`. A client sends `GET /items/abc?limit=500`.
+      Describe what FastAPI does and what the client receives, and say why each value fails.
+    rubric:
+      - name: function-not-called
+        explanation: >-
+          The answer says the route function does not run and the client gets a 422
+          response. The checks happen before your code.
+        pass_anchor: >-
+          "FastAPI checks the parameters first. Two checks fail, so the function is never called and the client gets a 422."
+        fail_anchor: >-
+          "The function runs with `limit` cut down to 100", or "the client gets a 500 or a 404."
+      - name: all-errors-together
+        explanation: >-
+          The answer says both problems come back in one response, as separate entries in the
+          `detail` list.
+        pass_anchor: >-
+          "The body has a `detail` list with two entries, one for `item_id` and one for `limit`."
+        fail_anchor: >-
+          "FastAPI stops at the first error, so the client only hears about `item_id`."
+      - name: loc-names-place-and-parameter
+        explanation: >-
+          The answer says each entry has a `loc` that names the place and the parameter:
+          `["path", "item_id"]` and `["query", "limit"]`.
+        pass_anchor: >-
+          "The first error has `loc` path, `item_id`. The second has `loc` query, `limit`."
+        fail_anchor: >-
+          "The response does not say which parameter failed", or "`loc` is a line number in the code."
+      - name: two-kinds-of-failure
+        explanation: >-
+          The answer tells the two failures apart. `abc` cannot be converted to an int. `500` is
+          a valid int that breaks the rule `le=100`. The value is rejected, not changed.
+        pass_anchor: >-
+          "`abc` is not a number at all, so it is a conversion error. 500 is a number but above the limit, so it breaks the rule. FastAPI does not clamp it to 100."
+        fail_anchor: >-
+          "Both are the same kind of error", or "FastAPI fixes `limit` to 100 and carries on."
+    model_answer: >-
+      FastAPI looks at each parameter before it calls my function. The path `abc` cannot be
+      converted to an `int`, so that is one failure, with type `int_parsing`. The query value
+      `500` converts to an `int`, but it is above the rule `le=100`, so that is a second
+      failure, with type `less_than_equal`. FastAPI does not stop at the first one. It
+      collects both and answers with status 422. The body is `{"detail": [...]}`, a list with
+      two entries. The first has `loc` `["path", "item_id"]` and the second has `loc`
+      `["query", "limit"]`, so the client can see exactly which two parameters to fix. My
+      function is never called. FastAPI does not change 500 to 100. A value outside the rule
+      is rejected, not repaired.
+    hints:
+      - Does your function run when a check fails? What does the client get instead?
+      - How many entries can the `detail` list hold, and what does each `loc` start with?
+  - id: d2
+    prompt: >-
+      You are designing `GET /orders/{order_id}`. `order_id` must be a whole number from 1 to
+      1,000,000. The client may also send a `status` filter that must be one of `open`,
+      `shipped` or `closed`, and a `tag` filter that can be repeated, as in `?tag=a&tag=b`.
+      How would you declare the three parameters, which of them are required, and why does
+      `tag` need `Query()`?
+    rubric:
+      - name: path-with-bounds
+        explanation: >-
+          The answer declares `order_id` as an `int` path parameter and puts the range in a
+          `Path()` rule, instead of checking it by hand.
+        pass_anchor: >-
+          "`order_id: Annotated[int, Path(ge=1, le=1_000_000)]`, so FastAPI rejects anything outside the range."
+        fail_anchor: >-
+          "Declare `order_id: int` and use an `if` inside the function to check the range", or "`order_id: int` with no rule."
+      - name: enum-for-status
+        explanation: >-
+          The answer restricts `status` to the three values, with an `Enum` class that inherits
+          from `str` and `Enum`, or with a `Literal` of the three values.
+        pass_anchor: >-
+          "Make `class Status(str, Enum)` with open, shipped and closed, and declare `status: Status | None = None`", or "declare `status` as a `Literal` of the three values, with a default of `None`."
+        fail_anchor: >-
+          "`status: str` and compare it by hand", or "`status: bool`."
+      - name: list-needs-query
+        explanation: >-
+          The answer declares `tag` as a list wrapped with `Query()` and says why: without it a
+          list is read from the request body, not from the URL.
+        pass_anchor: >-
+          "`tag: Annotated[list[str] | None, Query()] = None`, because without `Query()` FastAPI would read the list from the body."
+        fail_anchor: >-
+          "`tag: list[str] | None = None`", or "the client sends the tags separated by commas."
+      - name: required-vs-optional
+        explanation: >-
+          The answer says `order_id` is required because it is part of the path, and the two
+          filters are optional because they have a default of `None`.
+        pass_anchor: >-
+          "`order_id` is required since it is in the path. `status` and `tag` default to `None`, so the client may leave them out."
+        fail_anchor: >-
+          "All three are required", or "`order_id` can be optional if it has a default."
+    model_answer: >-
+      `order_id` is in the path, so it is always required. I would declare it as
+      `order_id: Annotated[int, Path(ge=1, le=1_000_000)]`. FastAPI converts the text to an
+      `int` and rejects anything below 1 or above a million with a 422, so I need no `if` in
+      the function. For `status` I would write a class `Status(str, Enum)` with the values
+      `open`, `shipped` and `closed`, and declare `status: Status | None = None`. It is
+      optional because of the `None` default, and any other text gets a 422 that lists the
+      allowed values. For `tag` I would write `tag: Annotated[list[str] | None, Query()] = None`.
+      I need `Query()` because without it FastAPI reads a list from the request body and
+      ignores the URL. With it, `?tag=a&tag=b` gives me `["a", "b"]`. So `order_id` is the
+      only required parameter. `status` and `tag` are optional.
+    hints:
+      - Which of the three parameters are in the path, and which are in the query string?
+      - Which Python class gives a fixed set of allowed text values, and what does a list need so FastAPI reads it from the query string?
