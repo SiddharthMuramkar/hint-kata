@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{% block title %}Hint Kata{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='vendor/github-markdown-dark-dimmed.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/pygments.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="/">Hint Kata</a>
+      <nav>
+        <a href="/">Tracks</a>
+        <a href="/today">Today</a>
+        <a href="/licenses">Licenses</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">Hint Kata is not affiliated with GitHub, FastAPI or Pydantic.</div>
+  </footer>
+</body>
+</html>
