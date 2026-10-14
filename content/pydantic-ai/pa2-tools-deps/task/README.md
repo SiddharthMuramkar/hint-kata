@@ -22,11 +22,3 @@ The hidden tests use a `FunctionModel` as a scripted fake model, and set `ALLOW_
 - The final answer contains the price from the `Deps` you passed in.
 
 Press **Check my work** when you are ready. If a test fails, read its message and the lesson sections "Choosing the decorator" and "Asking the model to retry".
-
-## About the trace
-
-The trace in this lesson is generated, not hand-written. To regenerate it, run this from the repository root:
-
-```
-uv run python traces/scripts/agent_run.py --out content/pydantic-ai/pa2-tools-deps/trace.json
-```

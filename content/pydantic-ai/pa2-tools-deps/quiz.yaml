@@ -104,7 +104,7 @@ items:
 
       @agent.____
       def price_of(ctx: RunContext[Deps], item: str) -> float: ...
-    answer: tool
+    answer: 're:(@?agent\.)?tool'
     explanation: >-
       @agent.tool is for functions that take ctx as their first parameter. @agent.tool_plain is
       for functions that need nothing from the run.
@@ -118,7 +118,7 @@ items:
 
       with agent.____(model=TestModel()):
           run_my_app()
-    answer: override
+    answer: 're:(agent\.)?override\(?'
     explanation: >-
       agent.override can replace the model, the deps or the toolsets for the duration of the
       block, so you do not have to change the code that calls the agent.

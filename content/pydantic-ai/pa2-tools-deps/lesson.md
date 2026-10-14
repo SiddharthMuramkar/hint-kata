@@ -105,7 +105,7 @@ def get_forecast(ctx: RunContext[Deps], city: str) -> str:
     return ctx.deps.forecasts[city]
 ```
 
-The message you pass becomes a retry prompt in the history, and the agent makes another request to the model. The model reads the hint and calls the tool again with better arguments. It does not repeat any network call: `ModelRetry` is a conversation with the model, not a retry of HTTP or of your function. The [Dependencies](https://pydantic.dev/docs/ai/core-concepts/dependencies/#full-example) page uses it inside a tool and an output validator.
+The message you pass becomes a retry prompt in the history, and the agent makes another request to the model. The model reads the hint and calls the tool again with better arguments. It does not re-run your function or retry your tool's HTTP call; the agent sends the history back to the model instead. The [Dependencies](https://pydantic.dev/docs/ai/core-concepts/dependencies/#full-example) page uses it in an output validator; the tool example above is this lesson's own.
 
 Write the hint so the model can act on it. "Unknown item, try one of: coffee, tea" helps. "Error" does not. Raise `ModelRetry` for mistakes the model can fix by changing its arguments. Retries are limited. In Pydantic AI 2.56.0 a tool gets one retry by default, and when the model keeps failing the run stops with an `UnexpectedModelBehavior` error. Bugs in your own code, such as a broken database connection, should still raise normal exceptions. The model cannot fix those.
 
@@ -119,15 +119,16 @@ Calling a real model in a unit test is slow, costs money and gives a different a
 - `pydantic_ai.models.ALLOW_MODEL_REQUESTS = False` makes any accidental request to a real model fail loudly.
 
 ```python
-from pydantic_ai import models
+from pydantic_ai import ModelResponse, TextPart, ToolCallPart, models
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 models.ALLOW_MODEL_REQUESTS = False
 
 
-def scripted(
-    messages, info: AgentInfo
-) -> ModelResponse: ...  # look at messages[-1], return a ToolCallPart or a TextPart
+def scripted(messages, info: AgentInfo) -> ModelResponse:
+    if len(messages) == 1:  # first request: ask for the tool
+        return ModelResponse(parts=[ToolCallPart("price_of", {"item": "tea"})])
+    return ModelResponse(parts=[TextPart("Tea costs 2.5.")])  # then answer
 
 
 with agent.override(model=FunctionModel(scripted)):
