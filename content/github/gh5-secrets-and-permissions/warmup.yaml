@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A workflow needs an API key to call another service. Where would you keep the key: in the
+      workflow YAML file, in a repository secret, or in the README? And what do you think GitHub does
+      with the value after you save it? Guess before you read.
+    note: >-
+      Keep it in a secret. A key in a file is public the moment you push, because anyone can read a
+      public repo, and git keeps history. GitHub encrypts a secret before it is stored, never shows
+      it again, and only hands it to a job whose step asks for it.
+  - id: w2
+    prompt: >-
+      A job says `environment: staging`, but nobody ever created an environment called `staging`.
+      What do you think happens when the job runs?
+    note: >-
+      The job runs. GitHub creates an empty environment named `staging` on the spot, with no
+      protection rules and no secrets. A typo in an environment name does not fail. It quietly
+      gives you a job with no gate and an empty secret.
