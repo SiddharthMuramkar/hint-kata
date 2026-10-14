@@ -59,13 +59,13 @@ committed (and `.gitignore` must not exclude `*.local.md`) so every worktree and
 | `block-sudo` | bash / block | `(^\|[;&\|]\s*)sudo\s` |
 | `block-rm-rf` | bash / block | `rm\s+-[a-zA-Z]*r[a-zA-Z]*f\|rm\s+-[a-zA-Z]*f[a-zA-Z]*r\|rm\s+(-\S+\s+)*(-r\b.*-f\b\|-f\b.*-r\b)` |
 | `block-force-push` | bash / block | `git\s+push\b.*(\s-f\b\|--force)` |
-| `block-push-main` | bash / block | `git\s+push\b.*(\s\|:)(main\|master)(\s\|$)` |
-| `block-env-bash` | bash / block | `(cat\|head\|tail\|less\|more\|sed\|grep\|source\|\.)\s+[^\|;&]*\.env(?!\.example)(\.[a-z]+)?\b` (excludes `.env.example`) |
+| `block-push-main` | bash / block | `git\s+push\b[^;&\|]*(\s\|:)(main\|master)(\s\|$)` (`main` must be in the same shell segment as `git push`) |
+| `block-env-bash` | bash / block | `(^\|[;&\|]\s*)(cat\|head\|tail\|less\|more\|sed\|grep\|source\|\.)\s+[^\|;&]*\.env(?!\.example)(\.[a-z]+)?\b` (excludes `.env.example`; the command must start a shell segment) |
 | `block-env-edit` | file / block | `file_path` regex `\.env($\|\.(?!example))` |
 | `block-print-secrets` | bash / block | `\bprintenv\b\|\benv\s*(\\\|$)\|echo\s+["']?\$\{?\w*(KEY\|TOKEN\|SECRET)` |
 | `stop-run-tests` | stop / block | transcript `not_contains` `pytest` |
 Gaps hookify cannot close (documented so nobody assumes otherwise): the Read tool (covered by `permissions.deny`),
-`/usr/bin/git`, `sh -c '…'`, scripts that open files. GitHub rulesets are the real lock on `main`.
+`/usr/bin/git`, `sh -c '…'`, scripts that open files. Patterns are searched across the whole command text, so run `git push` as its own command. GitHub rulesets are the real lock on `main`.
 Also: hookify registers only `Stop`, not `SubagentStop`, so `stop-run-tests` fires only for the main session, never for
 the `builder` / `content-writer` subagents. CI is the real test gate.
 

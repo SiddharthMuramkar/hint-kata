@@ -12,6 +12,7 @@ sources:
   - github-actions-reference-workflows-and-actions-workflow-syntax
   - github-actions-reference-workflows-and-actions-events-that-trigger-workflows
   - github-actions-tutorials-build-and-test-code-python
+  - github-pull-requests-troubleshooting-required-status-checks
   - github-pull-requests-reference-status-checks
 ---
 CI means "continuous integration". Every change gets built and tested by a machine before it can be merged. On GitHub, that machine work is called Actions. In this lesson you read one real workflow, learn the few keys that matter, and then add one to your own practice repo.

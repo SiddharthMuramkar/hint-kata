@@ -285,3 +285,14 @@ sources:
   attribution: 'Adapted from GitHub Docs, Building and testing Python (https://docs.github.com/en/actions/tutorials/build-and-test-code/python), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
   sha256: 661174e28ac325b9c3cad16005842857be6d6405309ddd9fe8eb077925130c28
   fetched_at: '2026-10-14T14:01:07Z'
+- id: github-pull-requests-troubleshooting-required-status-checks
+  track: github
+  title: Troubleshooting required status checks
+  url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Troubleshooting required status checks (https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: cbde7b770b851cdee29ab193ce00b1b9fbec09f8da06ce733f00f0128f0dc448
+  fetched_at: '2026-10-14T14:35:54Z'
