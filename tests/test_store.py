@@ -82,7 +82,7 @@ def test_cards_upsert_get_review_log(store: SqliteStore, uid: int) -> None:
     assert card["card_json"] == '{"v": 2}' and card["last_rating"] == 3
     assert card["due"] == "2026-02-01T00:00:00+00:00"
     assert store.add_review_log(cid, "{}") > 0
-    assert store.conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0] == 1
+    assert len(store.due_cards(uid, "9999")) == 1  # the upsert kept one row
 
 
 def test_card_by_id(store: SqliteStore, uid: int) -> None:

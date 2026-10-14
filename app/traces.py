@@ -39,6 +39,7 @@ StepKind = Literal[
     "user_prompt",
     "instructions",
     "model_request",
+    "model_text",
     "tool_call",
     "tool_result",
     "retry",
@@ -65,7 +66,7 @@ class Step(BaseModel):
 
 class Trace(BaseModel):
     id: str
-    kind: Literal["pydantic_ai_run", "github_pr"]
+    kind: Literal["pydantic_ai_run", "github_pr", "claude_code_session"]
     title: str
     objectives: list[str]
     source: dict[str, object]
