@@ -54,7 +54,7 @@ Three things follow:
 * a1fbaa0 (origin/main, main) Add readme
 ```
 
-`--oneline` prints a short id and the first line of the message. `--graph` draws lines on the left, which starts to matter when history forks and joins. In a terminal git adds the branch names in brackets for you. Add `--all` to see every branch, not only the one you are on. ([git log manual](https://git-scm.com/docs/git-log))
+`--oneline` prints a short id and the first line of the message. `--graph` draws lines on the left, which starts to matter when history forks and joins. In a terminal git adds the branch names in parentheses for you. Add `--all` to see every branch, not only the one you are on. ([git log manual](https://git-scm.com/docs/git-log))
 
 ## A branch is a movable pointer
 
@@ -82,7 +82,7 @@ The arrows point from a commit to its parent.
 
 **`main` and feature branches.** `main` is a branch like any other. GitHub gives the first branch of a new repo that name by default. This default branch is what visitors see when they open your repo, and it is the base for new pull requests, the branch a PR asks to merge into. Git itself gives `main` no special powers. Rules do that, such as the ruleset you made in GH1.
 
-A branch you create for one piece of work is a **feature branch**, also called a topic branch. You always create it from an existing branch, usually `main`. On it you work in isolation from what other people do on `main`. You need write access to the repo to create a branch in it. ([Branches](https://docs.github.com/en/pull-requests/reference/branches), [Managing branches within your repository](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository))
+A branch you create for one piece of work is a **feature branch**, also called a topic branch. It starts from some branch that already exists, usually `main`. Your commits on it stay apart from whatever others change on `main` until you choose to merge. To make a branch in a repo, you need write access to it. ([Branches](https://docs.github.com/en/pull-requests/reference/branches), [Managing branches within your repository](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository))
 
 Give the branch a short name that tells others what you are doing, such as `add-code-of-conduct` or `increase-test-timeout`. Slashes are fine: `feature/greeting`. This repo uses `issue-<n>-<slug>`.
 
@@ -105,7 +105,7 @@ The old commands still work, and you will meet them in older tutorials. Prefer `
 
 ## The GitHub flow loop
 
-GitHub flow is a light way of working, built on branches. It has seven steps, and every one of them can be done in the browser, with `gh`, or in GitHub Desktop. ([GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow))
+GitHub flow is a light way of working, built on branches. GitHub's page describes six steps: create a branch, make changes, create a pull request, address review comments, merge, and delete the branch. This lesson splits "make changes" into two, commit and push, so the loop below has seven steps. Every one of them can be done in the browser, with `gh`, or in GitHub Desktop. ([GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow))
 
 ```text
 branch -> commit -> push -> pull request -> review -> merge -> delete the branch
@@ -165,6 +165,9 @@ fatal: The current branch feature/greeting has no upstream branch.
 To push the current branch and set the remote as upstream, use
 
     git push --set-upstream origin feature/greeting
+
+To have this happen automatically for branches without a tracking
+upstream, see 'push.autoSetupRemote' in 'git help config'.
 ```
 
 Git tells you the fix. `-u` is the short form of `--set-upstream`:
@@ -195,7 +198,7 @@ Cleaning up after a merge touches three places:
 
 1. **GitHub.** `gh pr merge --squash --delete-branch` deletes the branch for you. You can also click **Delete branch** on the PR page, or turn on the repository setting that deletes head branches after a merge. Do not delete the branch of a PR that is still open, because GitHub then closes the PR.
 2. **Your bookmarks.** Your clone keeps `origin/feature/greeting` even after the branch is gone from GitHub. `git fetch --prune` removes bookmarks whose branch no longer exists on the remote.
-3. **Your local branch.** `git branch -d feature/greeting` removes it. After a squash merge, git may refuse with `the branch 'feature/greeting' is not fully merged`. A squash makes a new commit, so git cannot see your commits inside `main`. If you know the PR was merged, `git branch -D feature/greeting` forces it. (`gh pr merge --delete-branch` removes the local branch as well.) In `git branch -vv`, a branch whose remote is gone is marked `gone`.
+3. **Your local branch.** `git branch -d feature/greeting` removes it. Do step 2 first, because git only refuses once the bookmark is gone. While `origin/feature/greeting` still exists, `git branch -d` checks against it and deletes the branch with a warning. After `git fetch --prune`, git checks against the branch you are on instead. After a squash merge it may then refuse with `the branch 'feature/greeting' is not fully merged`. A squash makes a new commit, so git cannot see your commits inside `main`. If you know the PR was merged, `git branch -D feature/greeting` forces it. (`gh pr merge --delete-branch` removes the local branch as well.) In `git branch -vv`, a branch whose remote is gone is marked `gone`.
 
 ## Good commit messages
 
@@ -209,7 +212,7 @@ last line has no newline. Every file now ends with one.
 ```
 
 - **Subject line.** The text up to the first blank line is the commit's title, and git uses it everywhere: `git log --oneline`, email patches, lists on GitHub. Git's manual suggests at most about 50 characters. Many teams allow up to 72. Neither is enforced. Git's own project asks for the imperative mood, "Add trailing newline", as if you gave an order to the code, and no full stop at the end. ([git commit manual](https://git-scm.com/docs/git-commit), [Git's patch guidelines](https://git-scm.com/docs/SubmittingPatches))
-- **Blank line, then a body.** The body explains **why**. The diff already shows what changed. The message has to say what problem you solved, why you chose this way, and anything that would surprise a reader. Wrap lines at about 72 characters so they read well in a terminal.
+- **Blank line, then a body.** The body explains **why**. The diff already shows what changed. The message has to say what problem you solved, why you chose this way, and anything that would surprise a reader. Many teams wrap body lines at about 72 characters so they read well in a terminal. That is a team habit, not a git rule.
 - **One complete change per commit.** Then the message has one thing to say.
 
 On the command line, each `-m` makes a paragraph: `git commit -m "Subject" -m "Body that explains why"`. Without `-m`, git opens your editor. Git refuses an empty message (`Aborting commit due to empty commit message`).
@@ -236,7 +239,7 @@ git log --oneline --graph -8 origin/main
 
 You see a straight line of finished changes, each with its PR number.
 
-**Sources.** Adapted from GitHub Docs, © GitHub, CC BY 4.0. Modified: summarized and adapted. Read 2026-10-14. This site is not affiliated with GitHub. Checked with `gh` 2.102 and git 2.54, using the git manual pages and a scratch repo. The commit-message advice also follows the git project's own patch guidelines.
+**Sources.** Adapted from GitHub Docs, © GitHub, CC BY 4.0. Modified: summarized and adapted. Read 2026-10-14. This site is not affiliated with GitHub. Checked with `gh` 2.102 and git 2.54, using the git manual pages and a scratch repo. The subject-line advice (about 50 characters, imperative mood, no full stop) comes from the git manual and the git project's own patch guidelines. The 72-character limit is a common team habit, not a git rule.
 [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow) ·
 [Branches](https://docs.github.com/en/pull-requests/reference/branches) ·
 [Managing branches within your repository](https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository) ·

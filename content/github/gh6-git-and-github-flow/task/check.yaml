@@ -2,7 +2,7 @@ checks:
   - name: the branch feature/greeting exists on GitHub
     args: ["api", "repos/{repo}/branches/feature/greeting", "--jq", ".name"]
     expect: 'feature/greeting'
-  - name: the branch history has 3 or more commits (your 2, plus the commit it started from)
+  - name: the branch history has 3 to 10 commits (your 2, plus the commits already there; the call returns at most 10)
     args: ["api", "repos/{repo}/commits?sha=feature/greeting&per_page=10", "--jq", "length"]
     expect: 're:[3-9]|10'
   - name: exactly one open pull request comes from feature/greeting

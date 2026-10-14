@@ -80,11 +80,11 @@ questions:
       - name: main-rules
         explanation: The answer knows how `main` is protected and how merges happen.
         pass_anchor: >-
-          Says nothing is pushed directly to `main` and there are no force pushes, that a pull
-          request with passing checks is required, and that merging is by squash (one commit per
-          PR).
+          Says a pull request with passing checks is required and the merge is a squash (one
+          commit per PR).
         fail_anchor: >-
-          Says you may push to `main` directly, or that merges keep every commit of the branch.
+          Says you may push to `main` directly or force-push, or that merges keep every commit of
+          the branch.
       - name: short-lived-reason
         explanation: The answer gives a real reason for short-lived branches.
         pass_anchor: >-
