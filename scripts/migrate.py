@@ -10,9 +10,9 @@ from app.store_pg import apply_schema  # noqa: E402
 
 
 def main() -> None:
-    url = settings.database_url_unpooled or settings.database_url
+    url = settings.database_url_unpooled
     if not url:
-        raise SystemExit("Set DATABASE_URL_UNPOOLED (or DATABASE_URL) in the local env file first.")
+        raise SystemExit("Set DATABASE_URL_UNPOOLED in the local env file first.")
     print(f"schema version {apply_schema(url)}")
 
 

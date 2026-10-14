@@ -32,6 +32,7 @@ def connect_pg(url: str) -> PgConn:
     mode) never use a session SET; use SET LOCAL inside a transaction."""
     conn = PgConn.connect(url, row_factory=dict_row)
     register_vector(conn)
+    conn.commit()  # end the type-lookup transaction; do not sit idle in transaction
     return conn
 
 
