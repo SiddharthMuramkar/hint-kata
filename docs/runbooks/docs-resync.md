@@ -79,7 +79,7 @@ The same button is on the Actions tab: pick "Docs re-sync", then **Enable workfl
 - **Run is red and the PR lists "Failed to fetch".** A page did not download (network, a moved URL). Its manifest entry is untouched. Re-run: `gh run rerun <run-id>`. If it keeps failing, fix `fetch_url` in `content/sources.yaml`.
 - **PR step fails with "not permitted to create or approve pull requests".** Do the first setup item.
 - **Two embed runs overlap or one is dropped.** Runs queue, one at a time, never cancelled. GitHub keeps only one waiting run, so two merges inside one embed run can skip the middle one. Run the ingest CLI by hand for that id.
-- **A source was removed from the manifest.** `embed` only names changed ids, so it does not remove that source's chunks. Remove them by hand with the ingest CLI.
+- **A source was removed from the manifest.** `embed` only names changed ids, so it does not remove that source's chunks. Remove them by hand with `uv run python scripts/ingest.py --prune` (add `--dry-run` first to see the list; see `docs/runbooks/ingestion.md`).
 
 ## Pinned actions
 Every action is pinned to a full commit SHA, with its tag in a comment. Dependabot's `github-actions` entry proposes bumps.

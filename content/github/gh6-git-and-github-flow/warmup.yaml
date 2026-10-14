@@ -1,0 +1,20 @@
+items:
+  - id: w1
+    prompt: >-
+      You are on `main`. You run `git switch -c try-it`, make one commit, and then run
+      `git switch main`. Predict: does `main` now contain your commit? Where is the commit, and
+      what happens to the files in your folder when you switch?
+    note: >-
+      `main` does not contain it. The commit is still there, and the branch name `try-it` still
+      points at it. A branch is only a name for a commit, so switching away loses nothing. The
+      files in your folder change to match `main`, and they come back when you switch to `try-it`
+      again.
+  - id: w2
+    prompt: >-
+      A teammate pushes a new commit to `main` on GitHub. You run `git fetch`. What changes on
+      your computer, and what stays the same? Then guess how `git pull` would have been different.
+    note: >-
+      Your `origin/main` bookmark moves to the new commit, and `git status` can now say your `main`
+      is behind. Your own branches and the files in your folder stay the same. `git pull` would
+      have done the fetch and then also brought the new commits into your current branch, which
+      does change your files.
