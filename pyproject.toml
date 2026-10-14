@@ -16,7 +16,7 @@ dependencies = [
     "pydantic-evals==2.56.0",
     "pydantic-settings==2.16.0",
     "pyyaml==6.0.3",
-    "logfire==5.2.0",
+    "logfire[fastapi]==5.2.0",
 ]
 
 [dependency-groups]

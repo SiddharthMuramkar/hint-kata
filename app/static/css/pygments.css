@@ -1,8 +1,3 @@
-pre { line-height: 125%; }
-td.linenos .normal { color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px; }
-span.linenos { color: #6e7681; background-color: #0d1117; padding-left: 5px; padding-right: 5px; }
-td.linenos .special { color: #e6edf3; background-color: #6e7681; padding-left: 5px; padding-right: 5px; }
-span.linenos.special { color: #e6edf3; background-color: #6e7681; padding-left: 5px; padding-right: 5px; }
 .markdown-body .highlight .hll { background-color: #6e7681 }
 .markdown-body .highlight { background: #0d1117; color: #E6EDF3 }
 .markdown-body .highlight .c { color: #8B949E; font-style: italic } /* Comment */
