@@ -1,0 +1,12 @@
+{% if lesson.warmup %}
+<section class="card warmup">
+  <h2>Warm-up</h2>
+  <p class="muted">Guess first. Nothing here is graded.</p>
+  {% for w in lesson.warmup %}
+  <details>
+    <summary>{{ w.prompt }}</summary>
+    <p>{{ w.note }}</p>
+  </details>
+  {% endfor %}
+</section>
+{% endif %}
