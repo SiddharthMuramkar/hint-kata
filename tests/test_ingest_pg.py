@@ -67,15 +67,15 @@ def sections(a: str = "alpha", b: str = "beta", c: str | None = "gamma") -> str:
     return doc(*parts, *([f"## C\n\n{words(150, c)}"] if c else []))
 
 
-def page_of(markdown: str, path: str = "p1", model: str = "m1") -> Page:
+def page_of(markdown: str, path: str = "p1", model: str = "m1", source: str = "fastapi") -> Page:
     return Page(
-        "fastapi",
+        source,
         path,
         f"https://docs.example/{path}/",
         "Page title",
         "1.0",
         sha256(markdown),
-        chunk_page(path, "fastapi", "Page title", markdown, model),
+        chunk_page(path, source, "Page title", markdown, model),
     )
 
 
@@ -214,6 +214,33 @@ def test_hybrid_search_understands_web_search_syntax_and_empty_text(conn: PgConn
     assert hybrid_search(conn, query, "filler -pooler", k=3)[0].anchor == "b"
     assert [h.anchor for h in hybrid_search(conn, query, "", k=3)][0] == "a"  # vector only
     assert len(hybrid_search(conn, query, "nomatchatall", k=3)) == 3
+
+
+def test_hybrid_search_can_be_limited_to_one_source(conn: PgConn) -> None:
+    for source, path in (("fastapi", "p1"), ("github", "g1")):
+        page = page_of(
+            doc(*(f"## {h}\n\n{words(150, 'pooler')}" for h in "ABC")), path, source=source
+        )
+        apply_plan(conn, page, plan_page(conn, page), [one_hot(0), one_hot(1), one_hot(2)])
+    query = one_hot(0)  # equally near both pages, and both have the keyword
+    assert {h.url for h in hybrid_search(conn, query, "pooler", k=8)} == {
+        "https://docs.example/p1/",
+        "https://docs.example/g1/",
+    }
+    for source, path in (("fastapi", "p1"), ("github", "g1")):
+        hits = hybrid_search(conn, query, "pooler", k=8, source=source)
+        url = f"https://docs.example/{path}/"
+        assert sorted(h.anchor for h in hits) == [
+            "a",
+            "b",
+            "c",
+        ]  # its whole page, none of the other
+        assert {h.url for h in hits} == {url}
+        vector_only = hybrid_search(conn, query, "nomatchatall", k=8, source=source)
+        assert sorted(h.anchor for h in vector_only) == ["a", "b", "c"]
+        assert {h.url for h in vector_only} == {url}  # the filter is inside the vector list too
+    assert hybrid_search(conn, query, "pooler", k=8, source="pydantic-ai") == []
+    assert len(hybrid_search(conn, query, "pooler", k=8, source="")) == 6  # "" means no filter
 
 
 def test_the_script_ingests_checks_and_resyncs(

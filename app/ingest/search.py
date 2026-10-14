@@ -9,6 +9,8 @@ from pgvector import Vector
 from app.store_pg import PgConn
 
 # Two CTEs, 40 candidates each; reciprocal rank fusion with k = 60; ties broken by chunk_key.
+# `source` (the track, pages.source) is optional: NULL searches every page. The filter sits inside
+# both CTEs so each list still has 40 candidates from the track, not 40 from everywhere.
 SEARCH: LiteralString = """
 WITH semantic AS (
     SELECT chunk_key, row_number() OVER (ORDER BY dist, chunk_key) AS rnk
@@ -16,6 +18,8 @@ WITH semantic AS (
         SELECT chunk_key, embedding <=> %(emb)s AS dist
         FROM chunks
         WHERE embedding IS NOT NULL
+          AND (%(source)s::text IS NULL
+               OR page_id IN (SELECT id FROM pages WHERE source = %(source)s))
         ORDER BY embedding <=> %(emb)s
         LIMIT 40
     ) AS nearest
@@ -25,6 +29,8 @@ WITH semantic AS (
         SELECT chunk_key, ts_rank_cd(tsv, websearch_to_tsquery('english', %(q)s)) AS kw
         FROM chunks
         WHERE tsv @@ websearch_to_tsquery('english', %(q)s)
+          AND (%(source)s::text IS NULL
+               OR page_id IN (SELECT id FROM pages WHERE source = %(source)s))
         ORDER BY kw DESC, chunk_key
         LIMIT 40
     ) AS matches
@@ -51,18 +57,54 @@ class Hit:
     score: float
 
     @property
+    def title(self) -> str:
+        """The heading trail for display: "FastAPI › Dependencies › First Steps"."""
+        return " › ".join(self.heading_path or [])
+
+    @property
     def citation(self) -> str:
         """The page URL plus the heading anchor: what the tutor cites."""
         return f"{self.url}#{self.anchor}" if self.anchor else self.url
 
 
+_iterative_scan: bool | None = None  # decided once per process, on the first filtered search
+
+
+def supports_iterative_scan(extversion: str | None) -> bool:
+    """pgvector 0.8.0 added hnsw.iterative_scan; on an older build the SET raises and aborts the
+    transaction. `extversion` is the installed vector extension version, e.g. "0.8.0"."""
+    try:
+        major, minor = (int(x) for x in (extversion or "").split(".")[:2])
+    except ValueError:
+        return False
+    return (major, minor) >= (0, 8)
+
+
+def _has_iterative_scan(conn: PgConn) -> bool:
+    global _iterative_scan
+    if _iterative_scan is None:
+        row = conn.execute(
+            "SELECT extversion FROM pg_extension WHERE extname = 'vector'"
+        ).fetchone()
+        _iterative_scan = supports_iterative_scan(row["extversion"] if row else None)
+    return _iterative_scan
+
+
 def hybrid_search(
-    conn: PgConn, query_embedding: Sequence[float], query_text: str, k: int = 8
+    conn: PgConn,
+    query_embedding: Sequence[float],
+    query_text: str,
+    k: int = 8,
+    source: str | None = None,
 ) -> list[Hit]:
+    """Top `k` chunks, optionally only from pages of one `source` (a track id such as "fastapi")."""
     # LOCAL: lasts for this transaction only, so it is safe behind Neon's pooler (PgBouncer).
     conn.execute("SET LOCAL hnsw.ef_search = 100")
+    if source and _has_iterative_scan(conn):  # a filtered HNSW scan can come back short
+        conn.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
     rows = conn.execute(
-        SEARCH, {"emb": Vector(list(query_embedding)), "q": query_text, "k": k}
+        SEARCH,
+        {"emb": Vector(list(query_embedding)), "q": query_text, "k": k, "source": source or None},
     ).fetchall()
     conn.commit()
     return [Hit(r["url"], r["anchor"], r["heading_path"], r["text"], r["score"]) for r in rows]

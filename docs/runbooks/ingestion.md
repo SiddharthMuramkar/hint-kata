@@ -5,7 +5,9 @@ captures its meaning), and stores them in Neon next to a keyword index. Search t
 You run it from your own laptop. Nothing here runs on Vercel.
 
 ## Before you start
-- Neon is set up and `scripts/migrate.py` has run once (`docs/runbooks/neon.md`).
+- Neon is set up and `scripts/migrate.py` has run once (`docs/runbooks/neon.md`). Use Postgres 17 or newer
+  with pgvector 0.8 or newer; the tutor's track filter relies on 0.8 (older builds still work, the filter then
+  skips one setting and may return fewer results).
 - The docs pages are in `.cache/docs/` (run `uv run python scripts/fetch_docs.py` if that folder is empty).
 
 ## 1. Put the keys in the local env file
@@ -67,6 +69,37 @@ with `--only` or `--check`, and it refuses to run if the manifest lists nothing 
   and heading path, so the citation points at the heading above the real content.
 - Before it embeds anything the script checks that `EMBED_DIMS` equals the size of the `chunks.embedding`
   column (1536). A model with another size needs a schema change first; the script stops and says so.
+
+## Turn on RAG for the tutor
+After step 3 the docs are in Neon. The tutor can then search them while it answers. It uses the same
+search as above, limited to the lesson's track (a FastAPI lesson only sees FastAPI pages).
+
+What must be set, in the local env file (Explorer, next to `.env.example`):
+- `DATABASE_URL` is the pooled Neon URL (the host has `-pooler`). Without it the tutor uses the lesson only.
+  Setting it also moves your progress data (attempts, chats, review cards) from the local SQLite file to
+  Postgres, because the site uses Postgres whenever it is set.
+- `OPENROUTER_API_KEY` is the key the tutor already uses. The question is embedded with it (a fraction of a cent).
+- `RAG_ENABLED` and `RAG_K` stay empty. They default to `true` and `6` (how many doc pieces the tutor gets per
+  question). Set `RAG_ENABLED=false` to switch it off again.
+
+Then restart the site (`uv run fastapi dev`) and ask the tutor a real question.
+
+How to tell it is on:
+- Under the reply you see a `Sources:` line. Each docs source looks like `[1] FastAPI › Dependencies › First Steps`
+  and is a link that opens the docs page in a new tab, already scrolled to the heading. The reply text carries the
+  same `[1]` mark. Lesson sections (`§...`) are listed there as before.
+- The terminal that runs the site prints one line per question, for example
+  `tutor turn lesson=fa1-dependencies retrieved=4 citations=['https://fastapi.tiangolo.com/...#first-steps']`.
+  `retrieved=0` means the tutor used the lesson text only. The log never shows the doc text.
+
+If it stays off, look for one line like `tutor retrieval is off, using the lesson text only: ...`. It is printed
+once per reason: `DATABASE_URL is not set`, no embedding key, the tables are missing (run `scripts/migrate.py`
+and `scripts/ingest.py`), or the database is unreachable. The tutor never breaks because of it. If you see
+`retrieved=0` with no such line, the database has no pages for that track yet: run step 3.
+
+Two safety rules are in code. The doc text is untrusted: it goes into your message to the model in a fenced block,
+capped at about 1,200 characters per piece, and the tutor is told never to follow instructions inside it. A `[src:N]`
+mark the model invents (a number that was not given this turn) is deleted before you see it.
 
 ## If something goes wrong
 | Message | What to do |
