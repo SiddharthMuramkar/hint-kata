@@ -242,8 +242,7 @@ class Shelf(BaseModel):
 
 
 @app.put("/shelve/{book_id}")
-def shelve(book_id: int, book: Book, shelf: Shelf):
-    ...
+def shelve(book_id: int, book: Book, shelf: Shelf): ...
 ```
 
 The client now sends `{"book": {...}, "shelf": {"room": "A"}}`. The keys are the parameter names.
@@ -259,8 +258,7 @@ from fastapi import Body
 
 
 @app.put("/shelve/{book_id}")
-def shelve(book_id: int, book: Book, copies: Annotated[int, Body(ge=1)]):
-    ...
+def shelve(book_id: int, book: Book, copies: Annotated[int, Body(ge=1)]): ...
 ```
 
 Now the JSON has `{"book": {...}, "copies": 2}`. `Body` takes the same rules as `Field`, like
@@ -271,8 +269,7 @@ them in a key, as it does with several models, use `embed=True`.
 
 ```python
 @app.put("/books/{book_id}")
-def replace_book(book_id: int, book: Annotated[Book, Body(embed=True)]):
-    ...
+def replace_book(book_id: int, book: Annotated[Book, Body(embed=True)]): ...
 ```
 
 The client must now send `{"book": {"title": "Dune", ...}}`. Pick one style per route and

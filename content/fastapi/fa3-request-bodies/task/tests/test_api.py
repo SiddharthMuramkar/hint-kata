@@ -136,4 +136,6 @@ def test_models_show_up_in_the_openapi_schema(client):
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
     assert {"Order", "Address", "LineItem"} <= set(schemas)
     assert schemas["LineItem"]["properties"]["quantity"]["exclusiveMinimum"] == 0
-    assert schemas["Order"]["properties"]["items"]["items"] == {"$ref": "#/components/schemas/LineItem"}
+    assert schemas["Order"]["properties"]["items"]["items"] == {
+        "$ref": "#/components/schemas/LineItem"
+    }
