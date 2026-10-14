@@ -2,11 +2,11 @@ questions:
   - id: d1
     prompt: >-
       A chat page must show the model's reply word by word. Your server code uses agent.run_stream()
-      and sends each item to the browser. Which options of stream_text would you choose, what goes
-      wrong with the other choices, and where in your code do you read the run's token usage to
-      log its cost?
+      and sends each item to the browser. Which options of stream_text (delta, debounce_by) would you
+      choose, what goes wrong with the other choices, and where in your code do you read the run's
+      token usage to log its cost?
     hints:
-      - Compare what an item holds with the default and with delta=True. What would the browser show if the server sent each default item and the page appended it?
+      - "Compare what an item holds with the default and with delta=True. What would the browser show if the server sent each default item and the page appended it? Then look at debounce_by, and ask what its default does to a fast stream."
       - Is the usage of a run complete while the loop is still running? Think about where in the code the stream is known to be finished.
     rubric:
       - name: delta-for-new-text

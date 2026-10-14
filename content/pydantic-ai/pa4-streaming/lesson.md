@@ -31,7 +31,7 @@ async with agent.run_stream("Where does 'hello world' come from?") as result:
 
 The `async with` block opens the stream and closes it when the block ends. Leave it out and Python raises a `TypeError`. For example, `async for event in agent.run_stream_events(...)` fails because the object has no `__aiter__`. You need the `as events:` handle that `async with` gives you.
 
-One rule decides what `run_stream` does with tools. It treats the **first output that matches your output type as the final answer**. A tool call that comes before the answer runs as usual, and then the text streams. But if one reply holds both text and a tool call, and the output type is `str`, the [docs say](https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-events-and-final-output) the tool call will not run. If you need every tool to run, use `run_stream_events()` or `agent.iter()`.
+One rule decides what `run_stream` does with tools. It treats the **first output that matches your output type as the final answer**. A tool call that comes before the answer runs as usual, and then the text streams. But if one reply holds both text and a tool call, and the output type is `str`, the [docs say](https://pydantic.dev/docs/ai/core-concepts/agent/#streaming-events-and-final-output) the tool call will not run in streaming mode with the default setting. If you need every tool to run, use `run_stream_events()` or `agent.iter()`.
 
 ## Text deltas and cumulative text
 
@@ -142,11 +142,11 @@ Usage is the token and request count of the run. In 2.56.0 it is a property, so 
 
 Pydantic AI tells you in its own docstring that `usage` "won't return the full usage until the stream is finished". We saw what that means.
 
-- On a `run_stream()` result, the value was partial before we read the stream (`output_tokens=1`) and complete after the stream ended (`output_tokens=7`). `result.is_complete` flipped from `False` to `True` at the same moment.
+- On a `run_stream()` result with the three scripted chunks `Tea `, `costs ` and `2.5.`, the value was partial before we read the stream (`output_tokens=1`) and complete after the stream ended (`output_tokens=5`). `result.is_complete` flipped from `False` to `True` at the same moment.
 - On `run_stream_events()`, the value of `events.usage` stayed partial during the run. Right after the last text piece it still counted only one request. The `AgentRunResultEvent` showed the full total, two requests and one tool call. `event.result.usage` is the safe place to read it.
 - If you stop early with `break`, the count stays partial. The docs also warn that usage after a [cancelled stream](https://pydantic.dev/docs/ai/core-concepts/agent/#cancelling-a-run) is partial and depends on the provider. Do not use it for cost-critical accounting.
 
-Messages follow the same rule. Before you read the stream, `result.all_messages()` holds only the request. The [Messages](https://pydantic.dev/docs/ai/core-concepts/message-history/#accessing-messages-from-results) page says the final response is included once the stream has finished.
+Messages follow the same rule. Before you read the stream, `result.all_messages()` holds only the request. The [Messages](https://pydantic.dev/docs/ai/core-concepts/message-history/#accessing-messages-from-results) page says the final response is included once the stream has finished. That page and the [Output](https://pydantic.dev/docs/ai/core-concepts/output/#streaming-text) page also say the final message is **not** added to `all_messages()` when you used `stream_text(delta=True)`. On 2.56.0 we saw it there once the stream had finished, so do not rely on that warning. Check your own version.
 
 So the rule is short. Read `usage` and the messages **after** the stream is done.
 
@@ -157,7 +157,7 @@ The tutor on this site uses what you just learned. Here is how a reply travels. 
 1. **The browser** sends `POST /api/tutor/{lesson}` with `fetch`. It reads the response body with a stream reader, splits it on blank lines into server-sent events, and handles five event names: `token`, `ceiling`, `html`, `citations` and `error`. It does not use `EventSource`.
 2. **The route** is an async generator. It is declared with `response_class=EventSourceResponse` (from `fastapi.sse`) and it `yield`s a `ServerSentEvent` for each message.
 3. **The agent** comes from `make_tutor()`. It has instructions built from the lesson, and no tools. So `run_stream()` is enough. The route calls `async with get_tutor().run_stream(...) as result` and loops over `result.stream_text(delta=True)`. It keeps every delta in a list. It does not pass `debounce_by`, so fast chunks may be grouped (up to 0.1 s).
-4. **Tokens are sent only at hint level L4 and above.** Below L4 the server removes code blocks from the whole reply, and it can only do that once the reply is complete. So at lower levels the learner sees no live text. They see the final `html` event.
+4. **Tokens are sent only at hint level L4 and above.** Below L4 the server replaces each fenced code block in the whole reply with a "[code withheld ...]" line, and it can only do that once the reply is complete. So at lower levels the learner sees no live text. They see the final `html` event.
 5. **When the stream ends**, the route joins the deltas, applies the hint ceiling, drops citation markers that are not sections of the lesson, and sends `ceiling`, `html` and `citations`. The browser replaces the live text with the `html` that the server rendered. Last, the route saves the learner's message and the reply to the `chats` table, so a refresh keeps the history.
 6. **If the run raises**, the route logs it, sends an `error` event and stops. Nothing is saved for that turn.
 
@@ -192,4 +192,4 @@ Tips for tests:
 
 The trace below shows a streamed run of an agent with one tool, `get_forecast`. It was recorded with a scripted `FunctionModel` and `run_stream_events()`, so no API key was involved. The model streams a tool call in two pieces. The agent runs the tool. The model then streams its answer in pieces, and the last event ends the run. Step through it and answer the two prediction questions. Try to tell the Part events (the model writing) from the FunctionTool events (the agent running your code).
 
-Sources: [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/), [Output](https://pydantic.dev/docs/ai/core-concepts/output/), [Messages and chat history](https://pydantic.dev/docs/ai/core-concepts/message-history/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) from the Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. This site is not affiliated with Pydantic.
+Sources: [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/), [Output](https://pydantic.dev/docs/ai/core-concepts/output/), [Messages and chat history](https://pydantic.dev/docs/ai/core-concepts/message-history/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) from the Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. 2024 to present. This site is not affiliated with Pydantic.
