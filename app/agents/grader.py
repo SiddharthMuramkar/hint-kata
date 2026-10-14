@@ -138,6 +138,14 @@ def _hint(grade: Grade, i: int, name: str, question: DeeperQuestion) -> str:
     return question.hints[i] if i < len(question.hints) else ""
 
 
+def _agreement(grade: Grade, question: DeeperQuestion, views: list[CriterionView]) -> int:
+    """How many criteria this sample matches the majority result on (no verdict = not met)."""
+    return sum(
+        (r.met if (r := _result(grade, i, c.name)) else False) == v.met
+        for i, (c, v) in enumerate(zip(question.rubric, views, strict=True))
+    )
+
+
 async def grade_answer(
     question: DeeperQuestion,
     answer: str,
@@ -174,9 +182,13 @@ async def grade_answer(
                 hint=_hint(agree[0], i, c.name, question) if agree and not met else "",
             )
         )
+    # The feedback line comes from the first sample closest to the majority result, so it
+    # cannot say "great job" when the vote says a criterion is unmet. The hints already
+    # come from agreeing samples, one per unmet criterion, and stay in step with `views`.
+    closest = max(grades, key=lambda g: _agreement(g, question, views))  # first wins a tie
     return GradeOutcome(
         criteria=views,
-        feedback=grades[0].feedback,
+        feedback=closest.feedback,
         hints=[v.hint for v in views if not v.met and v.hint],
         flagged=False,
         all_met=all(v.met for v in views),

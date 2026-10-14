@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from fsrs import Rating
 
 from app.content import Lesson
+from app.review import criterion_item_id
 from app.store import SqliteStore
 
 from .conftest import lessons_with, post_quiz, right, singles, use_grader, wrong
@@ -72,6 +73,24 @@ def test_deeper_grades_per_criterion_and_caps_revisions(
     assert replies[2]["attempt_no"] == 3
     assert client.post(url, json={"answer": "try 4"}).status_code == 409
     assert len(calls) == 9  # 3 samples per graded attempt, none for the refused fourth
+
+
+@pytest.mark.parametrize("lesson", DEEPER)
+def test_deeper_unmet_criterion_makes_a_review_card(
+    client: TestClient,
+    store: SqliteStore,
+    uid: int,
+    monkeypatch: pytest.MonkeyPatch,
+    lesson: Lesson,
+) -> None:
+    q = lesson.deeper[0]
+    use_grader(monkeypatch, q, [False] + [True] * (len(q.rubric) - 1))
+    client.post(f"/api/deeper/{lesson.id}/{q.id}", json={"answer": "partial"})
+    cards = [
+        store.get_card(uid, f"{lesson.id}:{criterion_item_id(q.id, c.name)}") for c in q.rubric
+    ]
+    assert cards[0] is not None and cards[0]["last_rating"] == int(Rating.Again)
+    assert all(c is None for c in cards[1:])  # met criteria make no card (SPEC section 9)
 
 
 @pytest.mark.parametrize("lesson", DEEPER)

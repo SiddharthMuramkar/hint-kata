@@ -72,7 +72,7 @@ Rules come from `docs/research/learning-science.md`.
 ### 6.3 Think-deeper grading
 - Each grader sample returns, per criterion: `evidence` (quote from the answer), `reasoning`, `met` (bool); plus one line of feedback and one hint per unmet criterion.
 - The learner may revise up to 2 times. After the last try the model answer is shown.
-- The grader runs 3 samples. Per criterion, `met` is true when at least 2 of the 3 samples say met (a sample with no verdict counts as not met), and `uncertain` is true when the 3 samples do not all agree (a 2-1 or 1-2 split). `uncertain` is only a label ("the grader's three readings disagreed; your answer may be borderline"): it never blocks progress, so a 2-of-3 pass counts as met. The criterion's `evidence` comes from the first sample that agrees with the majority, and its `hint` (unmet criteria only) from that same sample.
+- The grader runs 3 samples. Per criterion, `met` is true when at least 2 of the 3 samples say met (a sample with no verdict counts as not met), and `uncertain` is true when the 3 samples do not all agree (a 2-1 or 1-2 split). `uncertain` is only a label ("the grader's three readings disagreed; your answer may be borderline"): it never blocks progress, so a 2-of-3 pass counts as met. The criterion's `evidence` comes from the first sample that agrees with the majority, and its `hint` (unmet criteria only) from that same sample. The top-level `hints` list is those per-criterion hints, in rubric order. The top-level `feedback` line comes from the first sample whose verdicts match the majority result on the most criteria (the first sample that equals the majority result when there is one), so it never contradicts the vote.
 - Length and formatting earn nothing (stated in the rubric prompt).
 - The learner's answer is wrapped in delimiters and declared untrusted. Manipulation phrases ("ignore the rubric", "full marks") set a flag and score 0.
 - Calibration: `evals/grader/*.yaml` holds owner-labelled answers (including verbose-wrong, terse-right, synonym, injection). Target agreement kappa ≥ 0.7 per criterion before a rubric is trusted.
@@ -97,7 +97,7 @@ Each step has `summary`, `payload_excerpt`, `annotation` (why + concept tags + d
 
 ## 9. Review queue and mastery
 
-- Cards: one per quiz `concept` and one per unmet rubric criterion (`met` false; a criterion that is met but `uncertain` makes no card). Stored as fsrs `Card` JSON + `due` (ISO UTC).
+- Cards: one per quiz `concept` and one per unmet rubric criterion (`met` false; a criterion that is met but `uncertain` makes no card). Grading a think-deeper attempt creates the card for each unmet criterion (`POST /api/deeper` calls `record_criterion`; a flagged manipulation attempt creates none). The card key is `<lesson>:<question>#<criterion>`, so grading the same criterion again updates that card (unmet reviews it as Again, met reviews an existing card as Good and never creates one) instead of adding a second. Stored as fsrs `Card` JSON + `due` (ISO UTC).
 - Rating map: wrong → Again; correct after a hint or second try, or "Guessing" → Hard; correct + "Sure"/"Think so" → Good; correct + Sure + fast (< 10 s) → Easy.
 - `desired_retention` 0.9 (config). Review items are sibling questions where available, else the same item.
 - Mastery per lesson: `learning` after first visit; `mastered` when quiz ≥ 80% first-try AND every concept recalled correctly without hints on two different days AND the hands-on check passed. Threshold values live in config and every change is logged.
