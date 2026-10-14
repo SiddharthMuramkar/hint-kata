@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     openrouter_zdr: bool = False
     openrouter_app_title: str = "hint-kata"
     hintkata_db_path: str = "data/hintkata.db"
+    database_url: str = ""
+    database_url_unpooled: str = ""
     practice_repo: str = ""
     logfire_token: str = ""
     desired_retention: float = 0.9
