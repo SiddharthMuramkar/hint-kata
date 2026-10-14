@@ -1,0 +1,192 @@
+items:
+  - id: q1
+    type: single
+    concept: token-permissions-default-none
+    source_section: shrinking-the-token-with-permissions
+    prompt: |
+      You run this workflow by hand. The step fails with "Resource not accessible by integration".
+      What is the bug?
+
+      ```yaml
+      name: Report
+      on:
+        workflow_dispatch:
+      permissions:
+        contents: read
+      jobs:
+        report:
+          runs-on: ubuntu-latest
+          steps:
+            - run: gh issue create --repo "$GITHUB_REPOSITORY" --title "Report" --body "Done"
+              env:
+                GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ```
+    options:
+      - text: >-
+          Listing `contents: read` set every other permission to `none`, so the token cannot create
+          issues. The job needs `issues: write`.
+        correct: true
+        feedback: >-
+          Right. Once you list any permission, every permission you left out becomes `none`. Add
+          `issues: write` to this one job and keep `contents: read` as the default.
+      - text: >-
+          `secrets.GITHUB_TOKEN` is empty, because you must create a secret with that name in the
+          repo settings first.
+        misconception: Thinks the GITHUB_TOKEN is a normal secret that the owner has to create by hand.
+        feedback: >-
+          GitHub creates a new `GITHUB_TOKEN` for every job by itself. You never store it. The token
+          exists, but it has no permission for issues.
+      - text: >-
+          `contents: read` is too weak. It should be `contents: write`, because creating an issue
+          changes the repo.
+        misconception: Thinks the `contents` permission covers every kind of write in the repo.
+        feedback: >-
+          Each area has its own permission. `contents` is about files, commits and releases.
+          Issues have their own area, `issues`. Giving more `contents` access would not fix this and
+          would add risk.
+      - text: The `GITHUB_TOKEN` can never create issues. You need a personal access token.
+        misconception: Thinks the GITHUB_TOKEN is read-only by design.
+        feedback: >-
+          The token can create issues when it has `issues: write`. A personal access token is a bigger
+          and riskier tool than this job needs.
+
+  - id: q2
+    type: single
+    concept: secret-redaction-limits
+    source_section: masking-is-not-a-vault
+    prompt: |
+      A public repo has this step. The value comes from a repository secret, and the job uses that
+      secret. What shows up in the run log?
+
+      ```yaml
+      - run: echo "$TOKEN" | rev
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+      ```
+    options:
+      - text: >-
+          The secret written backwards. The runner only hides the exact text of the secret, so the
+          changed text is not recognised. In a public repo anyone can read it, so rotate the secret.
+        correct: true
+        feedback: >-
+          Right. Redaction is an exact-text match. Reversing, splitting or re-encoding the value
+          gets past it. Treat the secret as leaked, rotate it first, then delete the log.
+      - text: >-
+          `***`, because the runner knows how to hide every transformation of a secret.
+        misconception: Thinks log redaction covers any change made to a secret.
+        feedback: >-
+          The docs say redaction is not guaranteed, because a value can be changed in many ways. The
+          runner matches the exact text it knows.
+      - text: Nothing. A job cannot print a secret, so the step prints an empty line.
+        misconception: Thinks secrets are write-only for scripts.
+        feedback: >-
+          A step that names the secret in `env:` receives the real value. If it could not use the
+          value, secrets would be useless. That is why a careless step can leak one.
+      - text: >-
+          `***`, and the log is also private, because a run that uses a secret hides its log from
+          the public.
+        misconception: Thinks using a secret makes the run's log private.
+        feedback: >-
+          Logs in a public repo are readable by anyone, whether or not the run uses secrets.
+
+  - id: q3
+    type: single
+    concept: token-does-not-trigger-runs
+    source_section: the-token-every-job-gets
+    prompt: >-
+      Workflow A has a job with `contents: write`. It pushes a commit to a branch using
+      `secrets.GITHUB_TOKEN`. Workflow B in the same repo has `on: push` for that branch. What
+      happens to workflow B?
+    options:
+      - text: >-
+          It does not run. Events made with the `GITHUB_TOKEN` do not start new workflow runs, so
+          workflows cannot trigger each other in an endless loop.
+        correct: true
+        feedback: >-
+          Right. This is on purpose. If you want the push to start workflow B, you need a GitHub App
+          token or a personal access token instead, and you take on the extra power that comes with it.
+      - text: It runs at once, exactly as it would for a push made by a person.
+        misconception: Thinks a push made with the GITHUB_TOKEN behaves like a push made by a person.
+        feedback: >-
+          A person's push starts workflows. A push made with the `GITHUB_TOKEN` does not, except for
+          a few special events such as `workflow_dispatch`.
+      - text: >-
+          It runs after workflow A ends, because the token has expired by then.
+        misconception: Confuses the token's expiry with a delayed trigger.
+        feedback: >-
+          Expiry has nothing to do with triggers. The event created with the token never starts a
+          run, now or later.
+      - text: The push is rejected with an error, because the token may not trigger workflows.
+        misconception: Thinks GitHub blocks pushes made with the GITHUB_TOKEN.
+        feedback: >-
+          The push works, because the token has `contents: write`. It only does not start new runs.
+
+  - id: q4
+    type: order
+    concept: environment-gate-order
+    source_section: environments-and-protection-rules
+    prompt: Put these steps in the order they happen when a job names a protected environment.
+    steps:
+      - "A workflow run reaches a job that has `environment: production`."
+      - "GitHub holds the job and checks the environment's protection rules."
+      - "A required reviewer approves, and any wait timer ends."
+      - "GitHub sends the job to a runner, with the environment's secrets and its own `GITHUB_TOKEN`."
+      - "A step reads the secret with `${{ secrets.DEPLOY_KEY }}`."
+      - "The job ends, and its `GITHUB_TOKEN` expires."
+    explanation: >-
+      The rules come before the runner. The environment's secrets are only released after every
+      rule passes. The `GITHUB_TOKEN` lives only as long as the job.
+
+  - id: q5
+    type: blank
+    concept: environment-key
+    source_section: environments-and-protection-rules
+    prompt: |
+      Fill in the job key that makes this job use the `staging` environment and its secrets:
+
+      ```yaml
+      jobs:
+        deploy:
+          runs-on: ubuntu-latest
+          ____: staging
+      ```
+    answer: "re:environment:?"
+    explanation: >-
+      `environment:` names the environment. GitHub then checks that environment's protection rules
+      and gives the job its secrets. A typo in the name does not fail. GitHub creates a new empty
+      environment with no rules and no secrets.
+
+  - id: q6
+    type: single
+    concept: environment-secret-scope
+    source_section: environments-and-protection-rules
+    prompt: >-
+      You store `DEPLOY_KEY` as a secret of the environment `production`, and the environment
+      requires one reviewer. Which statement is true?
+    options:
+      - text: >-
+          Only a job that names `production` can read the secret, and only after the protection
+          rules pass.
+        correct: true
+        feedback: >-
+          Right. This is the difference from a repository secret. The environment is a gate in front
+          of the secret, not only a label.
+      - text: >-
+          Any job in the repo can read it, like a repository secret. The rules only decide whether
+          the run counts as a deployment.
+        misconception: Thinks environment protection is cosmetic and does not control the secret.
+        feedback: >-
+          The rules control access to the secret. A job that does not name the environment cannot
+          read its secrets at all.
+      - text: >-
+          The job starts first, and the secret appears in the job after the reviewer approves.
+        misconception: Thinks the approval happens while the job is already running.
+        feedback: >-
+          The job waits before it starts. It is only sent to a runner after every protection rule
+          passes, so the secret is never in a running job before approval.
+      - text: >-
+          Once one job names `production`, every job in the same workflow gets the secret.
+        misconception: Thinks an environment applies to the whole workflow.
+        feedback: >-
+          The environment is chosen per job. Each job that needs the secret must name the
+          environment, and each one goes through the rules.

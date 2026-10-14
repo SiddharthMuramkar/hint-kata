@@ -8,3 +8,4 @@
 6. For the later CI or deploy migrate step, store the direct URL as a repo secret: `gh secret set DATABASE_URL_UNPOOLED` (it prompts for the value).
 7. Start the app as usual. With `DATABASE_URL` set it uses Postgres; unset it to go back to the SQLite file.
 8. Why two URLs: the pooled one runs PgBouncer in transaction mode (no session `SET`, so use `SET LOCAL` inside a transaction); schema changes need the direct one.
+9. To load the docs into search (chunks and embeddings), follow `docs/runbooks/ingestion.md`.
