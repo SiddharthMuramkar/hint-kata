@@ -1,0 +1,56 @@
+[
+  {
+    "number": 22,
+    "title": "chore(harness): Claude Code harness",
+    "body": "(trimmed)\n\nCloses #1",
+    "mergedAt": "2026-10-14T14:06:10Z"
+  },
+  {
+    "number": 23,
+    "title": "feat(app): FastAPI skeleton with dark theme and safe Markdown",
+    "body": "(trimmed)\n\nCloses #2",
+    "mergedAt": "2026-10-14T13:58:26Z"
+  },
+  {
+    "number": 25,
+    "title": "feat(content): fetch_docs script and sources manifest",
+    "body": "(trimmed)\n\nCloses #11",
+    "mergedAt": "2026-10-14T14:04:01Z"
+  },
+  {
+    "number": 29,
+    "title": "docs: progress after wave 1 and learning-log index",
+    "body": "(trimmed)",
+    "mergedAt": "2026-10-14T14:12:17Z"
+  },
+  {
+    "number": 40,
+    "title": "feat(mastery): mastery rule and map on the home page",
+    "body": "(trimmed)\n\nCloses #21",
+    "mergedAt": "2026-10-14T14:33:24Z"
+  },
+  {
+    "number": 66,
+    "title": "feat(tutor): a reveal schedules a re-test card",
+    "body": "(trimmed)\n\nCloses #63",
+    "mergedAt": "2026-10-14T14:51:18Z"
+  },
+  {
+    "number": 69,
+    "title": "chore(harness): tighten hookify env-file and push-to-main patterns",
+    "body": "(trimmed)",
+    "mergedAt": "2026-10-14T14:51:02Z"
+  },
+  {
+    "number": 76,
+    "title": "docs: phase 1 closed, phase 2 in flight (#20)",
+    "body": "(trimmed)",
+    "mergedAt": "2026-10-14T14:57:11Z"
+  },
+  {
+    "number": 105,
+    "title": "feat(ingest): heading-aware chunking, OpenRouter embeddings, incremental pgvector upsert",
+    "body": "(trimmed)\n\nCloses #53",
+    "mergedAt": "2026-10-14T17:09:47Z"
+  }
+]
