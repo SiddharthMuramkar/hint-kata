@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      A FastAPI route is streaming an agent's reply to the browser. It has already sent 20 pieces of
+      text when the model fails. Can the route now change the response to a status 500?
+    note: >-
+      No. The status line goes out with the first bytes, long before the last piece. After that the
+      route can only tell the client inside the stream, for example with an error event. If it does
+      not, the connection is simply cut.
+  - id: w2
+    prompt: >-
+      A page needs to send the user's message as a JSON body and then show the reply as it streams
+      in. The browser has an API called EventSource that is made for Server-Sent Events. Can the
+      page use it for this request?
+    note: >-
+      No. EventSource takes a URL and always sends a GET with no body. For a POST with a body, the
+      page uses fetch and reads the response body as a stream with getReader().
