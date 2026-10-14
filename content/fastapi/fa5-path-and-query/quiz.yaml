@@ -41,32 +41,32 @@ items:
     concept: required-query-parameter
     source_section: query-parameters-optional-required-defaults
     prompt: >-
-      A route `GET /items/{item_id}` has the function
-      `read(item_id: str, needy: str, skip: int = 0, limit: int | None = None)`.
-      A client sends `GET /items/foo?skip=2`. What does the client get?
+      A route `GET /movies/{movie_id}` has the function
+      `read(movie_id: str, director: str, page: int = 1, per_page: int | None = None)`.
+      A client sends `GET /movies/heat?page=2`. What does the client get?
     options:
       - text: >-
-          A 422. The error has `type` `missing` and `loc` `["query", "needy"]`, because
-          `needy` has no default.
+          A 422. The error has `type` `missing` and `loc` `["query", "director"]`, because
+          `director` has no default.
         correct: true
         feedback: >-
-          Right. With no default, a query parameter is required. Sending `skip` does not
+          Right. With no default, a query parameter is required. Sending `page` does not
           help, and the error names exactly the parameter that is missing.
-      - text: A 200, with `needy` set to `None`.
+      - text: A 200, with `director` set to `None`.
         misconception: Thinks a missing query parameter becomes `None` by itself.
         feedback: >-
-          Only a parameter declared with `= None` gets `None`. `needy` has no default, so it
+          Only a parameter declared with `= None` gets `None`. `director` has no default, so it
           is required, and leaving it out is an error.
-      - text: A 200, with `needy` set to an empty string.
+      - text: A 200, with `director` set to an empty string.
         misconception: Thinks a missing string parameter defaults to an empty string.
         feedback: >-
-          Missing and empty are different things. `?needy=` would give `""`. No `needy` at all
+          Missing and empty are different things. `?director=` would give `""`. No `director` at all
           is a 422.
-      - text: A 404, because the URL has no value for `needy`.
+      - text: A 404, because the URL has no value for `director`.
         misconception: Thinks a missing query parameter means the route is not found.
         feedback: >-
-          The route is matched on the path, `/items/foo`, and the query string plays no part in
-          that. A missing required query parameter is a 422 that names `needy`.
+          The route is matched on the path, `/movies/heat`, and the query string plays no part in
+          that. A missing required query parameter is a 422 that names `director`.
   - id: q3
     type: single
     concept: bool-conversion
@@ -78,8 +78,9 @@ items:
       - text: A 422 with `type` `bool_parsing` and `loc` `["query", "short"]`.
         correct: true
         feedback: >-
-          Right. Only known words convert to a bool: `1`, `true`, `on`, `yes` and their false
-          partners. Any other text is an error, and the error names the parameter.
+          Right. Known words convert to a bool, such as `1`, `true`, `on`, `yes` and their false
+          partners. Text that is not a known word, like `maybe`, is an error, and the error
+          names the parameter.
       - text: "`short` is `False`, because only the true words count as true."
         misconception: Thinks any text that is not a true word becomes `False`.
         feedback: >-
@@ -146,7 +147,7 @@ items:
     prompt: >-
       Fill in the blank so `item_id` must be 1 or more (1 is allowed, 0 is not):
       `item_id: Annotated[int, Path(____=1)]`
-    answer: ge
+    answer: re:ge(=1)?
     explanation: >-
       `ge` means "greater than or equal to". `gt=1` would reject 1 itself. The other bounds
       are `lt` (less than) and `le` (less than or equal to).

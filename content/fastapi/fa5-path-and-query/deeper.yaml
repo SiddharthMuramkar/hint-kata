@@ -3,7 +3,7 @@ questions:
     prompt: >-
       A route is `GET /items/{item_id}`. It has `item_id: int` and
       `limit: Annotated[int, Query(le=100)] = 10`. A client sends `GET /items/abc?limit=500`.
-      Describe what FastAPI does and what the client receives.
+      Describe what FastAPI does and what the client receives, and say why each value fails.
     rubric:
       - name: function-not-called
         explanation: >-
@@ -55,7 +55,8 @@ questions:
       You are designing `GET /orders/{order_id}`. `order_id` must be a whole number from 1 to
       1,000,000. The client may also send a `status` filter that must be one of `open`,
       `shipped` or `closed`, and a `tag` filter that can be repeated, as in `?tag=a&tag=b`.
-      How would you declare the three parameters, and which of them are required?
+      How would you declare the three parameters, which of them are required, and why does
+      `tag` need `Query()`?
     rubric:
       - name: path-with-bounds
         explanation: >-
@@ -67,10 +68,10 @@ questions:
           "Declare `order_id: int` and use an `if` inside the function to check the range", or "`order_id: int` with no rule."
       - name: enum-for-status
         explanation: >-
-          The answer uses a class that inherits from `str` and `Enum`, with the three values,
-          as the type of `status`.
+          The answer restricts `status` to the three values, with an `Enum` class that inherits
+          from `str` and `Enum`, or with a `Literal` of the three values.
         pass_anchor: >-
-          "Make `class Status(str, Enum)` with open, shipped and closed, and declare `status: Status | None = None`."
+          "Make `class Status(str, Enum)` with open, shipped and closed, and declare `status: Status | None = None`", or "declare `status` as a `Literal` of the three values, with a default of `None`."
         fail_anchor: >-
           "`status: str` and compare it by hand", or "`status: bool`."
       - name: list-needs-query

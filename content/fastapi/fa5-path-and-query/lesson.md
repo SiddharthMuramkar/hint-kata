@@ -11,6 +11,7 @@ sources:
   - fastapi-tutorial-query-params-str-validations
   - fastapi-tutorial-path-params-numeric-validations
 ---
+
 Every request carries data in its URL. Some of it sits in the path, like the `3` in `/items/3`. Some of it comes after a `?`, like the `10` in `/items?limit=10`. In FastAPI you do not pick these apart by hand. You declare them as function parameters.
 
 One sentence is the whole mental model: **FastAPI finds each parameter in the URL, turns the text into the type you wrote, checks the rules you attached, and only then calls your function.** If any step fails, your function never runs. The client gets a 422 response that says which parameter failed and why.
@@ -54,7 +55,7 @@ The conversion can fail. A request to `/items/foo` or to `/items/4.2` gets statu
 Two more facts.
 
 - `int` accepts any whole number. `/items/-5` gives `-5`, and `/items/007` gives `7`. If you want "1 or more", you need a rule. Rules come in a later section.
-- A path parameter is always required, because it is part of the URL. Giving it a default does not make it optional: `/items/` with nothing after the slash simply does not match the route. And `item_id: Annotated[int, Path()] = 5` is refused with an `AssertionError` as soon as the route is declared.
+- A path parameter is always required, because it is part of the URL. The numeric-validations page says a default changes nothing. That holds for a plain `item_id: int = 5`: `/items/` with nothing after the slash still does not match the route. But when we ran FastAPI 0.143.0, `item_id: Annotated[int, Path()] = 5` was refused with an `AssertionError` as soon as the route was declared. So do not give a path parameter a default.
 
 More: [Path Parameters](https://fastapi.tiangolo.com/tutorial/path-params/).
 
@@ -144,26 +145,26 @@ from fastapi import FastAPI
 app = FastAPI()
 
 
-@app.get("/items/{item_id}")
-def read_item(item_id: str, needy: str, skip: int = 0, limit: int | None = None):
-    return {"item_id": item_id, "needy": needy, "skip": skip, "limit": limit}
+@app.get("/movies/{movie_id}")
+def read_movie(movie_id: str, director: str, page: int = 1, per_page: int | None = None):
+    return {"movie_id": movie_id, "director": director, "page": page, "per_page": per_page}
 ```
 
-- `needy` has no default, so it is required.
-- `skip` has a default of `0`, so it is optional. If the client leaves it out, the function gets `0`.
-- `limit` has a default of `None`, so it is optional, and `None` means "not sent". The `| None` is for your editor and for readers. The `= None` is what makes it optional.
+- `director` has no default, so it is required.
+- `page` has a default of `1`, so it is optional. If the client leaves it out, the function gets `1`.
+- `per_page` has a default of `None`, so it is optional, and `None` means "not sent". The `| None` is for your editor and for readers. The `= None` is what makes it optional.
 
 | Request | What happens |
 | --- | --- |
-| `/items/foo` | 422. The error has `type` `missing` and `loc` `["query", "needy"]`. |
-| `/items/foo?needy=x` | `skip` is `0` and `limit` is `None`. |
-| `/items/foo?needy=x&skip=3&limit=7` | `skip` is `3` and `limit` is `7`. |
-| `/items/foo?needy=x&skip=abc` | 422. The error has `type` `int_parsing` and `loc` `["query", "skip"]`. |
+| `/movies/heat` | 422. The error has `type` `missing` and `loc` `["query", "director"]`. |
+| `/movies/heat?director=mann` | `page` is `1` and `per_page` is `None`. |
+| `/movies/heat?director=mann&page=3&per_page=7` | `page` is `3` and `per_page` is `7`. |
+| `/movies/heat?director=mann&page=abc` | 422. The error has `type` `int_parsing` and `loc` `["query", "page"]`. |
 
 Three small facts that surprise people.
 
-- Required means "must be present", not "must have text". `?needy=` gives `needy == ""`.
-- An empty value for a number is not "use the default". `?skip=` is a 422.
+- Required means "must be present", not "must have text". `?director=` gives `director == ""`.
+- An empty value for a number is not "use the default". `?page=` is a 422.
 - A key you did not declare, like `?bogus=1`, is ignored.
 
 More: [Query Parameters](https://fastapi.tiangolo.com/tutorial/query-params/).
@@ -172,10 +173,10 @@ More: [Query Parameters](https://fastapi.tiangolo.com/tutorial/query-params/).
 
 **Bool.** Declare `short: bool = False` and FastAPI converts the text.
 
-- These mean true: `1`, `true`, `on`, `yes`.
-- These mean false: `0`, `false`, `off`, `no`.
+- These mean true: `1`, `true`, `on`, `yes`. The short forms `t` and `y` work too.
+- These mean false: `0`, `false`, `off`, `no`, and the short forms `f` and `n`. The query-params page lists only the true words. We ran the false ones.
 - Upper and lower case both work, so `YES` and `Off` are fine.
-- Anything else is a 422 with `type` `bool_parsing` and `loc` `["query", "short"]`. For example `maybe`, `2` and an empty value.
+- Other text is a 422 with `type` `bool_parsing` and `loc` `["query", "short"]`. For example `maybe`, `2` and an empty value.
 
 The query-params page says any other value becomes `False`. When we ran FastAPI 0.143.0, the answer was a 422. Trust the run, and test it in your own app before you rely on either.
 
@@ -346,4 +347,4 @@ Two ways to use this. A client developer reads `loc` to learn which parameter to
 
 More: [Path Parameters](https://fastapi.tiangolo.com/tutorial/path-params/), the part called "Data validation", and [Query Parameters](https://fastapi.tiangolo.com/tutorial/query-params/), the part called "Required query parameters".
 
-Sources: [Path Parameters](https://fastapi.tiangolo.com/tutorial/path-params/), [Query Parameters](https://fastapi.tiangolo.com/tutorial/query-params/), [Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/) and [Path Parameters and Numeric Validations](https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/). FastAPI 0.143.0 documentation, MIT licence, © 2018 Sebastián Ramírez. Adapted and rewritten. This site is not affiliated with FastAPI.
+Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Path Parameters](https://fastapi.tiangolo.com/tutorial/path-params/), [Query Parameters](https://fastapi.tiangolo.com/tutorial/query-params/), [Query Parameters and String Validations](https://fastapi.tiangolo.com/tutorial/query-params-str-validations/), [Path Parameters and Numeric Validations](https://fastapi.tiangolo.com/tutorial/path-params-numeric-validations/). This site is not affiliated with FastAPI.
