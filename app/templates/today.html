@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Today - Hint Kata{% endblock %}
+{% block content %}
+<h1>Today</h1>
+{% for lesson_id, items in groups.items() %}
+<section class="card">
+  <h2>{{ items[0].lesson_title }} <small><a href="/lessons/{{ lesson_id }}">open lesson</a></small></h2>
+  {% for d in items %}
+  <div class="review-card" data-review-card="{{ d.card_id }}" data-kind="{{ d.kind }}">
+    <p>{{ d.prompt }}</p>
+    {% if d.criterion_text %}<p class="muted">Can you explain: {{ d.criterion_text }}</p>{% endif %}
+    <div class="review-controls"></div>
+  </div>
+  {% endfor %}
+</section>
+{% else %}
+<p class="muted">Nothing is due. Come back later.</p>
+{% endfor %}
+{% if groups %}<script src="/static/js/review.js" defer></script>{% endif %}
+{% endblock %}

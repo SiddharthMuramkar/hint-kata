@@ -1,0 +1,5 @@
+The lesson page now has a tutor chat that streams its reply over Server-Sent Events. The hint ladder (L0 to L6) is enforced in Python, not in the prompt: the server computes a ceiling from the learner's attempts (one rung per attempt, capped at L2 during an active quiz item, L6 after "Show me the answer"). It tells the model the ceiling, and then removes any code block from the reply if the ceiling is below L4. Citations work the same way: the model writes `[§section-id]`, and the server drops every marker that is not a real section of that lesson before turning the rest into links. Learner text is wrapped in `<<<USER>>>` markers so the model treats it as data, and two near-identical messages in a row make the tutor name the error instead of asking again. Start by reading `app/tutor_rules.py` (pure functions), then `app/routes/tutor.py`; `tests/test_tutor.py` runs everything against `TestModel`, so no API key is needed.
+
+Closes #7
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

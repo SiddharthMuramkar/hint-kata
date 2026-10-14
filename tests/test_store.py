@@ -85,6 +85,15 @@ def test_cards_upsert_get_review_log(store: SqliteStore, uid: int) -> None:
     assert store.conn.execute("SELECT COUNT(*) FROM cards").fetchone()[0] == 1
 
 
+def test_card_by_id(store: SqliteStore, uid: int) -> None:
+    cid = store.upsert_card(uid, "k", "l1", "{}", "2026-01-01T00:00:00+00:00", None)
+    card = store.card_by_id(uid, cid)
+    assert card is not None
+    assert card["item_key"] == "k"
+    assert store.card_by_id(store.ensure_user("other"), cid) is None
+    assert store.card_by_id(uid, cid + 100) is None
+
+
 def test_due_cards_only_due_and_ordered(store: SqliteStore, uid: int) -> None:
     now = datetime(2026, 6, 1, tzinfo=UTC)
     for key, delta in [("late", -1), ("early", -5), ("future", 3)]:
