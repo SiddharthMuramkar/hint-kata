@@ -39,11 +39,11 @@ def test_workspace_is_copied_once_and_never_overwritten(content: Path, tmp_path:
 def test_pytest_check_fails_on_starter_and_passes_when_fixed(content: Path, tmp_path: Path) -> None:
     task = content / "track" / "lesson-a" / "task"
     ws = checker.prepare_workspace("lesson-a", task, tmp_path / "workspace")
-    bad = checker.run_pytest_check("lesson-a", task, ws)
+    bad = checker.run_pytest_check(task, ws)
     assert not bad.passed and bad.kind == "pytest"
     assert "assert" in bad.output
     (ws / "solution.py").write_text("def add(a: int, b: int) -> int:\n    return a + b\n")
-    assert checker.run_pytest_check("lesson-a", task, ws).passed
+    assert checker.run_pytest_check(task, ws).passed
 
 
 def test_pytest_check_hides_secrets_from_learner_code(
@@ -53,10 +53,11 @@ def test_pytest_check_hides_secrets_from_learner_code(
     (task / "tests").mkdir(parents=True)
     ws.mkdir()
     (task / "tests" / "test_env.py").write_text(
-        "import os\n\ndef test_env():\n    assert 'OPENROUTER_API_KEY' not in os.environ\n"
+        "import os\n\ndef test_env():\n    assert not any('KEY' in k.upper() for k in os.environ)\n"
     )
     monkeypatch.setenv("OPENROUTER_API_KEY", "x")
-    assert checker.run_pytest_check("l", task, ws).passed
+    monkeypatch.setenv("openrouter_api_key", "x")
+    assert checker.run_pytest_check(task, ws).passed
 
 
 def test_pytest_check_times_out(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -67,7 +68,7 @@ def test_pytest_check_times_out(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
         "import time\n\ndef test_slow():\n    time.sleep(30)\n"
     )
     monkeypatch.setattr(checker, "PYTEST_TIMEOUT", 1)
-    r = checker.run_pytest_check("l", task, ws)
+    r = checker.run_pytest_check(task, ws)
     assert not r.passed
     assert r.output.endswith("Timed out after 1 s")
 
@@ -96,21 +97,21 @@ def gh_task(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def test_gh_checks_pass(gh_task: Path) -> None:
-    r = checker.run_gh_checks("l", gh_task, "me/practice")
+    r = checker.run_gh_checks(gh_task, "me/practice")
     assert r.passed and r.kind == "gh"
     assert r.output.splitlines()[0] == "✓ exact — got: args: api repos/me/practice"
     assert r.output.splitlines()[1].startswith("✓ regex")
 
 
 def test_gh_checks_fail_when_a_check_differs(gh_task: Path) -> None:
-    r = checker.run_gh_checks("l", gh_task, "me/other")
+    r = checker.run_gh_checks(gh_task, "me/other")
     assert not r.passed
     assert r.output.splitlines()[0].startswith("✗ exact")
     assert r.output.splitlines()[1].startswith("✗ regex")
 
 
 def test_gh_checks_need_practice_repo(gh_task: Path) -> None:
-    r = checker.run_gh_checks("l", gh_task, "")
+    r = checker.run_gh_checks(gh_task, "")
     assert not r.passed and r.output == "Set PRACTICE_REPO in .env"
 
 
@@ -141,3 +142,9 @@ def test_check_endpoint_without_task(client: TestClient) -> None:
     r = client.post("/api/check/unknown")
     assert r.json()["passed"] is False and r.json()["kind"] == "none"
     assert client.get("/api/check/unknown").json() == {"passed": None}
+
+
+def test_bad_lesson_id_is_404(client: TestClient) -> None:
+    assert client.post("/api/check/%2E%2E").status_code == 404
+    assert client.get("/api/check/%2E%2E").status_code == 404
+    assert client.post("/api/check/Bad_ID").status_code == 404
