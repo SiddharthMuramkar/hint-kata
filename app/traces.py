@@ -1,11 +1,12 @@
 """Watch-it-run traces: curated, step-indexed replays (docs/SPEC.md section 8)."""
 
-import os
 import re
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
+
+from app.config import settings
 
 
 class Citation(BaseModel):
@@ -49,15 +50,10 @@ class Trace(BaseModel):
     takeaways: list[str]
 
 
-def default_root() -> Path:
-    # Builder #4 may add a `content_root` setting; until then read an env var.
-    return Path(os.environ.get("HINTKATA_CONTENT_ROOT", "content"))
-
-
 def load_trace(lesson_id: str, content_root: Path | None = None) -> Trace | None:
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", lesson_id):
         return None
-    root = content_root or default_root()
+    root = content_root or Path(settings.content_root)
     for path in sorted(root.glob(f"*/{lesson_id}/trace.json")):
         return Trace.model_validate_json(path.read_text())
     return None

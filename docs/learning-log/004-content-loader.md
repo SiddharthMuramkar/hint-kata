@@ -1,0 +1,5 @@
+This change teaches the app to read lessons from disk and show them. Each lesson is a folder under content/<track>/<lesson-id>/ with a lesson.md (a YAML header plus Markdown whose "## " headings become sections), and optional warm-up, quiz, think-deeper and task files. app/content.py turns those files into typed pydantic models, and a validate() function lists human-readable problems, such as a quiz item pointing at a section that does not exist or a source with no licence. Section ids come from the same slug function the Markdown renderer uses for its heading anchors, so a link to a section always lands on it. The home page now lists real lessons per track, and /lessons/{id} shows the reading, the warm-up, and an attribution footer for every source. Read app/content.py first, then tests/test_content.py, which uses a tiny fixture lesson in tests/fixtures/content/. The hands-on check, trace player, quiz and tutor slots are left as optional includes, so other tasks can add their parts without touching this page.
+
+Closes #4
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

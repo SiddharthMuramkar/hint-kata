@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from app.config import settings
 from app.main import app
 from app.traces import Trace, grade, load_trace, public_view
 
@@ -28,7 +29,7 @@ def script(name: str) -> ModuleType:
 
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    monkeypatch.setenv("HINTKATA_CONTENT_ROOT", str(FIXTURES))
+    monkeypatch.setattr(settings, "content_root", str(FIXTURES))
     return TestClient(app)
 
 
