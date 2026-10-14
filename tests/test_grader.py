@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -35,12 +36,16 @@ def grade_json(met: list[bool], feedback: str = "Close.") -> str:
 
 
 def fake_agent(*outputs: list[bool]) -> tuple[Agent[GraderDeps, Grade], list[int]]:
-    """An agent whose n-th call returns outputs[n % len(outputs)]; the list counts the calls."""
+    """An agent whose n-th call returns outputs[n % len(outputs)]; the list counts the calls.
+    FunctionModel runs `respond` in worker threads, so the three samples may arrive in any
+    order: the counter is atomic and tests must only rely on which outputs were used."""
     calls: list[int] = []
+    counter = itertools.count()
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        calls.append(1)
-        return ModelResponse(parts=[TextPart(grade_json(outputs[(len(calls) - 1) % len(outputs)]))])
+        n = next(counter)
+        calls.append(n)
+        return ModelResponse(parts=[TextPart(grade_json(outputs[n % len(outputs)]))])
 
     agent = Agent(
         FunctionModel(respond),
@@ -52,12 +57,12 @@ def fake_agent(*outputs: list[bool]) -> tuple[Agent[GraderDeps, Grade], list[int
 
 
 def scripted_agent(*grades: Grade) -> Agent[GraderDeps, Grade]:
-    """An agent whose n-th call returns grades[n]."""
-    calls: list[int] = []
+    """An agent that hands out each grade once. Which sample gets which grade is not defined
+    (see fake_agent), so tests must not depend on the order."""
+    queue = iter(grades)
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
-        calls.append(1)
-        return ModelResponse(parts=[TextPart(grades[len(calls) - 1].model_dump_json())])
+        return ModelResponse(parts=[TextPart(next(queue).model_dump_json())])
 
     return Agent(
         FunctionModel(respond),
@@ -116,41 +121,31 @@ def test_unanimous_splits() -> None:
 
 
 def test_evidence_comes_from_a_sample_that_agrees_with_the_majority() -> None:
-    """The first sample dissents on "tests", so its evidence must not be used."""
-    grades = [
-        Grade.model_validate_json(grade_json(m))
-        for m in ([True, False, True], [True] * 3, [True] * 3)
-    ]
-    for n, g in enumerate(grades):
+    """One sample dissents on "tests"; whichever call it was, its evidence must not be used."""
+    dissent = Grade.model_validate_json(grade_json([True, False, True]))
+    agree = [Grade.model_validate_json(grade_json([True, True, True])) for _ in range(2)]
+    for c in dissent.criteria:
+        c.evidence = f"dissent {c.name}"
+    for g in agree:
         for c in g.criteria:
-            c.evidence = f"sample {n} {c.name}"
-    out = asyncio.run(grade_answer(QUESTION, "x", agent=scripted_agent(*grades)))
-    assert [c.evidence for c in out.criteria] == [
-        "sample 0 reuse",
-        "sample 1 tests",  # the first sample that said met, not sample 0
-        "sample 0 scope",
-    ]
+            c.evidence = f"agree {c.name}"
+    out = asyncio.run(grade_answer(QUESTION, "x", agent=scripted_agent(dissent, *agree)))
+    assert (out.criteria[1].met, out.criteria[1].uncertain) == (True, True)
+    assert out.criteria[1].evidence == "agree tests"
 
 
 def test_feedback_comes_from_the_sample_closest_to_the_majority() -> None:
-    """Sample 0 says everything is met and cheers; the vote says "tests" is not met."""
+    """One sample says everything is met and cheers; the vote says "tests" is not met."""
     cheer = Grade.model_validate_json(grade_json([True, True, True], "Great job!"))
-    close_a = Grade.model_validate_json(grade_json([True, False, True], "Close on tests."))
-    close_b = Grade.model_validate_json(grade_json([True, False, True], "Second reading."))
-    out = asyncio.run(grade_answer(QUESTION, "x", agent=scripted_agent(cheer, close_a, close_b)))
+    close = [Grade.model_validate_json(grade_json([True, False, True], "Close on tests."))] * 2
+    out = asyncio.run(grade_answer(QUESTION, "x", agent=scripted_agent(cheer, *close)))
     assert [(c.met, c.uncertain) for c in out.criteria] == [
         (True, False),
         (False, True),
         (True, False),
     ]
-    assert out.feedback == "Close on tests."  # the first matching sample, not sample 0
+    assert out.feedback == "Close on tests."  # not the cheerful sample, whichever call it was
     assert out.hints == ["hint tests"]
-
-
-def test_feedback_is_the_first_sample_when_all_are_equally_close() -> None:
-    agent, _ = fake_agent([True, True, True])
-    out = asyncio.run(grade_answer(QUESTION, "x", agent=agent))
-    assert out.feedback == "Close."
 
 
 def test_all_met() -> None:
