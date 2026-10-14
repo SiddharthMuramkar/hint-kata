@@ -9,6 +9,7 @@ sources:
   - fastapi-tutorial-dependencies
   - fastapi-tutorial-classes-as-dependencies
   - fastapi-tutorial-dependencies-with-yield
+  - fastapi-advanced-testing-dependencies
 ---
 You already know that FastAPI reads your route function's parameters and fills them from the request. A path parameter comes from the URL. A query parameter comes from the query string. A body parameter comes from the JSON.
 
@@ -117,7 +118,7 @@ Follow one request, `GET /me?token=secret`.
 
 The key point: `token` is declared on the function that uses it, and FastAPI reads it from the request there. The route does not declare `token` and pass it down. If `token` is missing, the client gets a 422, exactly as if `read_me` had asked for it.
 
-If two dependencies in one request both need `get_token`, FastAPI calls it once and reuses the answer for the rest of that request. That cache lasts for one request only. You can turn it off with `Depends(fn, use_cache=False)`.
+If two dependencies in one request both need `get_token`, FastAPI calls it once and reuses the answer for the rest of that request. That cache lasts for one request only.
 
 More: [Classes as Dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/) has the picture of a tree of dependencies, and [Dependencies - First Steps](https://fastapi.tiangolo.com/tutorial/dependencies/) explains the idea of injection.
 
@@ -217,4 +218,4 @@ Lesson FA2 goes deeper on testing. For now, remember that this swap is the payof
 
 More: [Testing Dependencies with Overrides](https://fastapi.tiangolo.com/advanced/testing-dependencies/).
 
-Sources: [Dependencies - First Steps](https://fastapi.tiangolo.com/tutorial/dependencies/), [Classes as Dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/) and [Dependencies with yield](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/). FastAPI 0.143.0 documentation, MIT licence, © 2018 Sebastián Ramírez. Adapted and rewritten. This site is not affiliated with FastAPI.
+Sources: [Dependencies - First Steps](https://fastapi.tiangolo.com/tutorial/dependencies/), [Classes as Dependencies](https://fastapi.tiangolo.com/tutorial/dependencies/classes-as-dependencies/), [Dependencies with yield](https://fastapi.tiangolo.com/tutorial/dependencies/dependencies-with-yield/) and [Testing Dependencies with Overrides](https://fastapi.tiangolo.com/advanced/testing-dependencies/). FastAPI 0.143.0 documentation, MIT licence, © 2018 Sebastián Ramírez. Adapted and rewritten. This site is not affiliated with FastAPI.

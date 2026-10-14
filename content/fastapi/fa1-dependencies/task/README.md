@@ -1,6 +1,6 @@
 # Task: pagination and a database dependency
 
-Open `api.py` in your workspace. It has a small FastAPI app with one route, `GET /items/`, and a list of fake items. Your job is to add two dependencies and use them in the route.
+Open `workspace/fa1-dependencies/api.py`. It has a small FastAPI app with one route, `GET /items/`, and a list of fake items. Your job is to add two dependencies and use them in the route.
 
 ## 1. A `pagination` dependency
 
