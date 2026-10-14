@@ -50,8 +50,8 @@ class Grade(BaseModel):
 
 class CriterionView(BaseModel):
     name: str
-    met: bool
-    uncertain: bool
+    met: bool  # a majority of the samples (2 of 3) said met
+    uncertain: bool  # the samples did not all agree; never blocks progress
     evidence: str
     hint: str
 
@@ -126,16 +126,25 @@ def _result(grade: Grade, i: int, name: str) -> CriterionResult | None:
     return by_name or (grade.criteria[i] if i < len(grade.criteria) else None)
 
 
-def _hint(grade: Grade, i: int, name: str, question: DeeperQuestion) -> str:
-    """The grader gives one hint per unmet criterion, in rubric order; else the authored hint."""
+def _hint(grade: Grade | None, i: int, name: str, question: DeeperQuestion) -> str:
+    """The grader gives one hint per unmet criterion, in rubric order; else the authored hint
+    (by criterion position, so a question that authors fewer hints than criteria has gaps)."""
     unmet = [
         c.name
         for n, c in enumerate(question.rubric)
-        if (r := _result(grade, n, c.name)) and not r.met
+        if grade and (r := _result(grade, n, c.name)) and not r.met
     ]
-    if name in unmet and unmet.index(name) < len(grade.hints):
+    if grade and name in unmet and unmet.index(name) < len(grade.hints):
         return grade.hints[unmet.index(name)]
     return question.hints[i] if i < len(question.hints) else ""
+
+
+def _agreement(grade: Grade, question: DeeperQuestion, views: list[CriterionView]) -> int:
+    """How many criteria this sample matches the majority result on (no verdict = not met)."""
+    return sum(
+        (r.met if (r := _result(grade, i, c.name)) else False) == v.met
+        for i, (c, v) in enumerate(zip(question.rubric, views, strict=True))
+    )
 
 
 async def grade_answer(
@@ -161,21 +170,27 @@ async def grade_answer(
     views: list[CriterionView] = []
     for i, c in enumerate(question.rubric):
         results = [(g, r) for g in grades if (r := _result(g, i, c.name))]
-        votes = [r.met for _, r in results]
-        met = bool(votes) and all(votes)
-        unmet = next((g for g, r in results if not r.met), None)
+        met_votes = sum(r.met for _, r in results)  # a sample with no verdict counts as not met
+        met = 2 * met_votes > len(grades)
+        # Evidence and hint come from the first sample that agrees with the majority verdict.
+        agree = next(((g, r) for g, r in results if r.met == met), None)
         views.append(
             CriterionView(
                 name=c.name,
                 met=met,
-                uncertain=any(votes) and not met,
-                evidence=results[0][1].evidence if results else "",
-                hint=_hint(unmet, i, c.name, question) if unmet else "",
+                uncertain=0 < met_votes < len(grades),
+                evidence=agree[1].evidence if agree else "",
+                hint="" if met else _hint(agree[0] if agree else None, i, c.name, question),
             )
         )
+    # The feedback line comes from the first sample closest to the majority result: the sample
+    # least likely to contradict the vote (best effort; when every sample ties, the first wins).
+    # The hints already come from agreeing samples, one per unmet criterion, and stay in step
+    # with `views`.
+    closest = max(grades, key=lambda g: _agreement(g, question, views))  # first wins a tie
     return GradeOutcome(
         criteria=views,
-        feedback=grades[0].feedback,
+        feedback=closest.feedback,
         hints=[v.hint for v in views if not v.met and v.hint],
         flagged=False,
         all_met=all(v.met for v in views),

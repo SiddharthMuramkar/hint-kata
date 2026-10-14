@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.agents.grader import MAX_ANSWER_CHARS, GradeOutcome, grade_answer
 from app.content import DeeperQuestion
 from app.deps import get_store, get_user_id
+from app.review import record_criterion
 from app.store import Store
 
 router = APIRouter(prefix="/api/deeper")
@@ -61,6 +62,9 @@ async def post_deeper(
         outcome.model_dump_json(),
         outcome.flagged,
     )
+    if not outcome.flagged:  # a manipulation attempt scores 0 but is not a real answer
+        for c in outcome.criteria:
+            record_criterion(store, user_id, lesson_id, question_id, c.name, c.met)
     return _view(q, attempt_no, outcome)
 
 
