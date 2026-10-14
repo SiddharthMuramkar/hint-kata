@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A teammate sends you a pull request that changes 1,500 lines in 40 files. The tests are
+      green. What do you think you would do first, and would you trust the green tick to tell
+      you the change is good?
+    note: >-
+      Many first steps are fine: ask what the goal is, ask to split the PR, or read the
+      description. The green tick only says the tests passed. It cannot say whether the change
+      is the right one or easy to understand. The reading covers how a small, well-described PR
+      helps the reviewer.
+  - id: w2
+    prompt: >-
+      You open a pull request on your own repository and click Review changes. Which of the
+      three decisions (Comment, Approve, Request changes) do you think GitHub lets you pick?
+    note: >-
+      Only Comment. The author of a PR cannot approve it, and cannot request changes on it
+      either. You will see why that still leaves room for useful self-review.

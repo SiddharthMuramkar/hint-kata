@@ -1,0 +1,7 @@
+checks:
+  - name: at least two pull requests are merged
+    args: ["pr", "list", "-R", "{repo}", "--state", "merged", "--json", "number", "--jq", "length"]
+    expect: 're:[2-9]|[1-9][0-9]+'
+  - name: a commit on the default branch starts with Revert
+    args: ["api", "repos/{repo}/commits?per_page=100", "--jq", "[.[]|select(.commit.message|startswith(\"Revert\"))]|length"]
+    expect: 're:[1-9][0-9]*'

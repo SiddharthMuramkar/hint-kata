@@ -1,0 +1,15 @@
+items:
+  - id: w1
+    prompt: >-
+      A client sends JSON with `"pages": -5` to a route that has `book: Book`. The model says
+      `pages: int` and has no other rule. Will FastAPI accept it? Make a guess and say why.
+    note: >-
+      It accepts it. `-5` is a valid `int`, and a type alone says nothing about the sign. To reject
+      it you need a rule on the field. The reading shows how.
+  - id: w2
+    prompt: >-
+      A route declares two body parameters, `book: Book` and `shelf: Shelf`. What do you think the
+      JSON from the client has to look like? Sketch it in one line.
+    note: >-
+      One JSON object with one key per parameter name, like `{"book": {...}, "shelf": {...}}`. The
+      reading explains why a request can still have only one body.
