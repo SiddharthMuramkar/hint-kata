@@ -1,0 +1,16 @@
+items:
+  - id: w1
+    prompt: >-
+      A streamed run gets the chunks "Tea ", "costs " and "2.5." from the model. You call
+      result.stream_text() with no arguments. Is each item you get only the new chunk, or the
+      text so far?
+    note: >-
+      By default each item is the text so far: "Tea ", then "Tea costs ", then "Tea costs 2.5.".
+      Pass delta=True when you want only the new piece.
+  - id: w2
+    prompt: >-
+      You want one loop that shows you every event of a run, including each tool call and each
+      tool result, as it happens. Which agent method would you reach for?
+    note: >-
+      agent.run_stream_events(). It is an async context manager that yields every event and
+      ends with an AgentRunResultEvent. agent.run_stream() is for streaming the final output.
