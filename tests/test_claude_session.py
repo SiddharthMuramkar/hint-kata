@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.traces import Trace, public_view
+from app.traces import Checkpoint, Trace, public_view
 from tests.test_traces import script
 
 HOOK = Path(__file__).parent.parent / ".claude" / "hooks" / "session_end.py"
@@ -62,7 +62,7 @@ def test_normalise_whitelists_and_redacts(tmp_path: Path) -> None:
     assert trace.kind == "claude_code_session"
     assert [s.kind for s in trace.steps] == [
         "user_prompt",
-        "model_request",
+        "model_text",
         "tool_call",
         "tool_call",
         "tool_call",
@@ -96,6 +96,8 @@ def test_normalise_whitelists_and_redacts(tmp_path: Path) -> None:
         "AKIA" + "ABCDEFGHIJKLMNOP",
         "Authorization: Bearer abc.def",
         "API_TOKEN=hunter2",
+        "api_key: xyz",
+        "password=hunter2",
         "a" * 8 + "0123456789abcdef" * 2,
     ],
 )
@@ -116,9 +118,11 @@ def test_cli_deterministic_with_pr_steps(tmp_path: Path, monkeypatch: pytest.Mon
 
     def fake_build(repo: str, number: int) -> Trace:
         base = mod.normalise(src)
-        return base.model_copy(
-            update={"steps": [base.steps[0].model_copy(update={"kind": "merge"})]}
+        cp = Checkpoint(
+            type="predict_next", prompt="p", options=["a", "b"], answer=0, explanation="e"
         )
+        step = base.steps[0].model_copy(update={"kind": "merge", "checkpoint": cp})
+        return base.model_copy(update={"steps": [step]})
 
     monkeypatch.setattr(mod.pr_timeline, "build", fake_build)
     outs = [tmp_path / "a.json", tmp_path / "b.json"]
@@ -132,6 +136,7 @@ def test_cli_deterministic_with_pr_steps(tmp_path: Path, monkeypatch: pytest.Mon
     assert outs[0].read_text() == outs[1].read_text()
     trace = Trace.model_validate_json(outs[0].read_text())
     assert trace.steps[-1].kind == "merge" and trace.steps[-1].idx == len(trace.steps) - 1
+    assert trace.steps[-1].checkpoint is None
 
 
 def run_hook(tmp_path: Path, stdin: str) -> subprocess.CompletedProcess[str]:

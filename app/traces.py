@@ -39,6 +39,7 @@ StepKind = Literal[
     "user_prompt",
     "instructions",
     "model_request",
+    "model_text",
     "tool_call",
     "tool_result",
     "retry",

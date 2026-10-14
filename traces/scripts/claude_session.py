@@ -29,7 +29,10 @@ SECRETS = [
         (r"\bAKIA[0-9A-Z]{16}\b", "[redacted]"),
         (r"\bxox[a-z]-[A-Za-z0-9-]{8,}", "[redacted]"),
         (r"\bBearer\s+\S+", "Bearer [redacted]"),
-        (r"\b(\w*(?:KEY|TOKEN|SECRET)\w*)=\S+", r"\1=[redacted]"),
+        (
+            r"(?i:\b(\w*(?:KEY|TOKEN|SECRET|PASSW(?:OR)?D)\w*)\s*[=:]\s*\S+)",
+            r"\1=[redacted]",
+        ),
         (r"\b[A-Fa-f0-9]{32,}\b", "[redacted]"),
         # base64-ish run with a digit, an upper and a lower case letter (so plain paths survive)
         (
@@ -48,7 +51,7 @@ USER = Path.home().name
 def redact(text: str) -> str:
     text = HOME.sub("~", text)
     if len(USER) >= 3:  # also catches `ls -l` owners and dash-encoded project dirs
-        text = text.replace(USER, "user")
+        text = re.sub(rf"\b{re.escape(USER)}\b", "user", text)
     text = EMAIL.sub("[email]", text)
     for pattern, repl in SECRETS:
         text = pattern.sub(repl, text)
@@ -121,7 +124,7 @@ def normalise(path: Path, title: str = "Claude Code session") -> Trace:
                 if role == "user":
                     add("user_prompt", "user", "User prompt", clip(text, 600))
                 else:
-                    add("model_request", "claude", "Claude", clip(text, 600))
+                    add("model_text", "claude", "Claude", clip(text, 600))
             elif kind == "tool_use" and role == "assistant":
                 name = redact(str(b.get("name", "tool")))
                 add("tool_call", "claude", name, summarise_input(name, b.get("input")))
@@ -158,6 +161,8 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--title", default="Claude Code session")
     args = ap.parse_args()
+    if bool(args.repo) != bool(args.pr):
+        ap.error("--repo and --pr go together")
     trace = normalise(args.transcript, args.title)
     if args.repo and args.pr:
         for step in pr_timeline.build(args.repo, args.pr).steps:
