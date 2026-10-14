@@ -1,0 +1,6 @@
+tests/
+docs/
+.cache/
+workspace/
+evals/
+traces/
