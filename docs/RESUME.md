@@ -22,3 +22,10 @@ Read CLAUDE.md, docs/PROGRESS.md and docs/PLAN.md. Run `git status`, `git worktr
 - Red CI on main: `/loop 15m run gh run list --branch main --limit 3; if the newest run failed read gh run view <id> --log-failed, fix it on a new branch in a worktree, open a PR, report the URL; else say CI is green`
 - A held workflow run (GitHub "approval required"): approve it in the browser under Actions; nothing to fix.
 - Usage limit hit mid-task: nothing to do; the worktree and branch are on disk and usually pushed. Use prompt B.
+
+## E. Run the site on your Mac
+- Once per clone: `uv sync --locked --all-groups`.
+- Start it: `uv run fastapi dev`. Open http://127.0.0.1:8000 (the health check is http://127.0.0.1:8000/healthz and answers `{"ok":true}`). It reloads when you save a file. Press Ctrl+C in the terminal to stop it.
+- Production-style run, no reload: `uv run fastapi run --port 8765`. It listens on all network interfaces, so use `dev` for everyday work.
+- If `fastapi dev` says "please install fastapi[standard]", the `fastapi-cli` pin is missing from your environment. Run `uv sync --locked --all-groups` again. Do not add `fastapi[standard]`; it pulls in extra packages this app does not use.
+- Fallback that does not need `fastapi-cli`: `uv run uvicorn app.main:app --reload`, then open http://127.0.0.1:8000.
