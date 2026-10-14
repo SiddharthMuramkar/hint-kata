@@ -165,8 +165,8 @@ def test_with_lifespan() -> None:
 
 **Async tests.** Most of the time you do not need them. You need an `async def` test only when
 the test itself must `await` something else, for example reading rows back through an async
-database library after the request. An `async def` test cannot use `TestClient`, because that
-client runs the event loop for you. Use `httpx.AsyncClient` with an `ASGITransport` that points
+database library after the request. An `async def` test should not use `TestClient`: it would run
+the app on its own thread and event loop, separate from the one your test is awaiting on. Use `httpx.AsyncClient` with an `ASGITransport` that points
 at your app, and mark the test for AnyIO.
 
 ```python
@@ -205,4 +205,4 @@ pass on a correct app and fail on a buggy one.
 
 Read more: [Testing](https://fastapi.tiangolo.com/tutorial/testing/).
 
-Sources (FastAPI 0.143.0, MIT licence; adapted and rewritten): [Testing](https://fastapi.tiangolo.com/tutorial/testing/), [Testing Dependencies with Overrides](https://fastapi.tiangolo.com/advanced/testing-dependencies/), [Async Tests](https://fastapi.tiangolo.com/advanced/async-tests/).
+Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Testing](https://fastapi.tiangolo.com/tutorial/testing/), [Testing Dependencies with Overrides](https://fastapi.tiangolo.com/advanced/testing-dependencies/), [Async Tests](https://fastapi.tiangolo.com/advanced/async-tests/).

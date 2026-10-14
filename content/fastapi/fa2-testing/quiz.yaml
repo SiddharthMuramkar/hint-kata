@@ -66,8 +66,8 @@ items:
       - text: When the test itself must `await` other async code, such as an async database read.
         correct: true
         feedback: >-
-          Right. An `async def` test cannot use `TestClient`, so you send the request with
-          `AsyncClient` and can `await` other calls in the same test.
+          Right. An `async def` test should not use `TestClient`, so you send the request
+          with `AsyncClient` and can `await` other calls in the same test.
       - text: Whenever any route in the app is declared with `async def`.
         misconception: Thinks async routes require async tests.
         feedback: >-
@@ -88,15 +88,15 @@ items:
     concept: arrange-act-assert-overrides
     source_section: overriding-dependencies
     prompt: >-
-      Put the steps of a test that uses a fake dependency in a safe order.
+      The test already has a `client` for the app. Put the remaining steps of a test that uses a
+      fake dependency in a safe order.
     steps:
       - Set app.dependency_overrides[get_db] = fake_db
-      - Create the TestClient for the app
       - Send the request with client.post(...)
       - Assert on the status code and the JSON body
       - Clear app.dependency_overrides in a finally block
     explanation: >-
-      Arrange first (override and client), then act (send the request), then assert. Cleanup comes
+      Arrange first (set the override), then act (send the request), then assert. Cleanup comes
       last and sits in a `finally` block, so it runs even if an assert fails.
   - id: q5
     type: blank
