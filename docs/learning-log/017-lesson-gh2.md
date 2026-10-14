@@ -1,0 +1,5 @@
+This adds lesson GH2, "Your first CI workflow", to the GitHub track. It teaches what a workflow is, the four events you will really use, and how to read this repo's own `ci.yml` line by line. It also covers least-privilege `permissions:`, `concurrency`, why actions are pinned by SHA, and how the job name becomes the required check name. The hands-on task has the learner add a one-job `checks` workflow to their practice repo, open a pull request, and make `checks` a required check in their ruleset. The ruleset step reads the ruleset first and sends the whole thing back with `PUT`, because that call replaces the list of rules. Read `content/github/gh2-first-ci/lesson.md` first, then `task/README.md` and `task/check.yaml`. The `check.yaml` matches the context as `context:checks`, so a ruleset that requires some other check name does not pass by accident. I ran all three checks, read-only, against the real hint-kata repo and they pass, and they fail on a repo that does not exist.
+
+Closes #17
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      Does a GitHub workflow run on your laptop or on GitHub's machines? And what do you think
+      happens to that machine when the job ends? Guess before you read.
+    note: >-
+      It runs on a GitHub machine called a runner. Each job gets a fresh virtual machine, and the
+      machine is thrown away when the job ends. Nothing from your laptop is there unless a step
+      such as checkout copies it in.
+  - id: w2
+    prompt: >-
+      Your pull request has a required check called `checks`. You rename the job in the workflow
+      file to `ci` and push. What do you think the pull request shows now?
+    note: >-
+      "Waiting for status to be reported". The rule asks for a check named `checks`, and the job
+      now reports a check named `ci`. The two names must match exactly, so nothing satisfies the
+      rule and the merge stays blocked.

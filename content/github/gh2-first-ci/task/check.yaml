@@ -1,0 +1,10 @@
+checks:
+  - name: a workflow file exists
+    args: ["api", "repos/{repo}/contents/.github/workflows", "--jq", "length"]
+    expect: 're:[1-9][0-9]*'
+  - name: a workflow run exists for a pull request
+    args: ["run", "list", "-R", "{repo}", "--event", "pull_request", "--json", "conclusion", "--jq", "length"]
+    expect: 're:[1-9][0-9]*'
+  - name: checks is a required status check on main
+    args: ["ruleset", "check", "main", "-R", "{repo}"]
+    expect: 're:(?s).*required_status_checks.*context:checks[ \]].*'

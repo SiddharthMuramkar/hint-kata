@@ -1,0 +1,102 @@
+questions:
+  - id: d1
+    prompt: >-
+      Your CI takes 9 minutes and runs on every push to a pull request. It is a single required
+      job called `checks`. What would you change first, and what would you refuse to change?
+    rubric:
+      - name: measure-first
+        explanation: The answer starts by finding out where the time goes, not by guessing.
+        pass_anchor: >-
+          Opens a run and looks at the time of each step, then picks the slowest step to fix.
+        fail_anchor: >-
+          Jumps straight to a fix, such as "buy faster runners" or "delete the slow tests", with
+          no look at the timings.
+      - name: safe-speedups
+        explanation: >-
+          The answer names at least one change that makes CI faster and keeps every check.
+        pass_anchor: >-
+          Turns on dependency caching, cancels old runs of the same pull request with
+          `concurrency`, or runs independent checks as parallel jobs.
+        fail_anchor: >-
+          Only suggests ways that drop checks, or gives no concrete change.
+      - name: refuses-to-weaken
+        explanation: >-
+          The answer says it will not remove or skip checks to save time.
+        pass_anchor: >-
+          Refuses to delete tests, add `|| true`, or use `paths:` filters on the required workflow
+          because a skipped workflow leaves the check pending.
+        fail_anchor: >-
+          Is happy to skip tests, lint or type checks, or to filter the workflow by path, to get a
+          faster number.
+      - name: keeps-check-name
+        explanation: >-
+          The answer knows the required check is matched by name and protects that name.
+        pass_anchor: >-
+          Says that if jobs are split or renamed, the required check name `checks` must still be
+          reported, or the ruleset must be updated at the same time.
+        fail_anchor: >-
+          Splits or renames the job with no thought for the required check, so the pull request
+          could wait forever.
+    model_answer: >-
+      First I would open the slow run and read the time of each step. I would not change anything
+      until I knew which step is the slow one. Often it is installing dependencies, so I would turn
+      on the cache in `setup-uv`. Next I would add `concurrency` with `cancel-in-progress` for pull
+      requests, so an old run does not keep going after a new push. If lint, types and tests are all
+      slow, I could run them as parallel jobs. I would refuse to delete tests or skip type checks
+      just to get a smaller number. I would also refuse to add `paths:` filters to the required
+      workflow, because a skipped workflow leaves the required check pending. If I split the job, I
+      would make sure the name `checks` is still reported, for example with a final job of that name
+      that needs the others. Otherwise the pull request would say "Waiting for status to be
+      reported" and the merge would be blocked.
+    hints:
+      - Where would you look to find out which step is slow?
+      - A required check is matched by its name. What could go wrong if you split the job into several?
+
+  - id: d2
+    prompt: >-
+      Why pin an action to a commit SHA instead of a tag, and what does Dependabot have to do with it?
+    rubric:
+      - name: tags-can-move
+        explanation: The answer says why a tag is weaker than a SHA.
+        pass_anchor: >-
+          Says a tag is a label that the owner (or an attacker with access) can move to different
+          code, while a full SHA names one exact commit.
+        fail_anchor: >-
+          Says a SHA is only "newer", "faster" or "shorter", or does not explain the difference.
+      - name: what-is-at-risk
+        explanation: The answer says what could go wrong if the action's code changes.
+        pass_anchor: >-
+          Explains that the action's code runs inside your CI with your token and your repo, so a
+          changed or hacked action could steal or change things.
+        fail_anchor: >-
+          Does not say what the risk is, or only says "it could break".
+      - name: dependabot-updates-both
+        explanation: >-
+          The answer explains how pinned actions stay up to date without manual work.
+        pass_anchor: >-
+          Says Dependabot opens a pull request that changes the SHA and the version comment, so the
+          pin does not go stale.
+        fail_anchor: >-
+          Says a pin means you never update, or that Dependabot is not related to pinning.
+      - name: second-defense
+        explanation: >-
+          The answer adds a second layer of protection beyond the pin.
+        pass_anchor: >-
+          Mentions least-privilege `permissions:` (for example `contents: read`) so that even a bad
+          action has little access, or says the update pull request is reviewed and checked by CI
+          before it is merged.
+        fail_anchor: >-
+          Treats pinning as the only protection that is needed.
+    model_answer: >-
+      A tag such as `v7` is only a label. The owner of the action can move it to different code at
+      any time, and so could an attacker who gets into that repo. A full commit SHA names one exact
+      commit and cannot be moved. This matters because an action runs inside my CI, with my checked
+      out code and my `GITHUB_TOKEN`. A changed action could read or change things I did not expect.
+      Pinning by SHA means my CI keeps running the code I reviewed. A pin alone would go stale, so I
+      keep the version in a comment, like `# v7.0.1`. Dependabot reads that comment, and when a new
+      version comes out, it opens a pull request that changes both the SHA and the comment. My CI
+      runs on that pull request and I review the change before merging. As a second layer, I set
+      `permissions: contents: read`, so even a bad action gets a very small token.
+    hints:
+      - What can the owner of a tag do later that the owner of a commit SHA cannot?
+      - If you pin everything, how do updates reach you?
