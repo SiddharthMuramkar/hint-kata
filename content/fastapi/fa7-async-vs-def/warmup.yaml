@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A route is a plain `def`, and its body calls `time.sleep(0.5)`. Two clients call it at the
+      same moment. About how long until both have their answer: half a second, one second, or
+      something else? Take a guess before you read.
+    note: >-
+      About half a second. FastAPI runs a `def` route in a worker thread, so the two sleeps
+      overlap. We measured 0.505 s for two requests at once.
+  - id: w2
+    prompt: >-
+      Now the same route is `async def` and still calls `time.sleep(0.5)`. Two clients call it at
+      the same moment. How long do they wait? And what happens to a third client who calls a
+      different, quick route during that time? Take a guess before you read.
+    note: >-
+      About one second for the two, because the sleeps run one after the other. The third client
+      waits too. The sleep blocks the event loop, and the loop serves every request. We measured
+      1.016 s for two requests at once.
