@@ -1,0 +1,19 @@
+items:
+  - id: w1
+    prompt: >-
+      A ruleset requires a check called `checks`. The workflow that posts it only runs when files
+      under `src/` change (it has a `paths:` filter). You open a pull request that edits only
+      `README.md`. What do you think the merge box says? Guess before you read.
+    note: >-
+      "Waiting for status to be reported". The filter stops the workflow from starting, so no check
+      called `checks` is ever posted, and the rule keeps waiting for it. A skipped workflow leaves
+      its checks pending. That is different from a single job skipped inside a workflow that did
+      start, which reports success.
+  - id: w2
+    prompt: >-
+      You arm auto-merge on a pull request, and then its required check fails. What do you think
+      happens to the auto-merge: GitHub merges anyway, auto-merge is switched off, or it waits?
+    note: >-
+      It waits. Auto-merge stays armed and nothing merges while the required check is red. When you
+      push a fix and the check passes on the new commit, GitHub merges for you. A failing check is
+      not one of the things that switch auto-merge off.

@@ -1,0 +1,13 @@
+checks:
+  - name: checks is a required status check on main
+    args: ["api", "repos/{repo}/rules/branches/main", "--jq", "[.[] | select(.type==\"required_status_checks\") | .parameters.required_status_checks[].context] | index(\"checks\") != null"]
+    expect: "true"
+  - name: auto-merge is allowed and head branches are deleted on merge
+    args: ["api", "repos/{repo}", "--jq", "[.allow_auto_merge, .delete_branch_on_merge] | map(tostring) | join(\" \")"]
+    expect: "true true"
+  - name: a pull request run of a workflow failed (you broke it on purpose)
+    args: ["run", "list", "-R", "{repo}", "--event", "pull_request", "--limit", "100", "--json", "conclusion", "--jq", "[.[] | select(.conclusion==\"failure\")] | length"]
+    expect: 're:[1-9][0-9]*'
+  - name: a merged pull request has an auto-merge record
+    args: ["pr", "list", "-R", "{repo}", "--state", "merged", "--limit", "100", "--json", "autoMergeRequest", "--jq", "[.[] | select(.autoMergeRequest != null)] | length"]
+    expect: 're:[1-9][0-9]*'
