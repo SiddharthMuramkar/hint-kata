@@ -55,8 +55,8 @@ questions:
         pass_anchor: "The message states the allowed range so the model can fix the number."
         fail_anchor: "The message just says invalid."
       - name: retry-budget
-        explanation: The answer says retries are limited by an output retry budget, default 1, and that the run raises UnexpectedModelBehavior when it is used up.
-        pass_anchor: "The output retry budget defaults to 1, can be raised with retries={'output': N}, and the run raises UnexpectedModelBehavior when it runs out."
+        explanation: The answer says retries are limited by an output retry budget, so the run fails when it is used up.
+        pass_anchor: "The output retry budget defaults to 1 and can be raised with retries={'output': N}. When it runs out, the run fails with an error."
         fail_anchor: "The agent retries until the model is right."
       - name: scripted-test
         explanation: The answer uses a scripted FunctionModel that returns a bad output then a good one, with real requests blocked.

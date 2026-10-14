@@ -93,6 +93,7 @@ items:
         feedback: >-
           Right. Each ModelRetry from the validator uses one unit of the budget, and the default
           is 1. Raise it with Agent(..., retries={"output": N}) if more attempts are sensible.
+          With a union, each output tool has its own counter, and this budget is its default.
       - text: The agent keeps retrying until the model gets it right.
         misconception: Thinks retries are unlimited.
         feedback: >-

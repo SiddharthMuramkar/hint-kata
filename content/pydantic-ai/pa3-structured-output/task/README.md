@@ -18,7 +18,7 @@ Write messages the model can act on. "Invalid" does not tell it what to change.
 
 ## How the check works
 
-The hidden tests use a `FunctionModel` as a scripted fake model and set `ALLOW_MODEL_REQUESTS = False`, so no API key is needed. They also set `TUTOR_MODEL=test`, so `make_agent()` builds without a key. The fake model first returns an invalid ticket through the output tool, then a valid one. The tests check that:
+The hidden tests use a `FunctionModel` as a scripted fake model and set `ALLOW_MODEL_REQUESTS = False`, so no API key is needed. They also set `TUTOR_MODEL=test`, so `make_agent()` builds without a key. Do not run the agent on that built-in `test` model yourself: it invents values such as a priority of 0, which your own validator rejects, so the run fails. That is why the tests script a `FunctionModel`. The fake model first returns an invalid ticket through the output tool, then a valid one. The tests check that:
 
 - `Ticket` has the three fields, and `category` rejects values outside the list.
 - a valid ticket needs no retry, and the boundary values (priority 1 and 5, a summary of exactly 120 characters) are accepted.

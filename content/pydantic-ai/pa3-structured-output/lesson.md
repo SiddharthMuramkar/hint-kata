@@ -7,6 +7,7 @@ pins:
   pydantic-ai: "2.56.0"
 sources:
   - pydantic-ai-core-concepts-output
+  - pydantic-ai-guides-testing
 ---
 
 In lesson 1 you gave an agent an `output_type` and got an object back. This lesson looks under that one argument. You will see how the model is made to produce the shape you asked for, how to choose between the ways of doing it, how to accept more than one shape, and how to reject an answer that has the right shape but the wrong content. At the end you test all of it without an API key.
@@ -57,11 +58,11 @@ Agent(model, output_type=NativeOutput(Ticket))  # the API enforces the schema
 Agent(model, output_type=PromptedOutput(Ticket))  # the schema goes in the instructions
 ```
 
-The markers also take a `name` and a `description` where the docstring of your type is not enough. Writing `output_type=Ticket` and wrapping it in `ToolOutput` look the same to the model unless you need those extras.
+The three structured markers (`ToolOutput`, `NativeOutput` and `PromptedOutput`) also take a `name` and a `description` where the docstring of your type is not enough. Writing `output_type=Ticket` and wrapping it in `ToolOutput` look the same to the model unless you need those extras.
 
 How do you pick? Start with the default. Move to `NativeOutput` when the model and provider support it and you want the API itself to hold the model to the schema. Use `PromptedOutput` when nothing else is available or when the docs for your model tell you it gives better quality that way. You can check what you chose in a test: a `FunctionModel` sees `info.model_request_parameters.output_mode`, which reads `tool`, `native` or `prompted`.
 
-One more point about the default, stated for the installed version only, because the Output page does not cover it. In Pydantic AI 2.56.0 the Anthropic model class contains a comment that extended thinking rejects the forced tool choice that tool output relies on. When an Anthropic request has extended thinking switched on and your agent uses the default mode, the library changes the default to native output, or to prompted output if the model profile has no JSON schema support. Newer Claude models use adaptive thinking, which accepts a forced tool choice, so this swap does not apply to them. This is behaviour of one version of one provider adapter. If you rely on it, check that version's source or release notes, and do not assume it holds elsewhere.
+One more point about the default, stated for the installed version only, because the Output page does not cover it. Tool output forces the model to call the output tool, and for some models a forced tool call stops them from thinking first. In Pydantic AI 2.56.0 the default is therefore swapped from tool to native output when three things hold: the model's profile says a forced tool choice blocks or disables thinking, the request is going to think, and the model supports JSON schema output. This is true for every Anthropic model, and the Claude 5.x family thinks by default, so a plain `output_type=Ticket` on one of them is sent in native mode. I checked the rule with a `FunctionModel` whose profile sets those three flags: its request had `output_mode == "native"`, and it went back to `"tool"` when any one flag was missing. On top of that, the Anthropic adapter handles extended thinking with a fixed budget, which rejects forced tool choice outright: there the default becomes native if the model supports JSON schema output, and prompted if it does not. If you rely on any of this, check the installed version's source or release notes, because it can change between versions.
 
 ## Unions and output functions
 
@@ -88,7 +89,7 @@ def create_ticket(category: str, summary: str) -> Ticket:
 agent = Agent(model, output_type=[create_ticket, Question])
 ```
 
-This looks like a tool, and there is one difference that matters. A tool's return value goes back to the model, which goes on. An output function's return value ends the run and is not sent back. Like a tool, it may take `ctx: RunContext[...]` first and may raise `ModelRetry` to send the model back for another try. Do not also register the same function as a tool, because the model would not know which one to call. And with streaming, an output function is called once per partial output, so check `ctx.partial_output` before side effects such as sending an email. The streaming section returns to this.
+This looks like a tool, and there is one difference that matters. A tool's return value goes back to the model, which goes on. An output function's return value ends the run and is not sent back. Like a tool, it may take `ctx: RunContext[...]` first and may raise `ModelRetry` to send the model back for another try. You usually do not want to register the same function as a tool as well, because the model may be unsure which one to call. And with streaming, an output function is called once per partial output, so check `ctx.partial_output` before side effects such as sending an email. The streaming section returns to this.
 
 ## Output validators and ModelRetry
 
@@ -109,7 +110,7 @@ def check_ticket(ticket: Ticket) -> Ticket:
 
 The validator may also take `ctx: RunContext[...]` as its first parameter, for example to reach `ctx.deps`. When `ModelRetry` is raised, its message goes back to the model as a retry prompt, and the model answers again. This is the same mechanism you met for tools in lesson 2. If the model's answer does not even match the schema, for example a priority of "high", Pydantic produces a retry prompt on its own, with the details of what was wrong. So the model gets feedback in both cases.
 
-The loop is not endless. It has a budget. In Pydantic AI 2.56.0 the output retry budget defaults to 1, and each `ModelRetry` from an output validator uses one unit, as the Output page says. A Pydantic validation failure also needs a retry, and in a scripted run with a `FunctionModel`, two validation failures in a row with the default budget ended the run. You change the budget on the agent with `Agent(..., retries={"output": 3})`, or for a single run with `agent.run(..., retries={"output": 3})`. When the budget runs out, the run raises `UnexpectedModelBehavior` with a message like "Exceeded maximum output retries (1)". Plan for that error. It is how you find out a model cannot meet your rule, and a bigger budget is not always the fix: a better message, a clearer instruction or a different model might be.
+The loop is not endless. It has a budget. In Pydantic AI 2.56.0 the output retry budget defaults to 1, and each `ModelRetry` from an output validator uses one unit, as the Output page says. A Pydantic validation failure also needs a retry, and in a scripted run with a `FunctionModel`, two validation failures in a row with the default budget ended the run. With a union, each output tool has its own retry counter, and the budget is the default limit for each one. You change the budget on the agent with `Agent(..., retries={"output": 3})`, or for a single run with `agent.run(..., retries={"output": 3})`. When the budget runs out, the run raises `UnexpectedModelBehavior` with a message like "Exceeded maximum output retries (1)". Plan for that error. It is how you find out a model cannot meet your rule, and a bigger budget is not always the fix: a better message, a clearer instruction or a different model might be.
 
 Write the message for the model, as with tools. "Invalid" tells it nothing. "priority must be a whole number from 1 to 5" tells it what to change. Put a hard rule in a validator only if the model can meet it by trying again. If a field is only ever filled from something the model cannot know, retrying will not help.
 
@@ -127,7 +128,7 @@ There are two things to remember. Output validators run on each snapshot, and on
 
 ## Testing structured output without a key
 
-You met `TestModel`, `FunctionModel` and `ALLOW_MODEL_REQUESTS` in lesson 2, and they work the same here. `TestModel` makes up a valid value for your type, so a call with it proves the wiring: the agent builds, and the type is accepted. For behaviour, script a `FunctionModel`. It receives an `AgentInfo`. In tool output mode the output tools are in `info.output_tools`, and returning a `ToolCallPart` for one of them is how a scripted model gives its answer:
+You met `TestModel`, `FunctionModel` and `ALLOW_MODEL_REQUESTS` in lesson 2, and they work the same here. `TestModel` makes up a value that fits your type, so a call with it proves the wiring: the agent builds, and the type is accepted. But the invented values can fail your own validator, for example a priority of 0, so for anything with rules, script a `FunctionModel` instead. The [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) page describes both. Your `FunctionModel` function receives an `AgentInfo`. In tool output mode the output tools are in `info.output_tools`, and returning a `ToolCallPart` for one of them is how a scripted model gives its answer:
 
 ```python
 from pydantic_ai import models
@@ -155,4 +156,4 @@ The first answer is invalid, so your validator rejects it. The second is valid, 
 
 That is the whole kit for the task. You write a `Ticket` and an agent whose validator turns bad priorities and long summaries into retries. The hidden tests play the model, so no key or network is needed.
 
-Sources: [Output](https://pydantic.dev/docs/ai/core-concepts/output/) from the Pydantic AI documentation, version 2.56.0, MIT licence. © Pydantic Services Inc. 2024 to present. The remark on extended thinking comes from the installed 2.56.0 source code, not from these pages. This site is not affiliated with Pydantic.
+Sources: [Output](https://pydantic.dev/docs/ai/core-concepts/output/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) from the Pydantic AI documentation, version 2.56.0, MIT licence. © Pydantic Services Inc. 2024 to present. The remark on how thinking changes the default output mode comes from the installed 2.56.0 source code, not from these pages. This site is not affiliated with Pydantic.
