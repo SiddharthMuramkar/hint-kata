@@ -1,0 +1,76 @@
+questions:
+  - id: d1
+    prompt: >-
+      A chat page must show the model's reply word by word. Your server code uses agent.run_stream()
+      and sends each item to the browser. Which options of stream_text would you choose, what goes
+      wrong with the other choices, and where in your code do you read the run's token usage to
+      log its cost?
+    hints:
+      - Compare what an item holds with the default and with delta=True. What would the browser show if the server sent each default item and the page appended it?
+      - Is the usage of a run complete while the loop is still running? Think about where in the code the stream is known to be finished.
+    rubric:
+      - name: delta-for-new-text
+        explanation: The answer chooses delta=True, so each item holds only the new piece of text that the server can send on.
+        pass_anchor: "I use stream_text(delta=True), so each item is only the new text and the server sends just that."
+        fail_anchor: "I use the default and send every item to the browser."
+      - name: cumulative-repeats
+        explanation: The answer says that the default items hold the text so far, so sending or appending them would repeat text.
+        pass_anchor: "With the default, each item is the whole text so far, so appending it would show 'Tea Tea costs' and so on."
+        fail_anchor: "The default and delta=True give the same items, so it makes no difference."
+      - name: debounce
+        explanation: The answer explains that debounce_by groups chunks that arrive close together (0.1 seconds by default), and that None gives every chunk as it arrives.
+        pass_anchor: "debounce_by groups chunks that arrive within 0.1 s into one item. The default is fine for a screen. None gives each chunk."
+        fail_anchor: "debounce_by is a timeout that cancels the stream if the model is slow."
+      - name: usage-after-stream
+        explanation: The answer says to read usage after the stream has finished, because a total read inside the loop is partial.
+        pass_anchor: "I read result.usage after the async for loop ends, because while it runs the total is partial."
+        fail_anchor: "I read result.usage inside the loop after each delta and add the numbers up."
+    model_answer: >-
+      I would call result.stream_text(delta=True). With delta=True each item is only the new piece of
+      text, so the server can send it to the browser as it is and the page appends it. The default is
+      cumulative. Each item holds the whole text so far, so if the server sent it and the page
+      appended it, the text would repeat itself. The cumulative form is for code that replaces what is
+      on screen each time. For debounce_by, the default of 0.1 groups chunks that arrive within 0.1
+      seconds into one item. That is fine for a screen and saves work. I would pass debounce_by=None
+      only when I need every chunk as its own item, for example in a test with a scripted model. I
+      would read result.usage after the async for loop has ended, when the stream is finished. While
+      the stream runs the total is partial, and if the user stops early it stays partial. So I would
+      log the cost once, after the loop, and not add up numbers inside it.
+  - id: d2
+    prompt: >-
+      A support tool must write a live log line each time the agent calls a tool, and it must also
+      return the final answer. Which run method would you use, which event types would you read, and
+      why can agent.run_stream() miss tool calls?
+    hints:
+      - Part events describe the model writing. Which events describe the agent running your function?
+      - What does run_stream() treat as the final answer, and what does that mean for tool calls that come after it?
+    rubric:
+      - name: run-stream-events
+        explanation: The answer chooses agent.run_stream_events(), an async context manager that yields every event of the run.
+        pass_anchor: "I use async with agent.run_stream_events(prompt) as events and loop over the events."
+        fail_anchor: "I use run_stream_sync and print each item."
+      - name: function-tool-events
+        explanation: The answer reads FunctionToolCallEvent (and optionally FunctionToolResultEvent) for the log lines, not the Part events.
+        pass_anchor: "On FunctionToolCallEvent I log event.part.tool_name, and on FunctionToolResultEvent I log the result."
+        fail_anchor: "I log every PartStartEvent, because that is when the tool runs."
+      - name: final-answer-event
+        explanation: The answer says the last event is AgentRunResultEvent and that its result holds the final output.
+        pass_anchor: "The last event is AgentRunResultEvent, and event.result.output is the final answer."
+        fail_anchor: "I join the PartDeltaEvent pieces and hope the last one ends the answer."
+      - name: run-stream-limit
+        explanation: The answer says run_stream takes the first matching output as the final answer and stops, so later tool calls do not run, while run_stream_events always runs the agent to the end.
+        pass_anchor: "run_stream stops at the first final output, so tool calls after it would not run. run_stream_events runs to the end."
+        fail_anchor: "run_stream cannot call tools at all."
+    model_answer: >-
+      I would use agent.run_stream_events(). It is an async context manager, so I write async with
+      agent.run_stream_events(prompt) as events and then async for event in events. The log needs
+      the events about tools, not the Part events. When the model has finished writing a tool call
+      and the agent is about to run my function, I get a FunctionToolCallEvent. I log
+      event.part.tool_name there. When the function returns, I get a FunctionToolResultEvent, and I
+      can log the result. The Part events only describe the model writing, so logging them would
+      show half-written calls. The last event of the loop is an AgentRunResultEvent. Its result holds
+      the final output, so I return event.result.output from there. run_stream can miss tool calls.
+      It treats the first output that matches the output type as the final answer and
+      stops there. If a reply holds both text and a tool call, the tool call does not run, so it would never
+      reach my log. run_stream_events always runs the agent to the end, so every tool runs and I
+      see every event.

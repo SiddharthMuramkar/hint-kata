@@ -1,0 +1,142 @@
+items:
+  - id: q1
+    type: single
+    concept: stream-context-manager
+    source_section: starting-a-streamed-run
+    prompt: >-
+      Which code reads the events of a run correctly in Pydantic AI 2.56.0?
+    options:
+      - text: "async with agent.run_stream_events(prompt) as events: then async for event in events:"
+        correct: true
+        feedback: >-
+          Right. run_stream_events is an async context manager. The async with block opens the
+          stream, gives you the events handle, and closes the stream when it ends.
+      - text: "async for event in agent.run_stream_events(prompt):"
+        misconception: Thinks run_stream_events is an async iterator you can loop over directly.
+        feedback: >-
+          Tempting, because the loop looks natural. But the call returns a context manager, not
+          an iterator, so Python raises a TypeError. You need async with first.
+      - text: "events = await agent.run_stream_events(prompt)"
+        misconception: Thinks run_stream_events is a coroutine, like agent.run.
+        feedback: >-
+          agent.run is a coroutine and you await it. run_stream_events returns a context manager,
+          so awaiting it raises a TypeError.
+      - text: "for event in agent.run_stream_events(prompt):"
+        misconception: Thinks a plain for loop can read a stream.
+        feedback: >-
+          Events arrive over time, so the loop must be async. A plain for loop raises a TypeError
+          because the object is not iterable.
+  - id: q2
+    type: single
+    concept: delta-vs-cumulative
+    source_section: text-deltas-and-cumulative-text
+    prompt: >-
+      The model streams the chunks "Tea ", "costs " and "2.5.". You loop over
+      result.stream_text(delta=True, debounce_by=None). What items do you get?
+    options:
+      - text: '"Tea ", "costs ", "2.5." (each item is only the new piece)'
+        correct: true
+        feedback: >-
+          Right. delta=True gives only the new text, and debounce_by=None gives one item per
+          chunk.
+      - text: '"Tea ", "Tea costs ", "Tea costs 2.5." (each item is the text so far)'
+        misconception: Thinks delta=True gives the text so far.
+        feedback: >-
+          That is what you get without delta=True. The default is cumulative, so each item holds
+          everything received so far.
+      - text: '"Tea costs 2.5." (one item with the whole text)'
+        misconception: Thinks debounce_by=None waits and returns the whole text at once.
+        feedback: >-
+          Grouping is what puts chunks together, and the default debounce does that. With
+          debounce_by=None nothing is grouped, so every chunk is its own item.
+      - text: Three event objects, each with a delta field
+        misconception: Thinks stream_text yields event objects.
+        feedback: >-
+          stream_text yields plain strings. The event objects come from run_stream_events, which
+          is a different method.
+  - id: q3
+    type: single
+    concept: stream-output-snapshot
+    source_section: streaming-structured-output
+    prompt: >-
+      You stream a structured answer with result.stream_output(). What is each item it gives you?
+    options:
+      - text: A snapshot of the whole object so far, checked with partial validation.
+        correct: true
+        feedback: >-
+          Right. Each item is the full object as far as it has arrived. Replace what you show with
+          it. Do not append.
+      - text: Only the fields that changed since the previous item.
+        misconception: Thinks stream_output gives deltas.
+        feedback: >-
+          Deltas are what stream_text(delta=True) gives for text. stream_output gives accumulated
+          snapshots, and a string field can be cut off in the middle.
+      - text: A raw piece of the JSON text the model wrote.
+        misconception: Thinks the items are unparsed JSON chunks.
+        feedback: >-
+          Pydantic AI parses and validates the JSON for you. The items are objects of your output
+          type, not text.
+      - text: Nothing until the end, then the final object once.
+        misconception: Thinks structured output cannot be shown before the run ends.
+        feedback: >-
+          That is what get_output() does. The point of stream_output is to show partial objects
+          early, thanks to partial validation.
+  - id: q4
+    type: single
+    concept: usage-complete
+    source_section: when-usage-is-complete
+    prompt: >-
+      You loop over run_stream_events and print events.usage after the last text piece arrives.
+      When can you trust the total token count of the run?
+    options:
+      - text: Once the run is finished. AgentRunResultEvent carries the final usage in event.result.usage.
+        correct: true
+        feedback: >-
+          Right. Totals read mid-stream are partial. The finished run has the complete count.
+      - text: Right after the last text piece, because all the text has arrived.
+        misconception: Thinks that when all the text has arrived, the usage is complete.
+        feedback: >-
+          Tempting, but the run is not finished yet. In our scripted run the value at that point
+          still counted only one request. Wait for AgentRunResultEvent.
+      - text: As soon as FinalResultEvent arrives.
+        misconception: Thinks FinalResultEvent means the run is finished.
+        feedback: >-
+          FinalResultEvent only marks that the reply is the final answer. The text keeps streaming
+          after it, so usage is still partial.
+      - text: Only if you call result.usage() as a method.
+        misconception: Thinks usage is a method that returns the final total.
+        feedback: >-
+          In 2.56.0 usage is a property. Calling it raises a TypeError. What decides the count is
+          when you read it, not how.
+  - id: q5
+    type: order
+    concept: event-order
+    source_section: seeing-every-event
+    prompt: >-
+      A model calls one tool and then answers in text. Put these events of a run_stream_events
+      loop in the order they arrive.
+    steps:
+      - "PartStartEvent: the model starts writing a tool call"
+      - "FunctionToolCallEvent: the agent is about to run the tool"
+      - "FunctionToolResultEvent: the tool returned its value"
+      - "FinalResultEvent: the next reply is the final answer"
+      - "AgentRunResultEvent: the run is finished"
+    explanation: >-
+      Part events show the model writing. Only when the tool call is complete does the agent run
+      it, so FunctionToolCallEvent comes after the Part events. The tool result goes back to the
+      model, the new reply starts, FinalResultEvent marks it as the answer, and the last event of
+      every run is AgentRunResultEvent.
+  - id: q6
+    type: blank
+    concept: debounce-by
+    source_section: text-deltas-and-cumulative-text
+    prompt: |-
+      Fill in the value so that every chunk becomes its own item, with no grouping:
+
+      async for text in result.stream_text(delta=True, debounce_by=____):
+          print(text)
+    answer: 're:(debounce_by=)?None'
+    explanation: >-
+      The default debounce_by is 0.1, which groups chunks that arrive within 0.1 seconds. None
+      turns the grouping off, so each chunk is yielded as it arrives. This is also what you want
+      in tests with a scripted model.
