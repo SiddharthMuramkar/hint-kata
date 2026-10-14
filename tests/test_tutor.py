@@ -140,4 +140,4 @@ def test_script_and_javascript_links_do_not_survive(client: TestClient) -> None:
     evil = "<script>alert(1)</script> [x](javascript:alert(1))"
     with get_tutor().override(model=TestModel(custom_output_text=evil)):
         html = str(_chat(client)["html"])
-    assert "<script" not in html and "javascript:" not in html
+    assert "<script" not in html and "<a " not in html  # escaped text, no live link
