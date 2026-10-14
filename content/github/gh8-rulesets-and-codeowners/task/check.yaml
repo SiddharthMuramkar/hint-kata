@@ -1,0 +1,46 @@
+checks:
+  - name: the rules on main include a pull request rule and a required status checks rule
+    args:
+      - api
+      - repos/{repo}/rules/branches/main
+      - --jq
+      - '[.[].type] | (index("pull_request") != null) and (index("required_status_checks") != null)'
+    expect: "true"
+  - name: the required status checks on main include the check named checks
+    args:
+      - api
+      - repos/{repo}/rules/branches/main
+      - --jq
+      - 'any(.[]; .type == "required_status_checks" and ([.parameters.required_status_checks[].context] | index("checks") != null))'
+    expect: "true"
+  - name: the rules on main block deletions and force pushes
+    args:
+      - api
+      - repos/{repo}/rules/branches/main
+      - --jq
+      - '[.[].type] | (index("deletion") != null) and (index("non_fast_forward") != null)'
+    expect: "true"
+  - name: the file .github/CODEOWNERS assigns *.yml to an owner
+    args:
+      - api
+      - repos/{repo}/contents/.github/CODEOWNERS
+      - --jq
+      - >-
+        .content | gsub("\\n"; "") | @base64d | test("(^|\\n)\\*\\.yml[ \\t]+@[^ \\t\\r\\n#]+")
+    expect: "true"
+  - name: a pull request changed the file practice-owned.yml
+    args:
+      - pr
+      - list
+      - -R
+      - "{repo}"
+      - --state
+      - all
+      - --limit
+      - "200"
+      - --json
+      - files
+      - --jq
+      - >-
+        [.[].files[].path | select(test("(^|/)practice-owned\\.yml$"))] | length
+    expect: 're:[1-9][0-9]*'

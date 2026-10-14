@@ -1,0 +1,200 @@
+items:
+  - id: q1
+    type: single
+    concept: self-approval-limit
+    source_section: the-self-approval-limit
+    prompt: |
+      Mia is the only person with access to her public repo. She added this ruleset, and she
+      opened every pull request herself. Now each of her pull requests sits at "Review required"
+      and she cannot merge any of them. What is the bug?
+
+      ```json
+      {
+        "name": "main-guard",
+        "target": "branch",
+        "enforcement": "active",
+        "bypass_actors": [],
+        "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
+        "rules": [
+          {
+            "type": "pull_request",
+            "parameters": {
+              "required_approving_review_count": 1,
+              "dismiss_stale_reviews_on_push": false,
+              "require_code_owner_review": false,
+              "require_last_push_approval": false,
+              "required_review_thread_resolution": false
+            }
+          }
+        ]
+      }
+      ```
+    options:
+      - text: >-
+          `required_approving_review_count` is 1, but the author of a pull request cannot approve
+          it. With no second reviewer and an empty bypass list, nobody can give the approval. She
+          needs 0 approvals (with required checks), a second reviewer, or a bypass.
+        correct: true
+        feedback: >-
+          Right. The author cannot approve their own pull request, so a one-person repo can never
+          meet a rule that asks for one approval. The fix is a different gate (zero approvals plus
+          required checks) or another person.
+      - text: >-
+          `bypass_actors` is empty, and GitHub treats an empty list as "nobody may merge anything".
+        misconception: Thinks the bypass list decides who may merge normally.
+        feedback: >-
+          The bypass list only names who may skip the rules. An empty list means the rules bind
+          everyone. Pull requests that meet the rules merge as usual.
+      - text: >-
+          `~DEFAULT_BRANCH` is not a real branch name, so the rule does not match and the ruleset
+          is broken.
+        misconception: Thinks the special target value `~DEFAULT_BRANCH` is invalid.
+        feedback: >-
+          `~DEFAULT_BRANCH` is a valid value for "the default branch". The Hint Kata ruleset uses it.
+          And if the rule did not match, nothing would block her pull requests at all.
+      - text: >-
+          `dismiss_stale_reviews_on_push` is `false`, so old approvals stay and block the merge.
+        misconception: Mixes up dismissing stale approvals with requiring an approval.
+        feedback: >-
+          That setting only decides whether a new push throws away an approval that already exists.
+          Here no approval exists, and she cannot create one on her own pull request.
+
+  - id: q2
+    type: single
+    concept: codeowners-base-branch
+    source_section: codeowners
+    prompt: >-
+      One pull request adds `.github/CODEOWNERS` with the line `*.yml @you` and also edits
+      `deploy.yml`. The pull request merges into `main`, and `main` has no CODEOWNERS file yet. Is
+      `@you` asked to review this pull request?
+    options:
+      - text: >-
+          No. GitHub reads CODEOWNERS from the base branch, the branch the pull request merges
+          into. Merge the file first, then open the pull request that needs it.
+        correct: true
+        feedback: >-
+          Right. The file only counts once it is on the base branch. Until then, the pull request
+          has no owners to ask.
+      - text: >-
+          Yes. GitHub reads the CODEOWNERS file from the pull request's own branch.
+        misconception: Thinks the head branch's CODEOWNERS file is used.
+        feedback: >-
+          Review requests use the version of the file on the base branch. A file that exists only on
+          the pull request's branch is not used for that pull request.
+      - text: >-
+          No. CODEOWNERS only works in the repo root, never in `.github/`.
+        misconception: Thinks `.github/` is not a valid place for the file.
+        feedback: >-
+          GitHub looks in `.github/`, then the root, then `docs/`, and uses the first file it finds.
+          The folder is fine. The problem is the branch.
+      - text: >-
+          Yes, but only after the ruleset's code owner rule is switched on.
+        misconception: Thinks the review request only happens when a rule requires it.
+        feedback: >-
+          The request itself does not need a rule. A rule only decides whether the merge waits for
+          the owner's approval. In this case the file is simply not on the base branch yet.
+
+  - id: q3
+    type: single
+    concept: codeowners-request-vs-requirement
+    source_section: codeowners
+    prompt: >-
+      `main` has a CODEOWNERS file with `*.yml @mia`. Its ruleset asks for 0 approvals and has
+      `require_code_owner_review: false`. A teammate opens a pull request that edits `ci.yml`, and
+      all required checks pass. What happens?
+    options:
+      - text: >-
+          Mia is asked for a review, but the pull request can merge without her approval, because
+          no rule turns the review into a requirement.
+        correct: true
+        feedback: >-
+          Right. CODEOWNERS makes the request. The ruleset decides whether the merge waits. With the
+          code owner rule off, it does not wait.
+      - text: >-
+          The merge is blocked until Mia approves, because a CODEOWNERS file always forces the owner's
+          approval.
+        misconception: Thinks a CODEOWNERS file enforces approval by itself.
+        feedback: >-
+          The file only says who owns what. To make the approval a gate, turn on
+          `require_code_owner_review`, or "Require review from Code Owners" in a branch protection rule.
+      - text: >-
+          Mia gets nothing. Without a rule, GitHub ignores the file completely.
+        misconception: Thinks the file does nothing until a rule is switched on.
+        feedback: >-
+          Owners are asked for review when a pull request changes files they own, with or without a
+          rule. The rule only adds the requirement.
+      - text: >-
+          Mia's approval is added automatically, because she owns the file.
+        misconception: Thinks ownership counts as an approval.
+        feedback: >-
+          Owning a file never approves a change. An owner has to review and approve it by hand.
+
+  - id: q4
+    type: order
+    concept: codeowners-review-flow
+    source_section: codeowners
+    prompt: >-
+      Put these steps in the order they happen, when a ruleset requires code owner review for a
+      pull request.
+    steps:
+      - "The CODEOWNERS file, with `*.yml @mia`, is merged into `main`."
+      - "A teammate opens a pull request into `main` that edits `deploy.yml`."
+      - "GitHub matches the changed file against the CODEOWNERS lines, and the last matching line decides the owner."
+      - "GitHub asks Mia, the owner, for a review."
+      - "Mia approves the pull request."
+      - "The merge box lets the pull request merge."
+    explanation: >-
+      The file must be on the base branch before the pull request exists, or it is not used. GitHub
+      then finds the owner and asks for a review. Only the owner's approval unlocks the merge.
+
+  - id: q5
+    type: blank
+    concept: ruleset-rule-types
+    source_section: the-rules-that-matter
+    prompt: |
+      This rule in a ruleset's `rules` list blocks force pushes to the branch. In the web form it is
+      called "Block force pushes". Fill in its API `type`:
+
+      ```json
+      { "type": "____" }
+      ```
+    answer: 're:"?non_fast_forward"?'
+    explanation: >-
+      The API calls it `non_fast_forward`, because a force push is a push that is not a fast
+      forward of the old branch. `gh ruleset check main` prints this name. The rule to block
+      deletions is `deletion`.
+
+  - id: q6
+    type: single
+    concept: rule-layering
+    source_section: branch-protection-rules-and-rulesets
+    prompt: >-
+      Two rulesets both target `main`. Ruleset A asks for 1 approval, and ruleset B asks for 2. A
+      branch protection rule on `main` asks for linear history. What applies to a pull request into
+      `main`?
+    options:
+      - text: >-
+          All of it. GitHub adds the rules together and takes the strictest version of each, so the
+          pull request needs 2 approvals and the history must stay linear.
+        correct: true
+        feedback: >-
+          Right. Rulesets have no priority, and they layer with branch protection rules. Every
+          applicable rule is enforced, and the strictest version of a repeated rule wins.
+      - text: >-
+          Only ruleset B, because it asks for more. Ruleset A and the branch protection rule are
+          ignored.
+        misconception: Thinks the strictest ruleset replaces everything else.
+        feedback: >-
+          The strictest version wins for a rule that appears twice, such as the approval count. But
+          rules that appear once still apply, so linear history stays.
+      - text: >-
+          The ruleset that was created last, because newer rulesets have a higher priority.
+        misconception: Thinks rulesets have a priority order.
+        feedback: >-
+          A ruleset has no priority. When rulesets overlap, GitHub combines their rules.
+      - text: >-
+          Only the branch protection rule. Only one tool can apply to a branch at a time.
+        misconception: Thinks branch protection and rulesets cannot apply together.
+        feedback: >-
+          Only one branch protection rule applies at a time, but rulesets add to it. Both tools are
+          enforced together.

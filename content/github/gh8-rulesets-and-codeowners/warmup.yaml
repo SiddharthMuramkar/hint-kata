@@ -1,0 +1,20 @@
+items:
+  - id: w1
+    prompt: >-
+      You are the only person who works in your repo. You want every change reviewed, so you add a
+      rule that asks for 1 approval on every pull request. What do you think happens the first time
+      you open a pull request and try to merge it? Guess before you read.
+    note: >-
+      The merge is stuck. A pull request author cannot approve their own pull request, and you wrote
+      every pull request, so nobody can give the approval. A one-person repo has to ask for zero
+      approvals (and lean on required checks), add a second person, or put the owner on the bypass
+      list.
+  - id: w2
+    prompt: >-
+      You add a CODEOWNERS file with the line `*.yml @you`, and you change nothing else. A teammate
+      opens a pull request that edits a `.yml` file. Does the pull request have to wait for your
+      approval?
+    note: >-
+      No. GitHub asks you for a review, because you own the file. But the merge only waits for you
+      when a rule says so, such as `require_code_owner_review` in a ruleset. A CODEOWNERS file
+      alone is a request, not a gate.
