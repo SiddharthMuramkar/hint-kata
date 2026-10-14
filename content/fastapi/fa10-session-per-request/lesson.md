@@ -2,7 +2,7 @@
 id: fa10-session-per-request
 track: fastapi
 title: "Databases: a session per request"
-minutes: 30
+minutes: 40
 pins:
   fastapi: "0.143.0"
   psycopg: "3.3.6"
@@ -26,7 +26,7 @@ The [SQL (Relational) Databases](https://fastapi.tiangolo.com/tutorial/sql-datab
 Four pieces matter for this lesson.
 
 - **One engine for the whole app.** The engine is the object that holds the connections. You create it once.
-- **`check_same_thread=False`.** The page passes this to SQLite's connect arguments. It gives the reason too: one request can use more than one thread, for example in dependencies. By default SQLite refuses a connection that is used from a thread other than the one that made it.
+- **`check_same_thread=False`.** The page passes this to SQLite's connect arguments. It gives the reason too: a single request may touch the connection from two threads, because a dependency and the route can run on different workers. By default SQLite refuses a connection that is used from a thread other than the one that made it.
 - **A session per request.** A session keeps track of objects in memory and uses the engine to talk to the database. The page makes a dependency with `yield` that opens a `Session` in a `with` block, so each request gets a new one and it is closed afterwards. The routes ask for it with `Depends`, wrapped in an `Annotated` name.
 - **Tables created at startup.** A function calls `SQLModel.metadata.create_all(engine)`, and a startup handler runs it when the app starts. The page adds that for production you would probably run a migration script before starting the app.
 
@@ -105,7 +105,7 @@ Look closely. The route depends on `get_store`, and `get_user_id` depends on `ge
 
 **Why `check_same_thread=False`?** The site's `get_store` is a plain `def`, not `async def`. FastAPI runs plain `def` dependencies and routes in a [threadpool](https://fastapi.tiangolo.com/async/). The setup, the route and the exit code are separate calls into that pool, so they may run on different threads.
 
-We tested it. We made a dependency that records its thread before the `yield`, in the route, and after the `yield`, and sent requests through an in-process client. With 20 requests sent one at a time, all three steps shared one thread every time. With 30 requests sent at once, they shared one thread **zero** times out of 30. So the problem is real and it depends on load. It would pass in a quiet test and fail under traffic.
+We tested it. We made a dependency that records its thread before the `yield`, in the route, and after the `yield`, and sent requests through two kinds of in-process client. With 20 requests sent one at a time, all three steps shared one thread every time. With 30 requests sent at once through `httpx.AsyncClient` and `asyncio.gather`, they shared one thread **zero** times out of 30. FastAPI's `TestClient` showed the opposite: sent from 30 threads, all 30 requests kept all three steps on one thread. So whether the problem shows up depends on the client and on the load. A quiet test can pass and real traffic can fail.
 
 SQLite's default rule is the one the tutorial describes. We checked it:
 
@@ -195,7 +195,7 @@ conn.row_factory = sqlite3.Row
 
 Take it line by line.
 
-- **`autocommit=True` first, `False` last.** The `autocommit` setting exists in Python 3.12 and later. With it off, a transaction is open from the moment you connect. The code comment says why that matters for the two PRAGMAs, and we checked both. Inside that open transaction, `PRAGMA foreign_keys=ON` is accepted and does nothing: the value stays `0`. And `PRAGMA journal_mode=WAL` fails with `OperationalError: cannot change into wal mode from within a transaction`. With autocommit on, both work. So the PRAGMAs run first, and autocommit is switched off after.
+- **`autocommit=True` first, `False` last.** The `autocommit` setting exists in Python 3.12 and later. With it off (`autocommit=False`), a transaction is open from the moment you connect. A plain `sqlite3.connect(path)` does not do this: its default mode opens a transaction only at the first `INSERT`, `UPDATE` or `DELETE`, so you would not see the WAL error from a default connection. The code comment says why that matters for the two PRAGMAs, and we checked both. Inside that open transaction, `PRAGMA foreign_keys=ON` is accepted and does nothing: the value stays `0`. And `PRAGMA journal_mode=WAL` fails with `OperationalError: cannot change into wal mode from within a transaction`. With autocommit on, both work. So the PRAGMAs run first, and autocommit is switched off after.
 - **`foreign_keys=ON`.** SQLite checks foreign keys only if you ask, and the default is off. We saw it: with the default, a row pointing at a parent that does not exist went in without a complaint. With the PRAGMA on, the same insert raised `IntegrityError: FOREIGN KEY constraint failed`. The setting belongs to the connection, not to the file. A brand new plain connection to the same file shows `0` again. That is why it is in `connect()`, which every request runs.
 - **`journal_mode=WAL`.** This one is stored in the database file. We set it on one connection, closed it, opened a new plain connection, and it still said `wal`. It is the journal mode that the site's test suite also checks.
 - **`timeout=5.0`.** How many seconds to wait when the database is locked by another connection. We tried two writers with a short timeout, and the second one failed with `database is locked`.
@@ -246,14 +246,14 @@ The setup notes are in `docs/runbooks/neon.md`. Neon gives you two connection st
 
 Why does transaction mode matter to you? The runbook says this mode has no session `SET`. The reason is that a pooler in this mode may hand your next transaction to a different server connection, so a plain `SET something = ...` can be gone by the next statement. The runbook and the docstring of `connect_pg` give the rule: never use a session-level `SET`. Use **`SET LOCAL`** inside a transaction. `SET LOCAL` lasts until the transaction ends.
 
-Two honest limits. First, nothing in this repo's code calls `SET LOCAL` today. We searched. It is a rule for the day you need a setting, not something you can copy from a route. Second, we could not run the pooler here, so this part comes from the runbook and the code comments, not from our own run.
+Two honest limits. First, we could not run the pooler here, so this part comes from the runbook and the code comments, not from our own run. Second, the one real use of `SET LOCAL` in this repo is in `app/ingest/search.py`. The tutor's `hybrid_search` runs `SET LOCAL hnsw.ef_search = 100` (and, for a filtered search, `SET LOCAL hnsw.iterative_scan = relaxed_order`) before its query and commits after it. Read that function to see the rule used in a route-sized piece of code. It is a Postgres-only path, and we did not run it against a server.
 
 Two small things in `app/store_pg.py` follow from autocommit being off, as it is by default in psycopg.
 
 - `connect_pg` calls `conn.commit()` right after `register_vector`. The comment says why: that call looks up types in a transaction, and the connection should not sit idle inside it.
 - `PostgresStore._all` commits after each statement and rolls back on an error, just like the SQLite `_write`.
 
-One more difference to know. In `sqlite3`, `with conn:` commits or rolls back but **does not close** the connection. We checked: after the `with` block, the connection still ran queries. In psycopg 3.3.6, leaving a `with` block on a connection also commits or rolls back, and then it **closes** the connection (we read this in the installed package's `Connection.__exit__`; we did not run it against a server). That is why `apply_schema` can use `with PgConn.connect(...) as conn:` and has no `close()`. The same habit in `sqlite3` would leak a connection.
+One more difference to know. In `sqlite3`, `with conn:` commits or rolls back but **does not close** the connection. We checked: after the `with` block, the connection still ran queries. In psycopg 3.3.6, leaving a `with` block on a connection also commits or rolls back, and then it **closes** the connection, unless the connection came from a pool (we read this in the installed package's `Connection.__exit__`; we did not run it against a server). That is why `apply_schema` can use `with PgConn.connect(...) as conn:` and has no `close()`. The same habit in `sqlite3` would leak a connection.
 
 More: `docs/runbooks/neon.md` in this repo.
 

@@ -22,11 +22,14 @@ def db_path(tmp_path, monkeypatch):
 
 @pytest.fixture
 def opened(monkeypatch):
-    """Record every connection that sqlite3.connect opens, and the SQL each one runs."""
+    """Record every connection that sqlite3.connect opens, the SQL each one runs, and the
+    check_same_thread argument each call passed."""
     conns: list[sqlite3.Connection] = []
     statements: list[list[str]] = []
+    flags: list[object] = []
 
     def spy(*args, **kwargs):
+        flags.append(kwargs.get("check_same_thread"))
         conn = REAL_CONNECT(*args, **kwargs)
         sql: list[str] = []
         conn.set_trace_callback(sql.append)
@@ -35,7 +38,7 @@ def opened(monkeypatch):
         return conn
 
     monkeypatch.setattr(sqlite3, "connect", spy)
-    return conns, statements
+    return conns, statements, flags
 
 
 @pytest.fixture
@@ -56,8 +59,10 @@ def saved_rows(path: str) -> list[tuple]:
 def is_closed(conn: sqlite3.Connection) -> bool:
     try:
         conn.execute("SELECT 1")
-    except sqlite3.ProgrammingError:
-        return True
+    except sqlite3.ProgrammingError as exc:
+        if "closed database" in str(exc):
+            return True
+        raise  # for example the cross-thread error: the connection is not known to be closed
     return False
 
 
@@ -79,7 +84,7 @@ def test_ids_keep_counting_across_requests(client, db_path):
 
 
 def test_failing_route_rolls_back(client, db_path, opened):
-    _, statements = opened
+    _, statements, _ = opened
     client.post("/notes", json={"body": "kept"})
     response = client.post("/notes/fail", json={"body": "lost"})
     assert response.status_code >= 400
@@ -89,9 +94,10 @@ def test_failing_route_rolls_back(client, db_path, opened):
 
 
 def test_connection_is_closed_after_each_request(client, db_path, opened):
-    conns, _ = opened
+    conns, _, flags = opened
     assert client.post("/notes", json={"body": "one"}).status_code == 200
     assert len(conns) == 1, "open exactly one connection per request"
+    assert flags == [False], "pass check_same_thread=False to sqlite3.connect"
     assert is_closed(conns[0]), "the connection was left open after a good request"
     assert client.post("/notes/fail", json={"body": "two"}).status_code >= 400
     assert len(conns) == 2
@@ -101,7 +107,7 @@ def test_connection_is_closed_after_each_request(client, db_path, opened):
 
 
 def test_each_request_gets_its_own_connection(client, db_path, opened):
-    conns, _ = opened
+    conns, _, _ = opened
     client.post("/notes", json={"body": "a"})
     client.post("/notes", json={"body": "b"})
     assert len(conns) == 2

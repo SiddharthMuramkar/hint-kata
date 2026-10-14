@@ -47,8 +47,8 @@ items:
           connection from more than one thread, and `sqlite3` refuses that by default.
         correct: true
         feedback: >-
-          Right. In our run with 30 overlapping requests, the setup, the route and the exit code
-          of a request never all shared one thread. The flag stays safe because each connection
+          Right. In our run with 30 overlapping requests through an async in-process client, the
+          setup, the route and the exit code of a request never all shared one thread. The flag stays safe because each connection
           belongs to a single request.
       - text: >-
           It makes one connection safe to share between all requests.
