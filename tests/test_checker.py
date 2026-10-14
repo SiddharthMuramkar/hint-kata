@@ -15,9 +15,14 @@ FIXTURE = Path(__file__).parent / "fixtures" / "checker" / "task"
 
 @pytest.fixture
 def content(tmp_path: Path) -> Path:
-    """A content tree with one lesson whose task is the fixture."""
+    """A content tree: lesson-a has the fixture task, no-task has none."""
     root = tmp_path / "content"
     shutil.copytree(FIXTURE, root / "track" / "lesson-a" / "task")
+    for lesson_id in ("lesson-a", "no-task"):  # the route only serves lessons the app has loaded
+        (root / "track" / lesson_id).mkdir(exist_ok=True)
+        (root / "track" / lesson_id / "lesson.md").write_text(
+            f"---\nid: {lesson_id}\ntrack: track\ntitle: T\nminutes: 1\n---\nBody\n"
+        )
     return root
 
 
@@ -140,12 +145,64 @@ def test_check_endpoints(client: TestClient) -> None:
 
 
 def test_check_endpoint_without_task(client: TestClient) -> None:
-    r = client.post("/api/check/unknown")
+    r = client.post("/api/check/no-task")
     assert r.json()["passed"] is False and r.json()["kind"] == "none"
-    assert client.get("/api/check/unknown").json() == {"passed": None}
+    assert client.get("/api/check/no-task").json() == {"passed": None}
+
+
+def test_unknown_lesson_is_404(client: TestClient) -> None:
+    assert client.post("/api/check/unknown-valid").status_code == 404
+    assert client.get("/api/check/unknown-valid").status_code == 404
+    assert not Path("workspace").exists()
 
 
 def test_bad_lesson_id_is_404(client: TestClient) -> None:
     assert client.post("/api/check/%2E%2E").status_code == 404
     assert client.get("/api/check/%2E%2E").status_code == 404
     assert client.post("/api/check/Bad_ID").status_code == 404
+
+
+BAD_IDS = ["../../etc", "..", "a/b", "", "Lesson-A", "-lead", "a" * 65, "ok\n"]
+
+
+@pytest.mark.parametrize("bad", BAD_IDS)
+def test_bad_lesson_id_raises_before_touching_disk(bad: str, content: Path, tmp_path: Path) -> None:
+    root = tmp_path / "workspace"
+    assert not checker.valid_lesson_id(bad)
+    with pytest.raises(ValueError):
+        checker.validate_lesson_id(bad)
+    with pytest.raises(ValueError):
+        checker.find_task_dir(bad, content)
+    with pytest.raises(ValueError):
+        checker.prepare_workspace(bad, content, root)
+    assert not root.exists()
+
+
+def test_valid_lesson_ids_pass() -> None:
+    for ok in ["lesson-a", "fa1-dependencies", "7", "a" * 64]:
+        assert checker.validate_lesson_id(ok) == ok
+
+
+def test_task_dir_outside_content_root_is_refused(content: Path, tmp_path: Path) -> None:
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (content / "track" / "lesson-b").mkdir()
+    (content / "track" / "lesson-b" / "task").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError):
+        checker.find_task_dir("lesson-b", content)
+
+
+def test_workspace_outside_workspace_root_is_refused(content: Path, tmp_path: Path) -> None:
+    task = content / "track" / "lesson-a" / "task"
+    root = tmp_path / "workspace"
+    root.mkdir()
+    (root / "lesson-b").symlink_to(tmp_path, target_is_directory=True)
+    with pytest.raises(ValueError):
+        checker.prepare_workspace("lesson-b", task, root)
+
+
+@pytest.mark.parametrize("bad", ["..%2F..%2Fetc", "a%2Fb", "Lesson-A", "-lead", "a" * 65, ""])
+def test_bad_lesson_id_is_404_without_touching_disk(client: TestClient, bad: str) -> None:
+    assert client.post(f"/api/check/{bad}").status_code == 404
+    assert client.get(f"/api/check/{bad}").status_code == 404
+    assert not Path("workspace").exists()
