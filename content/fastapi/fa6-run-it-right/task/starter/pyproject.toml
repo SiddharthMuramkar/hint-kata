@@ -1,0 +1,15 @@
+[project]
+name = "tiny-api"
+version = "0.1.0"
+requires-python = ">=3.13"
+# TODO 1 (pin): this line has no version limits. Ask for the `standard` extra, which brings the
+#   `fastapi` command, and keep FastAPI inside the 0.143 minor:
+#   "fastapi[standard]>=0.143.0,<0.144.0"
+dependencies = [
+    "fastapi",
+]
+
+# TODO 2 (entrypoint): replace "TODO" with the import string of the app in main.py.
+#   The format is "module:variable". The text must match the code in main.py.
+[tool.fastapi]
+entrypoint = "TODO"

@@ -1,0 +1,22 @@
+items:
+  - id: w1
+    prompt: >-
+      You have a `main.py` with `app = FastAPI()` and one route. You type `uv run fastapi dev`
+      and nothing else. How do you think the command knows which file to open and which
+      variable to import? Take a guess before you read.
+    note: >-
+      It guesses. It tries a short list of file names, `main.py` first, and looks in that file
+      for a variable called `app` (or `api`). The start-up message shows the import string it
+      chose, `main:app`. You can write the import string down yourself in `pyproject.toml`, and
+      a later section shows how.
+  - id: w2
+    prompt: >-
+      You run `uv add "fastapi[standard]"` today. A teammate ran the same command on the same
+      project a year ago. Will you both end up with the same FastAPI version? What could go
+      wrong for an app whose pyproject only has a lower bound on the version? Take a guess
+      before you read.
+    note: >-
+      Probably not the same. `uv add` writes only a lower bound, so each of you gets the newest
+      version of the day, and the lock file then holds it. FastAPI is still 0.x, so a newer
+      minor can change behaviour and break the app. Pinning to one minor, like
+      `>=0.143.0,<0.144.0`, is the fix.
