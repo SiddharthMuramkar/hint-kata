@@ -1,0 +1,181 @@
+items:
+  - id: q1
+    type: single
+    concept: workflow-trigger
+    source_section: what-a-workflow-is
+    prompt: |
+      You add this file as `.github/workflows/ci.yml` and open a pull request. The pull request
+      shows no checks at all, and the Actions tab shows no runs. What is the bug?
+
+      ```yaml
+      name: CI
+      jobs:
+        checks:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - run: python -c "print('ok')"
+      ```
+    options:
+      - text: The file has no `on:` key, so nothing tells GitHub when to run it.
+        correct: true
+        feedback: >-
+          Right. A workflow needs at least one event under `on:`. Without it, GitHub has no reason
+          to start a run, so there is no run and no check.
+      - text: >-
+          `uses: actions/checkout` is wrong. A step that runs something should say
+          `run: actions/checkout`.
+        misconception: Thinks `uses:` and `run:` are interchangeable, or that `uses:` runs a shell command.
+        feedback: >-
+          `uses:` loads a ready-made action, and `run:` types a shell command. Both are fine here.
+          The checkout line is correct as written.
+      - text: The job needs a `needs:` key, or it will never start.
+        misconception: Thinks every job must declare `needs:` to be scheduled.
+        feedback: >-
+          `needs:` only orders jobs that depend on each other. A single job with no `needs:` runs
+          as soon as the workflow starts. The problem is that the workflow never starts.
+      - text: >-
+          `runs-on: ubuntu-latest` is not a valid runner, so GitHub skips the file.
+        misconception: Thinks the runner label is the usual cause of a workflow that does not start.
+        feedback: >-
+          `ubuntu-latest` is a normal GitHub-hosted runner. A wrong runner label would give a job
+          that waits or fails, not a workflow with no run at all.
+
+  - id: q2
+    type: single
+    concept: required-check-name
+    source_section: making-the-job-a-required-check
+    prompt: |
+      Your ruleset requires a status check named `checks`. This workflow runs on the pull request
+      and its job passes, yet the pull request says "Waiting for status to be reported". What is
+      the bug?
+
+      ```yaml
+      name: CI
+      on:
+        pull_request:
+      jobs:
+        test:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - run: python -c "print('ok')"
+      ```
+    options:
+      - text: >-
+          The job reports a check named `test` (its id), but the rule wants `checks`. The names
+          do not match.
+        correct: true
+        feedback: >-
+          Right. With no `name:` on the job, the check takes the job id, `test`. Add `name: checks`
+          or rename the job. The rule compares the text exactly.
+      - text: >-
+          `pull_request` is the wrong trigger. Required checks only come from `push` events.
+        misconception: Thinks pull request checks need a push trigger.
+        feedback: >-
+          `pull_request` is the normal trigger for checks on a pull request. The run did happen,
+          and the job passed. The name is the problem, not the event.
+      - text: The pull request is waiting for a human approval, not for a check.
+        misconception: Mixes up required reviews with required status checks.
+        feedback: >-
+          Reviews show as "Review required". This message names a status check that no run has
+          reported yet. It is a different rule.
+      - text: Nothing is wrong. GitHub is slow, and the check will appear if you wait.
+        misconception: Thinks a pending required check fixes itself with time.
+        feedback: >-
+          The run is already finished, so waiting changes nothing. Until a check with the exact
+          required name is reported, the merge stays blocked.
+
+  - id: q3
+    type: single
+    concept: schedule-trigger
+    source_section: the-events-you-will-use
+    prompt: >-
+      A public repo has a workflow with `schedule: - cron: "17 3 * * 1"`. It ran every week.
+      Nobody touched the repo for 70 days, and now it has stopped running. Which explanation is
+      correct?
+    options:
+      - text: GitHub turned the scheduled workflow off after 60 days with no repository activity.
+        correct: true
+        feedback: >-
+          Right. In a public repo, scheduled workflows are disabled after 60 days without activity.
+          You can enable it again from the Actions tab, and any new activity resets the clock.
+      - text: The cron runs in your local time zone, and your laptop was switched off.
+        misconception: Thinks workflows run on your own computer and follow your local clock.
+        feedback: >-
+          Workflows run on GitHub's machines. The cron uses UTC unless you set `timezone`. Your
+          laptop being off has no effect.
+      - text: A cron entry is deleted after it has run a fixed number of times.
+        misconception: Thinks schedule triggers have a run-count limit.
+        feedback: >-
+          There is no run-count limit. A schedule can run for years while the repo stays active.
+      - text: >-
+          Scheduled workflows run from the newest branch pushed, and that branch has no workflow file.
+        misconception: Thinks schedule runs use the most recent branch instead of the default branch.
+        feedback: >-
+          Scheduled workflows always run the file on the default branch. The newest branch has no
+          say in it.
+
+  - id: q4
+    type: order
+    concept: ci-run-lifecycle
+    source_section: what-a-workflow-is
+    prompt: Put these steps in the order they happen, from `git push` on a pull request branch to a green check.
+    steps:
+      - You push a new commit to the pull request branch.
+      - GitHub sees the `pull_request` event and starts a workflow run.
+      - GitHub gives the job a fresh runner machine.
+      - The checkout step copies your repo onto the runner, and the other steps run in order.
+      - The job finishes with exit code 0 and reports a check named after the job.
+      - The pull request shows the check as green, and the required-check rule is met.
+    explanation: >-
+      The event comes first, then the runner, then the steps. The check only exists after the job
+      reports. A required rule can only be met after that report arrives.
+
+  - id: q5
+    type: blank
+    concept: least-privilege-token
+    source_section: least-privilege-and-concurrency
+    prompt: |
+      Fill in the key that limits what the `GITHUB_TOKEN` can do in this workflow:
+
+      ```yaml
+      ____:
+        contents: read
+      ```
+    answer: permissions
+    explanation: >-
+      `permissions:` sets the access of the `GITHUB_TOKEN`. If you list any permission, every
+      permission you left out becomes `none`. A CI job that only reads code needs
+      `contents: read` and nothing more.
+
+  - id: q6
+    type: single
+    concept: pin-actions-by-sha
+    source_section: a-minimal-python-job-with-uv
+    prompt: >-
+      This repo writes `uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`
+      and not `uses: actions/checkout@v7`. What is the main reason?
+    options:
+      - text: >-
+          A tag can be moved to different code later, but a full commit SHA always means the same
+          code.
+        correct: true
+        feedback: >-
+          Right. If the action's owner is hacked or makes a mistake, a moved tag changes what your
+          CI runs. A SHA does not move. The comment keeps the version readable for people and for
+          Dependabot.
+      - text: A SHA makes the action download faster, so CI is quicker.
+        misconception: Thinks pinning is a speed feature.
+        feedback: >-
+          Pinning does not change speed. It changes how sure you are about which code runs.
+      - text: GitHub refuses to run actions that are referenced by a tag.
+        misconception: Thinks tags are not allowed in `uses:`.
+        feedback: >-
+          Tags work fine. Pinning by SHA is a safer choice, not a rule that GitHub enforces on
+          every repo.
+      - text: Once pinned, you never need to update the action again.
+        misconception: Thinks a pin is a permanent freeze.
+        feedback: >-
+          Pinned actions still need updates for fixes and security. Dependabot opens a pull request
+          that changes both the SHA and the version comment, and your CI checks it.

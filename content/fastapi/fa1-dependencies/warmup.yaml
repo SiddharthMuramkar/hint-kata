@@ -1,0 +1,19 @@
+items:
+  - id: w1
+    prompt: >-
+      A route declares `page: Annotated[dict, Depends(common_filters)]`, and
+      `common_filters(q: str | None = None, skip: int = 0)` returns `{"q": q, "skip": skip}`.
+      A client sends `GET /items/?skip=5`. What do you expect `page` to hold inside the route?
+      Take a guess before you read.
+    note: >-
+      `{"q": None, "skip": 5}`. The dependency's own parameters are filled from the request
+      in the same way as a route's parameters.
+  - id: w2
+    prompt: >-
+      A dependency `get_db` opens a database session, uses `yield` to hand it to the route, and
+      closes it after the `yield`. When do you think the close line runs: before the route,
+      right after the route returns, after the response is sent, or when the server stops?
+      Take a guess before you read.
+    note: >-
+      After the response is sent. That is the default `scope="request"`. Asking for
+      `scope="function"` moves it to right after the route returns.

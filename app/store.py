@@ -65,6 +65,7 @@ class Store(Protocol):
         last_rating: int | None,
     ) -> int: ...
     def get_card(self, user_id: int, item_key: str) -> dict[str, Any] | None: ...
+    def card_by_id(self, user_id: int, card_id: int) -> dict[str, Any] | None: ...
     def due_cards(self, user_id: int, now_iso: str, limit: int = 20) -> list[dict[str, Any]]: ...
     def add_review_log(self, card_id: int, log_json: str) -> int: ...
     def add_chat(
@@ -212,6 +213,9 @@ class SqliteStore:
         return self._one(
             "SELECT * FROM cards WHERE user_id = ? AND item_key = ?", (user_id, item_key)
         )
+
+    def card_by_id(self, user_id: int, card_id: int) -> dict[str, Any] | None:
+        return self._one("SELECT * FROM cards WHERE user_id = ? AND id = ?", (user_id, card_id))
 
     def due_cards(self, user_id: int, now_iso: str, limit: int = 20) -> list[dict[str, Any]]:
         return self._all(

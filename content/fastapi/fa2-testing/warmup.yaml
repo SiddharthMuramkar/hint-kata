@@ -1,0 +1,15 @@
+items:
+  - id: w1
+    prompt: >-
+      You write `client = TestClient(app)` and call `client.get("/fruit/1")`. No server is running on
+      any port. Will the call work? Make a guess and say why.
+    note: >-
+      It works. TestClient calls the app object directly in your Python process, so no server and no
+      port are needed.
+  - id: w2
+    prompt: >-
+      A route uses `Depends(get_db)`, and `get_db` opens a connection to Postgres. How could a test
+      run that route on a laptop that has no Postgres? Jot down one idea.
+    note: >-
+      You can swap `get_db` for a fake, only during the test. FastAPI keeps a dict for this on the
+      app. The reading shows how.

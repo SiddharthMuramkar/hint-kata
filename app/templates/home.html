@@ -7,7 +7,7 @@
   {% if track.lessons %}
   <ul>
     {% for lesson in track.lessons %}
-    <li><a href="/lessons/{{ lesson.id }}">{{ lesson.title }}</a> <span class="muted">({{ lesson.minutes }} min)</span></li>
+    <li><a href="/lessons/{{ lesson.id }}">{{ lesson.title }}</a> <span class="muted">({{ lesson.minutes }} min)</span> <span class="badge {{ mastery[lesson.id] }}">{{ {"notstarted": "Not started", "learning": "Learning", "mastered": "Mastered"}[mastery[lesson.id]] }}</span></li>
     {% endfor %}
   </ul>
   {% else %}
