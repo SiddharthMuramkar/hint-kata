@@ -21,9 +21,9 @@
   async function load() {
     const d = await (await fetch(api)).json();
     items = d.items;
-    i = Math.max(0, items.findIndex((x) => !x.answered));
-    if (items.every((x) => x.answered)) return finish(d);
-    tryNo = 1;
+    i = items.findIndex((x) => !x.answered || x.can_retry);
+    if (i < 0) return finish(d);
+    tryNo = items[i].can_retry ? 2 : 1;
     prev = null;
     render();
   }
@@ -90,6 +90,7 @@
   }
 
   async function submit(item, answer, confidence) {
+    box.querySelectorAll("button").forEach((b) => (b.disabled = true));
     const res = await fetch(`${api}/${item.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
