@@ -1,4 +1,4 @@
-import api  # ty: ignore[unresolved-import]  # the learner's api.py, on PYTHONPATH
+import api  # the learner's api.py, on PYTHONPATH
 import pytest
 from fastapi.testclient import TestClient
 
