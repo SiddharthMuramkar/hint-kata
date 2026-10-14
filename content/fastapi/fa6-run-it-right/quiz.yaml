@@ -1,0 +1,163 @@
+items:
+  - id: q1
+    type: single
+    concept: dev-vs-run-defaults
+    source_section: dev-mode-and-run-mode
+    prompt: >-
+      You compare the two modes of the `fastapi` command. Which statement about their
+      defaults is true?
+    options:
+      - text: >-
+          `fastapi dev` listens on `0.0.0.0`, so your phone can reach it. `fastapi run` listens
+          on `127.0.0.1`, to stay safe.
+        misconception: Mixes up which mode is open to the network.
+        feedback: >-
+          It is the other way round. Dev mode is for you alone, so it listens on `127.0.0.1`,
+          this machine only. Run mode is for servers and containers, so it listens on
+          `0.0.0.0`, every address.
+      - text: >-
+          `fastapi dev` reloads on file changes and listens on `127.0.0.1`. `fastapi run` does
+          not reload and listens on `0.0.0.0`.
+        correct: true
+        feedback: >-
+          Right. Dev mode is built for the person writing the code. Run mode is built for a
+          server: no file watching, and an address that other machines can reach.
+      - text: >-
+          Both listen on `127.0.0.1`. The only difference is that `fastapi dev` reloads.
+        misconception: Thinks the two modes differ only in reload.
+        feedback: >-
+          The address differs too: `fastapi run` listens on `0.0.0.0`. `--host` overrides the
+          default for that run; it does not change what the default is.
+      - text: >-
+          Both reload when files change. `fastapi run` only prints fewer log lines.
+        misconception: Thinks run mode is a quieter dev mode.
+        feedback: >-
+          Run mode has auto-reload off. In our test, an edit to `main.py` changed the reply
+          under `fastapi dev` and did not change it under `fastapi run`.
+  - id: q2
+    type: single
+    concept: fastapi-env
+    source_section: dev-mode-and-run-mode
+    prompt: >-
+      Nothing in your shell sets `FASTAPI_ENV`. You start the app with `uv run fastapi run`.
+      What does `os.environ.get("FASTAPI_ENV")` give inside the app?
+    options:
+      - text: >-
+          `"production"`, because `fastapi run` is production mode.
+        misconception: Thinks run mode sets the variable to production.
+        feedback: >-
+          Only dev mode sets the variable. `fastapi run` leaves it alone. If your app has to
+          know it is in production, you set `FASTAPI_ENV=production` yourself.
+      - text: >-
+          `"development"`, because that is the default when nothing is set.
+        misconception: Thinks `development` is a default for every mode.
+        feedback: >-
+          Dev mode sets `development` when it starts. `fastapi run` does not set any value,
+          so nothing here says `development`.
+      - text: >-
+          `None`. `fastapi run` leaves the variable alone, so it stays unset.
+        correct: true
+        feedback: >-
+          Right. `fastapi dev` sets `development` when the variable has no value yet.
+          `fastapi run` sets nothing, so a name nobody set gives `None`.
+      - text: >-
+          An empty string, because FastAPI creates the variable with no text in it.
+        misconception: Thinks FastAPI always creates the variable.
+        feedback: >-
+          A variable nobody set is not an empty one. `os.environ.get` returns `None` for a
+          name that does not exist.
+  - id: q3
+    type: single
+    concept: import-string
+    source_section: entrypoints-how-the-command-finds-your-app
+    prompt: >-
+      Your project has `backend/__init__.py` and `backend/main.py`. Inside `main.py` the app
+      is a variable called `api`. Which line goes under `[tool.fastapi]` in `pyproject.toml`?
+    options:
+      - text: >-
+          `entrypoint = "backend/main.py:api"`
+        misconception: Writes a file path, with a slash and `.py`.
+        feedback: >-
+          An import string is not a file path. It uses dots between the folder and the module,
+          and no `.py`. Python reads `backend.main` as the file `backend/main.py` inside the
+          package `backend`.
+      - text: >-
+          `entrypoint = "backend.main.api"`
+        misconception: Puts a dot before the variable instead of a colon.
+        feedback: >-
+          The colon is what splits the module from the variable. With dots only, nothing says
+          where the module path ends and the variable name starts.
+      - text: >-
+          `entrypoint = "main:api"`
+        misconception: Leaves out the package.
+        feedback: >-
+          That asks Python for a top-level module called `main`. The file sits inside the
+          package `backend`, so the module path is `backend.main`.
+      - text: >-
+          `entrypoint = "backend.main:api"`
+        correct: true
+        feedback: >-
+          Right. It means `from backend.main import api`: the module path with dots, a colon,
+          then the variable name.
+  - id: q4
+    type: single
+    concept: entrypoint-precedence
+    source_section: entrypoints-how-the-command-finds-your-app
+    prompt: >-
+      `pyproject.toml` has `entrypoint = "main:app"`. You run
+      `uv run fastapi dev --entrypoint other:api`. Which app does the command start?
+    options:
+      - text: >-
+          `other:api`. What you type on the command line wins over `pyproject.toml`.
+        correct: true
+        feedback: >-
+          Right. We tested it, and the flag won. The pyproject entry is the default. A flag or
+          a path argument replaces it for that one run.
+      - text: >-
+          `main:app`, because the pyproject setting always wins over what you type.
+        misconception: Thinks the config file beats the command line.
+        feedback: >-
+          We tested it and the flag won. The pyproject entry is the default, and anything you
+          type replaces it for that run.
+      - text: >-
+          Neither. The command stops because the two entrypoints disagree.
+        misconception: Thinks two entrypoints are a conflict error.
+        feedback: >-
+          There is no clash. The flag replaces the pyproject value for that run, and the
+          command starts `other:api`.
+      - text: >-
+          `main:app` first. It falls back to `other:api` only if `main:app` fails to import.
+        misconception: Thinks the command tries several import strings in turn.
+        feedback: >-
+          It does not try them one after another. It takes one import string, here the flag,
+          and uses it. If that import fails, you get an error.
+  - id: q5
+    type: order
+    concept: new-project-steps
+    source_section: start-a-project-with-uv
+    prompt: >-
+      Put these steps in order, from an empty folder to a running dev server.
+    steps:
+      - "`uv init awesome-project --bare` makes a folder that holds only a `pyproject.toml`"
+      - "`cd awesome-project` moves the terminal into that folder"
+      - "`uv add \"fastapi[standard]\"` makes `.venv`, adds the dependency and writes `uv.lock`"
+      - "With FastAPI now installed, you save a `main.py` that holds `app = FastAPI()` and one route"
+      - "`uv run fastapi dev` finds `main:app` in your `main.py` and starts the server on `127.0.0.1`"
+      - "You open `http://127.0.0.1:8000/docs` in the browser and see the interactive docs"
+    explanation: >-
+      uv has to make the project before it can add anything to it. Once FastAPI is installed,
+      you write the app that imports it. The `fastapi` command comes with the `standard`
+      extra, and it needs your `main.py` to exist, so the run comes after both. The server has
+      to be up before the browser can show its docs page.
+  - id: q6
+    type: blank
+    concept: version-pin
+    source_section: pin-the-version
+    prompt: >-
+      Fill in the blank so uv may install any patch of 0.143 but never 0.144 or newer:
+      `"fastapi[standard]>=0.143.0,____0.144.0"`
+    answer: "<"
+    explanation: >-
+      `>=0.143.0` is the floor and `<0.144.0` is the ceiling. A patch like 0.143.1 fits
+      between them. The next minor, 0.144.0, does not, because `<` leaves it out. `<=` would
+      let 0.144.0 itself in.

@@ -1,0 +1,110 @@
+questions:
+  - id: d1
+    prompt: >-
+      You build an app on your laptop, and later the same app will run on a server. Say which
+      `fastapi` command you use for each job. Then compare the two commands on three points:
+      auto-reload, the address each one listens on, and what each one does to `FASTAPI_ENV`.
+      Finish with one real problem you would hit if you swapped the commands.
+    rubric:
+      - name: right-command-for-each-job
+        explanation: >-
+          The answer uses `fastapi dev` for work on the laptop and `fastapi run` for the
+          server or a container.
+        pass_anchor: >-
+          "I use `fastapi dev` while I write code, and `fastapi run` on the server or in a container."
+        fail_anchor: >-
+          "I use `fastapi run` on my laptop and `fastapi dev` on the server", or "they are the same, so I pick either."
+      - name: reload-and-address
+        explanation: >-
+          The answer says dev mode reloads and listens on `127.0.0.1` (this machine only),
+          while run mode does not reload and listens on `0.0.0.0` (every address).
+        pass_anchor: >-
+          "Dev reloads when I save a file and listens on 127.0.0.1. Run has no reload and listens on 0.0.0.0."
+        fail_anchor: >-
+          "Both listen on 127.0.0.1", or "run is the one that reloads."
+      - name: fastapi-env-behaviour
+        explanation: >-
+          The answer says dev mode sets `FASTAPI_ENV` to `development` only if it has no value
+          yet, and run mode leaves it alone, so production code has to set it itself.
+        pass_anchor: >-
+          "Dev sets FASTAPI_ENV to development unless it already has a value. Run does not set it, so on the server I set production myself."
+        fail_anchor: >-
+          "Run sets FASTAPI_ENV to production for me", or "dev mode always overwrites the value."
+      - name: swap-problem
+        explanation: >-
+          The answer names one real problem with swapping. Dev mode on a server keeps a heavier
+          reloader running. Run mode on a laptop has no reload, so every edit needs a restart,
+          and it listens on every address, so others on the network can reach it.
+        pass_anchor: >-
+          "If I used run on my laptop I would restart it after every edit, and it would be open to everyone on my network."
+        fail_anchor: >-
+          "Nothing would change, they are the same", or "dev mode is slower because it prints more."
+    model_answer: >-
+      On the laptop I use `fastapi dev`. On the server, or in a container, I use `fastapi run`.
+      Dev mode has auto-reload on, so it restarts the app when I save a file, and it listens on
+      `127.0.0.1`, which means only my own machine can connect. Run mode has reload off and
+      listens on `0.0.0.0`, which means every address, so other machines can connect. For
+      `FASTAPI_ENV`, dev mode sets it to `development`, but only if it has no value yet. Run
+      mode leaves it alone, so if the server code needs to know it is in production, I set
+      `FASTAPI_ENV=production` myself. If I swapped them, I would hit real problems.
+      `fastapi run` on the laptop has no reload, so I restart it after every edit, and it is
+      open to other machines on my network. `fastapi dev` on a server keeps a reloader
+      running, which costs resources and can be less stable.
+    hints:
+      - Which of the two commands is meant for you while you code, and which for a server?
+      - The lesson has a table of defaults. Which rows does the question ask about, and what goes wrong if the defaults sit on the wrong machine?
+  - id: d2
+    prompt: >-
+      A new teammate clones your repo. The app is the variable `api` in `backend/main.py`, and
+      `backend` is a package. Their plain `uv run fastapi dev` must start it, and installs must
+      never move FastAPI to 0.144. Write the two things you put in `pyproject.toml`. Explain
+      what the first one means. Then give one reason it beats typing the path every time, and
+      one reason you cap the FastAPI version.
+    rubric:
+      - name: entrypoint-line
+        explanation: >-
+          The answer writes `entrypoint = "backend.main:api"` under `[tool.fastapi]`: dots for
+          the module path, a colon, then the variable name.
+        pass_anchor: >-
+          "`[tool.fastapi]` with `entrypoint = "backend.main:api"`, which means `from backend.main import api`."
+        fail_anchor: >-
+          "`entrypoint = "backend/main.py"`", or "`entrypoint = "main:app"`."
+      - name: why-pyproject
+        explanation: >-
+          The answer gives a true reason pyproject beats typing the path. It is written once in
+          the repo, so everyone starts the app the same way, or other tools such as the VS Code
+          extension can find the app.
+        pass_anchor: >-
+          "It lives in the repo, so my teammate does not have to remember a path or a flag, and tools like the VS Code extension can find the app too."
+        fail_anchor: >-
+          "It makes the app run faster", or "the command line cannot take a path."
+      - name: pin-range
+        explanation: >-
+          The answer writes a FastAPI dependency with a lower bound and an upper limit that
+          leaves out 0.144, such as `fastapi[standard]>=0.143.0,<0.144.0`.
+        pass_anchor: >-
+          "`fastapi[standard]>=0.143.0,<0.144.0` under dependencies, so 0.143.1 is fine and 0.144.0 is not."
+        fail_anchor: >-
+          "`fastapi>=0.143.0`, which allows 0.144 and later", or "`fastapi` with no version at all."
+      - name: why-cap-the-minor
+        explanation: >-
+          The answer says why: FastAPI is still below 1.0, so a minor release can bring
+          breaking changes, while a patch is for bug fixes.
+        pass_anchor: >-
+          "FastAPI is below 1.0, so going from 0.143 to 0.144 may break my code. I only move up after my tests pass."
+        fail_anchor: >-
+          "Newer versions are always slower", or "uv cannot install the latest one."
+    model_answer: >-
+      Under `[tool.fastapi]` I write `entrypoint = "backend.main:api"`. That is an import
+      string: the module path `backend.main` with dots, a colon, then the variable name `api`.
+      It means the same as `from backend.main import api`. Under `[project]` I list the
+      dependency `fastapi[standard]>=0.143.0,<0.144.0`, so 0.143.1 is allowed and 0.144.0 is
+      not. The entry in pyproject beats typing the path because it lives in the repo. My
+      teammate runs plain `uv run fastapi dev` and it works, and tools such as the VS Code
+      extension can find the app too, which a path typed in one terminal cannot offer. I cap
+      the version because FastAPI is still below 1.0. A new minor like 0.144 can bring
+      breaking changes, and patches are bug fixes. I move the cap up on purpose, after my
+      tests pass.
+    hints:
+      - The first thing is an import string. Which punctuation goes between the module path and the variable name, and which table in pyproject holds it?
+      - The second thing is a version range. Which two bounds keep patches in and the next minor out, and why does a version that starts with 0 matter?
