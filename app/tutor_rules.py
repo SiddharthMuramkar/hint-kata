@@ -16,6 +16,7 @@ LADDER = [
 
 _FENCE = re.compile(r"(`{3,}|~{3,})[^\n]*\n.*?(?:\1|\Z)", re.DOTALL)
 _CITATION = re.compile(r"\[§([a-z0-9-]+)\]")
+_SOURCE = re.compile(r"\[src:([^\]\n]*)\]")
 
 
 def compute_ceiling(attempts_on_lesson: int, active_quiz: bool, revealed: bool) -> int:
@@ -43,6 +44,22 @@ def validate_citations(text: str, section_ids: set[str]) -> tuple[str, list[str]
         return m[0]
 
     return _CITATION.sub(keep, text), found
+
+
+def validate_sources(text: str, n_sources: int) -> tuple[str, list[int]]:
+    """Drop every `[src:...]` marker that is not a number from 1 to `n_sources` (the docs chunks
+    given to the tutor this turn); return the ordered valid numbers. With 0 it drops all of them."""
+    valid = {str(n) for n in range(1, n_sources + 1)}
+    found: list[int] = []
+
+    def keep(m: re.Match[str]) -> str:
+        if m[1] not in valid:
+            return ""
+        if int(m[1]) not in found:
+            found.append(int(m[1]))
+        return m[0]
+
+    return _SOURCE.sub(keep, text), found
 
 
 def no_progress(history: list[dict[str, Any]]) -> bool:

@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]  # repo root; keeps paths cwd-indepen
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
 
     openrouter_api_key: str = ""
     tutor_model: str = "openrouter:anthropic/claude-haiku-5.5"
@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     judge_model: str = "openrouter:anthropic/claude-sonnet-5.5"
     embed_model: str = "openrouter:openai/text-embedding-3-small"
     embed_dims: int = 1536  # must equal the chunks.embedding column in app/pg_schema.sql
+    rag_enabled: bool = True  # false: the tutor uses the lesson text only
+    rag_k: int = 6  # docs chunks the tutor gets per turn
     openrouter_zdr: bool = False
     openrouter_app_title: str = "hint-kata"
     hintkata_db_path: str = "data/hintkata.db"

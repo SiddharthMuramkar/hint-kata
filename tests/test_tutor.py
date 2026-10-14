@@ -19,6 +19,7 @@ from app.tutor_rules import (
     compute_ceiling,
     no_progress,
     validate_citations,
+    validate_sources,
 )
 
 models.ALLOW_MODEL_REQUESTS = False
@@ -57,6 +58,24 @@ def test_validate_citations_drops_unknown_and_keeps_order() -> None:
     text, ids = validate_citations("[§b] x [§zzz] [§a] [§b]", {"a", "b"})
     assert ids == ["b", "a"]
     assert "zzz" not in text and "[§a]" in text
+
+
+@pytest.mark.parametrize(
+    ("text", "n", "kept", "ids"),
+    [
+        ("a [src:1] b [src:2]", 2, "a [src:1] b [src:2]", [1, 2]),
+        ("a [src:9] b [src:1]", 2, "a  b [src:1]", [1]),  # out of range: dropped
+        ("[src:2] [src:1] [src:2]", 3, "[src:2] [src:1] [src:2]", [2, 1]),  # first-use order
+        ("[src:0] [src:-1] [src:01] [src:1.0]", 5, "   ", []),  # only 1..n exactly
+        ("[src:1,2] [src:x] [src:] [src: 1]", 5, "   ", []),  # not a single number
+        ("see [src:1] and [§a]", 0, "see  and [§a]", []),  # no docs this turn: all dropped
+        ("[src:1\n2] [src:99999999999999999999]", 3, "[src:1\n2] ", []),  # no newline; huge number
+    ],
+)
+def test_validate_sources_keeps_only_numbers_given_this_turn(
+    text: str, n: int, kept: str, ids: list[int]
+) -> None:
+    assert validate_sources(text, n) == (kept, ids)
 
 
 def test_no_progress() -> None:
