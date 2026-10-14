@@ -16,10 +16,12 @@ from app.deps import get_store, get_user_id
 from app.mastery import log_config, refresh
 from app.review import due_items
 from app.routes.check import router as check_router
+from app.routes.deeper import router as deeper_router
 from app.routes.quiz import router as quiz_router
 from app.routes.review import router as review_router
 from app.routes.review import templates
 from app.routes.trace import router as trace_router
+from app.routes.tutor import router as tutor_router
 from app.store import Store, open_store
 
 HERE = Path(__file__).parent
@@ -53,6 +55,8 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(trace_router)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 app.include_router(check_router)
+app.include_router(tutor_router)
+app.include_router(deeper_router)
 app.include_router(quiz_router)
 app.include_router(review_router)
 

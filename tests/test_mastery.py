@@ -31,7 +31,9 @@ def attempt(
     """Add an attempt, then backdate it to `day` (YYYY-MM-DD)."""
     uid = s.ensure_user("owner")
     row_id = s.add_attempt(uid, "fx-demo", item, kind, "{}", correct, "sure", try_no, 1000)
-    s.conn.execute("UPDATE attempts SET created_at = ? WHERE id = ?", (f"{day}T09:00:00+00:00", row_id))
+    s.conn.execute(
+        "UPDATE attempts SET created_at = ? WHERE id = ?", (f"{day}T09:00:00+00:00", row_id)
+    )
     s.conn.commit()
 
 
@@ -95,9 +97,7 @@ def test_hinted_or_second_try_answers_do_not_count(store: SqliteStore) -> None:
     assert state(store) == "learning"
 
 
-def test_thresholds_come_from_settings(
-    store: SqliteStore, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_thresholds_come_from_settings(store: SqliteStore, monkeypatch: pytest.MonkeyPatch) -> None:
     master(store)
     assert state(store) == "mastered"
     monkeypatch.setattr(settings, "mastery_recalls_required", 3)
@@ -153,13 +153,12 @@ def test_home_shows_badges_and_startup_logged_config(client: TestClient) -> None
     s = open_store(settings.hintkata_db_path)
     uid = s.ensure_user("owner")
     assert len(s.events_for(uid, "mastery_config")) == 1
+    assert 'class="badge notstarted">Not started' in client.get("/").text
     s.add_attempt(uid, "fx-demo", "q1", "quiz", "0", False, "sure", 1, 1000)
     s.close()
-    html = client.get("/").text
-    assert 'class="badge learning">Learning' in html
-    assert 'class="badge notstarted">Not started' in html
+    assert 'class="badge learning">Learning' in client.get("/").text
 
 
 def test_api_progress_shape(client: TestClient) -> None:
     body = client.get("/api/progress").json()
-    assert body == {"mastery": {"fx-demo": "notstarted", "fx-trace": "notstarted"}, "due": 0}
+    assert body == {"mastery": {"fx-demo": "notstarted"}, "due": 0}

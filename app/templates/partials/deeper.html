@@ -1,0 +1,18 @@
+{% if lesson.deeper %}
+<section id="deeper" class="card" data-lesson="{{ lesson_id }}">
+  <h2>Think deeper</h2>
+  <p class="muted">Answer in your own words. You get 3 tries; each is graded against a rubric.</p>
+  {% for q in lesson.deeper %}
+  <div class="deeper-q" data-question="{{ q.id }}">
+    <p><strong>{{ q.prompt }}</strong></p>
+    <textarea rows="5" maxlength="4000" aria-label="Your answer"></textarea>
+    <p>
+      <button type="button" class="submit">Submit</button>
+      <button type="button" class="revise" hidden>Revise</button>
+    </p>
+    <div class="result" aria-live="polite"></div>
+  </div>
+  {% endfor %}
+</section>
+<script src="/static/js/deeper.js" defer></script>
+{% endif %}
