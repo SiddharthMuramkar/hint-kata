@@ -3,10 +3,11 @@ questions:
     prompt: >-
       A repo has many pull requests open at the same time, and a ruleset with the required check
       `checks`. A teammate wants to turn on "Require branches to be up to date before merging" (the
-      strict policy). Explain what strict mode changes for a pull request, what it gains you, what
-      it costs when many pull requests are open (include what happens to auto-merge), and which mode
-      you would choose here, with a reason. If you pick non-strict, say how you would still notice a
-      bad combination of two pull requests.
+      strict policy). Explain what strict mode requires of a pull request, what it costs when many
+      pull requests are open, what happens to a pull request that has auto-merge armed when its
+      branch is behind `main`, and how a bad mix of two pull requests that were each green is
+      stopped or noticed under the mode you choose. Then say which mode you would choose for this
+      repo, with a reason.
     rubric:
       - name: what-strict-requires
         explanation: The answer says what strict mode demands of a pull request branch.
@@ -16,45 +17,53 @@ questions:
         fail_anchor: >-
           Says strict mode means "more checks", "stricter tests" or "approvals needed", or does not
           mention the branch being up to date.
-      - name: what-strict-gains
-        explanation: The answer names the benefit of strict mode.
-        pass_anchor: >-
-          Says the code that was tested is the code that lands, so two pull requests that are green
-          on their own cannot clash after they are merged.
-        fail_anchor: >-
-          Names no benefit, or says strict mode makes the checks run faster or removes the need for
-          tests on `main`.
       - name: what-strict-costs
-        explanation: >-
-          The answer explains the cost with many open pull requests, including the effect on
+        explanation: The answer names the cost of strict mode when many pull requests are open.
+        pass_anchor: >-
+          Says every merge puts the other open pull requests behind `main`, so each must be brought
+          up to date and checked again.
+        fail_anchor: >-
+          Says only that it is "slower" or "annoying", or names no cost.
+      - name: auto-merge-waits
+        explanation: The answer knows what happens to an armed auto-merge on a branch that is behind.
+        pass_anchor: >-
+          Says an armed auto-merge does not merge a pull request that is behind `main` under
+          strict mode. It waits until someone brings the branch up to date.
+        fail_anchor: >-
+          Says auto-merge updates the branch by itself, or merges anyway, or does not mention
           auto-merge.
+      - name: how-clashes-are-caught
+        explanation: >-
+          The answer says how two pull requests that are each green on their own are kept from
+          breaking each other unseen.
         pass_anchor: >-
-          Says each merge puts the other open pull requests behind `main`, so each must be updated
-          and its CI run again, and that auto-merge waits until the branch is brought up to date.
+          Says strict mode blocks the clash before the merge because the tested code is the code
+          that lands, or says that without strict mode CI running on every push to `main` shows it
+          right after the merge.
         fail_anchor: >-
-          Says only that it is "slower" or "annoying", or says auto-merge updates the branch by
-          itself.
-      - name: choice-and-safety-net
-        explanation: The answer makes a decision, ties it to the situation, and names a safety net.
+          Says there is no risk without strict mode, or says nothing about how a clash would be
+          stopped or noticed.
+      - name: choice-with-reason
+        explanation: The answer makes a decision and ties it to the situation.
         pass_anchor: >-
-          Picks one mode with a reason that fits many open pull requests, and for non-strict names
-          a safety net such as CI also running on every push to `main`, or accepts the risk on
-          purpose. A strict choice that accepts the extra CI cost also passes.
+          Picks strict or non-strict and gives a reason that fits many pull requests open at once,
+          such as saving CI runs or preferring safety.
         fail_anchor: >-
-          Gives no choice, or a choice with no reason, or picks non-strict and says there is no
-          risk at all.
+          Gives no choice, or a choice with no reason, or a reason that has nothing to do with the
+          repo.
     model_answer: >-
       Strict mode means a pull request can only merge when its branch already contains the latest
       `main`. If `main` has moved on, the pull request is behind and blocked until someone merges or
       rebases `main` into it, for example with `gh pr update-branch`, and the checks run again. The
-      gain is that what you tested is exactly what lands, so two pull requests that were green on
-      their own cannot break each other after both merge. The cost shows up when many pull requests
-      are open. Every merge puts all the others behind, so each one needs an update and a full CI
-      run again. Auto-merge does not update the branch for you, so an armed pull request just
-      waits until someone brings `main` in. For a repo like this one, with several pull requests in
-      flight, I would choose non-strict. It saves a lot of CI runs. The price is a small chance that
-      two green pull requests clash once both are in. I would cover that by running the same CI on
-      every push to `main`, so a bad combination shows up right after the merge and I can revert it.
+      cost shows up when many pull requests are open. Every merge puts all the others behind, so
+      each one needs an update and a full CI run again. Auto-merge does not update the branch for
+      you, so an armed pull request just waits until someone brings `main` in. The gain is that what
+      you tested is exactly what lands, so two pull requests that were green on their own cannot
+      break each other after both merge. Without strict mode that risk is real, but I can cover it
+      by running the same CI on every push to `main`, so a bad combination shows up right after the
+      merge and I can revert it. For a repo like this one, with several pull requests in flight, I
+      would choose non-strict. It saves a lot of CI runs, and the push-to-`main` run is my safety
+      net.
     hints:
       - After one pull request merges, what has changed for every other open pull request?
       - Does arming auto-merge change the fact that the branch is behind `main`?
@@ -84,21 +93,27 @@ questions:
         fail_anchor: >-
           Blames the code or the CI run, or says the new check is "failing", when the problem is
           the name mismatch.
-      - name: both-fixes
-        explanation: The answer gives a working fix for each pull request.
+      - name: fix-the-rename
+        explanation: The answer fixes the name mismatch.
         pass_anchor: >-
-          For the name, makes the job name and the ruleset `context` match (change the ruleset to
-          `unit-tests` or rename the job back). For the filter, stops requiring a workflow that can
-          be skipped: lets the workflow always start and puts the condition on a job, or stops
-          requiring that check.
+          Makes the job name and the ruleset `context` match, by changing the ruleset to
+          `unit-tests` or by renaming the job back to `tests`.
         fail_anchor: >-
-          Offers only one of the two fixes, or suggests merging around the rule, or suggests
-          adding a bypass actor.
+          Suggests merging around the rule, adding a bypass actor, or re-running the failed job,
+          without making the two names match.
+      - name: fix-the-filter
+        explanation: The answer fixes the path-filter problem in a way that works.
+        pass_anchor: >-
+          Stops requiring a workflow that can be skipped: removes the filter so the workflow always
+          starts and puts the condition on a job inside it, or stops requiring that check.
+        fail_anchor: >-
+          Only says to edit a file in `src/` to trigger the workflow, or suggests merging around
+          the rule or adding a bypass actor.
       - name: skipped-job-catch
         explanation: The answer knows what a skipped job reports.
         pass_anchor: >-
           Says that a job skipped by an `if:` condition reports success, so it passes the rule even
-          though its steps never ran, and so the condition must be written with care.
+          though its steps never ran.
         fail_anchor: >-
           Says a skipped job keeps the pull request waiting or counts as a failure, or names no
           catch at all.

@@ -122,7 +122,12 @@ gh pr create --fill
 gh pr checks --watch --required
 ```
 
-   If `gh` says there are no required checks reported yet, wait ten seconds and run it again. The run needs a moment to start. At the end `checks` shows `fail`, and the command exits with code 1.
+   Right after you open the pull request, `gh` may print one of two messages. They mean different things:
+
+   - `no checks reported on the '<branch>' branch` means the run has not started yet. Wait ten seconds and run the command again.
+   - `no required checks reported on the '<branch>' branch` means checks exist, but none of them counts as required. The usual cause is the name mismatch from the lesson: the name in the rule matches no check that was posted. Go back to step 2 and compare the `context` in the rule with the name of your job, `checks`, letter by letter.
+
+   When it works, `checks` ends with `fail`, and the command exits with code 1.
 
 6. Look at the block. Try a normal merge and read the refusal:
 

@@ -2,7 +2,7 @@
 id: gh7-status-checks-and-auto-merge
 track: github
 title: "Status checks, required checks and auto-merge"
-minutes: 25
+minutes: 30
 pins:
   gh: "2.102"
 sources:
@@ -31,7 +31,7 @@ There are two kinds:
 
 GitHub Actions posts checks, never commit statuses. A rule can require either kind. If a check and a commit status share a name, both must pass. ([Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks))
 
-Here are the check runs on this repo's `main`. The command is read-only, so you can run it yourself:
+Here are the check runs on this repo's `main` at the time of writing. The command is read-only, so you can run it yourself. The list changes over time, so yours may show more rows:
 
 ```bash
 gh api repos/siddharth-0044/hint-kata/commits/main/check-runs --jq '.check_runs[] | [.name, .app.slug, .conclusion] | @tsv'
@@ -39,9 +39,10 @@ gh api repos/siddharth-0044/hint-kata/commits/main/check-runs --jq '.check_runs[
 
 ```text
 checks                           github-actions   success
+update-pip-graph                 github-actions   success
 Analyze (javascript-typescript)  github-actions   success
-Analyze (actions)                github-actions   success
 Analyze (python)                 github-actions   success
+Analyze (actions)                github-actions   success
 ```
 
 Each row has a name, the app that posted it, and a result. Three facts follow from it.
@@ -109,7 +110,7 @@ A check only blocks a merge when a rule says it must pass. In a ruleset, that ru
 ```
 
 - **`context`** is the check name. The match is exact.
-- **`integration_id`** is the app that must post the check. `15368` is the GitHub Actions app. You can look it up with `gh api /apps/github-actions --jq .id`. The field is optional, and the web form calls that choice "any source". With an app named, a check with the same name from another app is refused, so a person with write access cannot post a fake `checks` result. ([Available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets))
+- **`integration_id`** is the app that must post the check. `15368` is the GitHub Actions app. You can look it up with `gh api /apps/github-actions --jq .id`. The field is optional. If you leave it out, the rule accepts a check with that name from any source. With an app named, a check with the same name from another app is refused, so a person with write access cannot post a fake `checks` result. ([Available rules for rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets))
 - **`strict_required_status_checks_policy`** is the next section.
 - **`do_not_enforce_on_create`** is an extra switch that this lesson leaves at `false`.
 
@@ -138,7 +139,7 @@ The docs call the two modes "strict" and "loose". In the API it is the true or f
 
 With strict mode, `gh pr merge` refuses a branch that is behind and says the head branch is not up to date with the base branch. Auto-merge waits too. You bring `main` in yourself. The docs say to merge or rebase the base branch into yours. `gh pr update-branch` does the merge, and `gh pr update-branch --rebase` does the rebase.
 
-One more detail from the docs: if you tick the up-to-date box, you must also list at least one check, or the box does nothing.
+One note about the web form, from the [Creating rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository) page: if you select the up-to-date box, you must also define a check for the protection to take effect.
 
 ## Watching checks from the terminal
 
@@ -165,7 +166,7 @@ $ gh pr checks --required
 checks                           pass   4m30s
 ```
 
-The exit code tells a script what happened: `0` when everything passed, `1` when a check failed, `8` while a check is still pending (the help text of `gh pr checks` lists the `8`). If the pull request has no required check reported at all, `--required` stops with the message "no required checks reported".
+The exit code tells a script what happened: `0` when everything passed, `1` when a check failed, `8` while a check is still pending (the help text of `gh pr checks` lists the `8`). Two error messages are worth knowing. "no checks reported on the '<branch>' branch" means no run has posted anything yet, so wait a few seconds. "no required checks reported on the '<branch>' branch" means checks do exist, but none of them counts as required. The usual cause is the name mismatch from the section above: the name in the rule matches no check that was posted.
 
 ## Auto-merge
 
@@ -173,7 +174,7 @@ Auto-merge means: merge this pull request for me as soon as every rule is met. I
 
 **Three conditions.**
 
-- The repository must allow it. In Settings, tick **Allow auto-merge**, or run `gh repo edit --enable-auto-merge`. The API field is `allow_auto_merge`.
+- The repository must allow it. Turn it on in the repo's settings, or run `gh repo edit --enable-auto-merge`. The API field is `allow_auto_merge`.
 - You need write access to turn it on for a pull request.
 - It is offered only on a pull request that cannot be merged yet, for example because a required check is still running.
 

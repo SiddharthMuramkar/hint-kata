@@ -124,8 +124,8 @@ items:
       The repo allows auto-merge, deletes head branches on merge, and requires the check `checks`.
       Put these steps in the order they happen.
     steps:
-      - "You push your commit and arm auto-merge with `gh pr merge --auto --squash`."
-      - "GitHub Actions starts the workflow, and the `checks` job runs."
+      - "You push your commit, and GitHub Actions starts the `checks` job."
+      - "While `checks` is still running, you arm auto-merge with `gh pr merge --auto --squash`."
       - "The `checks` job ends with the conclusion `success`, so the required check passes."
       - "GitHub sees that every rule is met and squash-merges the pull request."
       - "The repo setting deletes the pull request's branch on GitHub."
