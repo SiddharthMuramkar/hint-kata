@@ -1,10 +1,9 @@
 """Calibrate the grader against owner-labelled answers. Costs real tokens: never run in CI.
 
-uv run python evals/run_grader.py
+uv run python -m evals.run_grader
 """
 
 import asyncio
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -15,14 +14,12 @@ from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 from pydantic_evals.evaluators.llm_as_a_judge import set_default_judge_model
 
-ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT))  # run as a script: put the repo root on the path
+from app.agents.grader import grade_answer
+from app.config import settings
+from app.content import DeeperQuestion, load_lessons
 
-from app.agents.grader import grade_answer  # noqa: E402
-from app.config import settings  # noqa: E402
-from app.content import DeeperQuestion, load_lessons  # noqa: E402
-
-FIXTURES = ROOT / "tests" / "fixtures" / "content"
+HERE = Path(__file__).parent
+FIXTURES = HERE.parent / "tests" / "fixtures" / "content"
 
 
 def kappa(pairs: list[tuple[bool, bool]]) -> float:
@@ -52,7 +49,7 @@ def load_question() -> DeeperQuestion:
 
 
 def build_dataset() -> Dataset[str, dict[str, bool], None]:
-    raw = yaml.safe_load((Path(__file__).with_name("grader_dataset.yaml")).read_text())
+    raw = yaml.safe_load((HERE / "grader_dataset.yaml").read_text(encoding="utf-8"))
     return Dataset(
         name="grader-calibration",
         cases=[
@@ -68,7 +65,7 @@ async def main() -> None:
     question = load_question()
 
     async def task(answer: str) -> dict[str, bool]:
-        outcome = await grade_answer(question, answer, 1)
+        outcome = await grade_answer(question, answer)
         return {c.name: c.met for c in outcome.criteria}
 
     dataset = build_dataset()

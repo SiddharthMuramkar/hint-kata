@@ -17,7 +17,7 @@
       const mark = c.met ? "✓" : c.uncertain ? "?" : "✗";
       const li = el("li", mark + " " + c.name + (c.uncertain ? " (not sure)" : ""));
       if (c.evidence) li.append(el("div", "“" + c.evidence + "”", "muted"));
-      if (c.feedback_hint) li.append(el("div", "Hint: " + c.feedback_hint));
+      if (c.hint) li.append(el("div", "Hint: " + c.hint));
       ul.append(li);
     }
     out.append(ul);

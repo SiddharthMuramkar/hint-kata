@@ -3,7 +3,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from app.agents.grader import GradeOutcome, grade_answer
+from app.agents.grader import MAX_ANSWER_CHARS, GradeOutcome, grade_answer
 from app.content import DeeperQuestion
 from app.deps import get_store, get_user_id
 from app.store import Store
@@ -44,16 +44,20 @@ async def post_deeper(
     user_id: Annotated[int, Depends(get_user_id)],
 ) -> dict[str, Any]:
     q = _question(request, lesson_id, question_id)
-    attempt_no = len(store.grades_for(user_id, lesson_id, question_id)) + 1
-    if attempt_no > MAX_ATTEMPTS:
+    rows = store.grades_for(user_id, lesson_id, question_id)
+    attempt_no = len(rows) + 1
+    if attempt_no > MAX_ATTEMPTS or (
+        rows and GradeOutcome.model_validate_json(rows[-1]["result_json"]).all_met
+    ):
         raise HTTPException(status_code=409, detail="No attempts left")
-    outcome = await grade_answer(q, body.answer, attempt_no)
+    answer = body.answer[:MAX_ANSWER_CHARS]
+    outcome = await grade_answer(q, answer)
     store.add_grade(
         user_id,
         lesson_id,
         question_id,
         attempt_no,
-        body.answer,
+        answer,
         outcome.model_dump_json(),
         outcome.flagged,
     )
