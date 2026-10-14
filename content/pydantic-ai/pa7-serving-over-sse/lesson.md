@@ -67,7 +67,7 @@ async def chat(body: ChatIn) -> AsyncIterable[ServerSentEvent]:
 - The endpoint is a **generator**: it uses `yield`. Each `yield` is one event. The docs add that a plain `def` generator works too, and that FastAPI runs it so the event loop is not blocked.
 - `ServerSentEvent(event=..., data=...)` sets the name and the payload.
 
-SSE works with **any HTTP method**, so a `POST` with a JSON body is fine. The [docs show it](https://fastapi.tiangolo.com/tutorial/server-sent-events/#sse-with-post). This matters for chat, because the message goes in the body.
+Nothing ties SSE to `GET` on the server. A `POST` route with a JSON body works, and the docs have a [`POST` example](https://fastapi.tiangolo.com/tutorial/server-sent-events/#sse-with-post). That matters for chat, because the message goes in the body.
 
 Three details we checked.
 
@@ -92,7 +92,7 @@ async def chat(body: ChatIn) -> AsyncIterable[ServerSentEvent]:
     yield ServerSentEvent(event="done", data="".join(parts))
 ```
 
-The generator pauses at each `yield` until FastAPI has sent the event. The run stays open while the client reads. When the loop ends, the generator sends a last event and ends. FastAPI then closes the response.
+FastAPI pulls one event at a time from the generator and writes it out. The generator does not wait for the browser to read the event. The agent run stays open until the loop ends. Then the generator sends a last event and ends, and FastAPI closes the response. If the browser leaves, the generator is cancelled.
 
 On a scripted model, this is what the client read (observed):
 
@@ -143,7 +143,7 @@ Errors need a plan. The status is already `200`, so you send the failure as an e
 Observed, on a live server, when a model fails after two chunks:
 
 - **With the `try`/`except`:** the client got two `token` events, then one `error` event. The status was `200`.
-- **Without it:** the client got `200` and then a cut connection. `httpx` raised `RemoteProtocolError`, and in Node 24 `reader.read()` rejected with a `TypeError`. Browsers should raise a similar network error (not tested). No `error` event arrives, because FastAPI does not make one for you.
+- **Without it:** the client got `200` and then a cut connection. `httpx` raised `RemoteProtocolError`. The `tutor.js` loop, run in Node 24, behaved differently. After the two `token` events it simply ended with `done: true`, as if the reply were finished (5 runs out of 5). The page cannot tell a cut stream from a finished one. No `error` event arrives, because FastAPI does not make one for you, and that is the case for sending one yourself. (When the route failed before it sent any event, `reader.read()` rejected with a `TypeError` instead. We did not test a real browser.)
 
 Mistakes in the request itself are different. FastAPI checks the body before the stream starts, so a bad body is a normal answer. Observed: a `422` with `application/json`. The browser code must look at the status before it starts reading events.
 
@@ -153,7 +153,7 @@ You write none of this. FastAPI does it for you. The [docs list three things](ht
 
 - **`Cache-Control: no-cache`** so nothing stores the stream. Observed in the response headers.
 - **`X-Accel-Buffering: no`** so proxies such as Nginx do not hold the events back. Observed.
-- **A `: ping` comment every 15 seconds** when nothing was sent. The docs say it keeps proxies from closing a quiet connection. That matters for agents, because a model may think for a while before the first token.
+- **A keep-alive line, `: ping`.** After 15 seconds with nothing sent, FastAPI writes this comment line into the stream. Its job, per the docs, is to stop some proxies from dropping a connection that looks idle. That matters for agents, because a model may think for a while before the first token.
 
 The response also carried `Content-Type: text/event-stream; charset=utf-8` (observed).
 
@@ -170,7 +170,7 @@ A reader must skip blocks that have no `data:`. The next section shows where the
 
 The browser has `EventSource`, an API made for SSE. It reconnects by itself. But `new EventSource(url)` takes a URL and one option (`withCredentials`), so it always sends a `GET` with no body ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/EventSource) describes it; this point is not in our sources). A chat message needs a `POST` body. So the page uses `fetch` and reads the response body as a stream.
 
-The reader is in `app/static/js/tutor.js`. The file has 112 lines, because it also draws chat bubbles, loads the history and handles the reveal button. The streaming core is the `try ... finally` block inside the submit handler. It is about 35 lines. This is its heart:
+The reader is in `app/static/js/tutor.js`. The file is over 100 lines long, because it also draws chat bubbles, loads the history and handles the reveal button. The streaming core is the `try ... finally` block inside the submit handler. It is about 35 lines. This is its heart:
 
 ```javascript
 const res = await fetch(base, {
@@ -247,7 +247,7 @@ Observed, with the same 0.4 second gaps: the four `token` events arrived at 0.46
 
 ## Other ways to serve an agent
 
-You do not always have to write the route. Pydantic AI has **UI adapters** that parse the request, run the agent and encode the events for a protocol your frontend already speaks. `VercelAIAdapter` speaks the Vercel AI Data Stream Protocol and `AGUIAdapter` speaks AG-UI. In FastAPI you call `VercelAIAdapter.dispatch_request(request, agent=agent)` from your endpoint. The [UI Event Streams](https://pydantic.dev/docs/ai/integrations/ui/overview/) page explains the choices. `Agent.to_web()` is different. It returns a small chat web app so you can try an agent in a browser. The [Web Chat UI page](https://pydantic.dev/docs/ai/guides/web/) says it is meant for local development and debugging, not for production. A hand-written route, like the one in this lesson, is the choice when you want to decide the events yourself.
+You do not always have to write the route. Pydantic AI has **UI adapters** that parse the request, run the agent and encode the events for a protocol your frontend already speaks. `VercelAIAdapter` speaks the Vercel AI Data Stream Protocol and `AGUIAdapter` speaks AG-UI. In FastAPI you call `VercelAIAdapter.dispatch_request(request, agent=agent)` from your endpoint. The [UI Event Streams](https://pydantic.dev/docs/ai/integrations/ui/overview/) page explains the choices. `Agent.to_web()` is different. It returns a small Starlette app with a chat page, so you can talk to an agent in a browser. The [Web Chat UI page](https://pydantic.dev/docs/ai/guides/web/) presents it as a tool for working on your agent on your own machine, and it points to the UI adapters for production. A hand-written route, like the one in this lesson, is the choice when you want to decide the events yourself.
 
 ## How the tutor route does it
 
@@ -256,10 +256,10 @@ The tutor on this site is the route you just built, with more rules. The code is
 1. **The route** is `POST /api/tutor/{lesson_id}`. It has `response_class=EventSourceResponse` and returns `AsyncIterable[ServerSentEvent]`. FastAPI looks up the lesson, the store and the user before the stream starts, so an unknown lesson is a plain `404`.
 2. **The run** is `async with get_tutor().run_stream(...)` and `async for delta in result.stream_text(delta=True)`. The route keeps every delta in a list. It does not pass `debounce_by`.
 3. **The hint ceiling gates the `token` events.** The ceiling is the highest rung of the hint ladder that the tutor may use in this turn. The server sets it. The route sends a `token` event only when `ceiling >= 4`. Below that, the server removes code blocks from the finished reply, and it can only do that once it has the whole reply. So a live token could show code that the final reply must not have. Observed: on a first turn (ceiling `L1`) the events were `ceiling`, `html`, `citations` and nothing else. After "Show me" lifted the ceiling to `L6`, four `token` events came first.
-4. **The closing events.** After the loop, the route joins the deltas, applies the ceiling, drops citation markers that are not sections of the lesson, and yields `ceiling`, `html` and `citations`. The page replaces its live text with the `html`. There is no `done` event. The end of the generator is the end of the stream.
+4. **The closing events.** After the loop, the route joins the deltas, applies the ceiling, drops citation markers that are not sections of the lesson, and yields `ceiling`, `html` and `citations`. The page replaces its live text with the `html`. When the tutor's RAG mode is on, the route also checks any `[src:N]` markers against the doc pieces it sent to the model in this turn, drops the unknown ones, and adds each valid one to the `citations` event with its title and URL. There is no `done` event. The end of the generator is the end of the stream.
 5. **Then it saves the turn.** It writes the learner's message and the reply to the `chats` table. This code sits after the last `yield`. Observed: when the client left after the first `token`, the history had the same number of rows as before. The turn was not saved.
 6. **If the run raises,** the route logs it, yields one `error` event and returns. Observed: with a model that failed after two chunks, the client got two `token` events and then `error`, with status `200`. Nothing was saved.
 
 Compare this with your own route. The streaming part is still one `async with`, one `async for` and one `yield`. Everything else is rules about what the learner may see and what gets saved.
 
-Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Server-Sent Events (SSE)](https://fastapi.tiangolo.com/tutorial/server-sent-events/) and [Testing](https://fastapi.tiangolo.com/tutorial/testing/). Sources (Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. 2024 to present; adapted and rewritten): [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/), [UI Event Streams](https://pydantic.dev/docs/ai/integrations/ui/overview/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/). The note on `Agent.to_web()` comes from the Pydantic AI [Web Chat UI](https://pydantic.dev/docs/ai/guides/web/) page and the method's docstring in 2.56.0. That page is linked only. It is not one of this site's registered sources. This site is not affiliated with FastAPI or Pydantic.
+Sources (FastAPI 0.143.0, MIT licence, © 2018 Sebastián Ramírez; adapted and rewritten): [Server-Sent Events (SSE)](https://fastapi.tiangolo.com/tutorial/server-sent-events/) and [Testing](https://fastapi.tiangolo.com/tutorial/testing/). Sources (Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. 2024 to present; adapted and rewritten): [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/), [UI Event Streams](https://pydantic.dev/docs/ai/integrations/ui/overview/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/). The note on `Agent.to_web()` comes from two places: the Pydantic AI [Web Chat UI](https://pydantic.dev/docs/ai/guides/web/) page (the advice to use it locally) and the method's docstring in 2.56.0 (what it returns). That page is linked only. It is not one of this site's registered sources. This site is not affiliated with FastAPI or Pydantic.

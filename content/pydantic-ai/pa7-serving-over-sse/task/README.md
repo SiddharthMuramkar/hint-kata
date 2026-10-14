@@ -8,7 +8,7 @@ Open `sse_app.py` in your workspace. `make_agent(model)` is already written. It 
 2. **Stream the text as `token` events** (TODO 2).
    - Open the run with `agent.run_stream(body.message)` (an async context manager).
    - Loop over `result.stream_text(...)`. Each event must hold only the **new** text of a chunk, not the text so far.
-   - You need one item per chunk. A scripted model is so fast that the default groups its chunks into one item. Read the section "Running the agent inside the generator" to find the two options you need.
+   - You need one item per chunk. A scripted model is so fast that the default groups its chunks into one item, so pass `debounce_by=None`. The section "Running the agent inside the generator" also shows the option that gives only the new text.
    - For each piece, add it to `parts` and `yield` a `ServerSentEvent` named `"token"` with the piece as its data.
 3. **End with a `done` event** (TODO 3). After the loop, `yield` one `ServerSentEvent` named `"done"`. Its data is the full text: all the pieces joined.
 

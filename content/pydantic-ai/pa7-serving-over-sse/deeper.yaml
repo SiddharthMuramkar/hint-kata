@@ -36,7 +36,8 @@ questions:
       last event with the full text. I wrap the run in try and except. If the model fails halfway,
       the status 200 has already gone out with the headers, so the route cannot change it to a 500.
       It logs the error on the server and yields an error event with a short message. If I did
-      nothing, the connection would be cut and the page would see a network error. The page uses
+      nothing, the connection would be cut and the page could not tell that from a finished
+      reply, because the stream just ends. The page uses
       fetch and getReader() because EventSource takes a URL and sends a GET with no body, and the
       message has to go in a POST body.
   - id: d2
@@ -48,7 +49,7 @@ questions:
       happens to the save if the client leaves or the run fails?
     hints:
       - "Think about when TestClient hands the response to your test. Does it wait for the app to finish? Then think about which tool could read the bytes while a real server is still sending them."
-      - "At a low ceiling the server removes code blocks from the reply. What does it need before it can do that? Then look at where in the route the save sits, and ask what happens to that line if the client leaves or the run fails."
+      - "What must the server hold in hand before it can decide which parts of a reply the learner may see? Then find the save in the route. What happens to a line that comes after the last yield if the client leaves, or if the run raises?"
     rubric:
       - name: testclient-buffers
         explanation: The answer says TestClient runs the whole app before it returns, so all events are there at once. The test shows what arrived, not when.
