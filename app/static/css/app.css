@@ -36,11 +36,11 @@ pre { font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; overfl
 .card h2 { margin-top: 0; }
 .muted { color: var(--fg-muted); }
 
-#quiz button { margin: 0 6px 6px 0; padding: 4px 10px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
-#quiz button:disabled { opacity: 0.4; cursor: default; }
-#quiz .quiz-opt { display: block; text-align: left; }
-#quiz .quiz-opt.sel { border-color: var(--accent); }
-#quiz input { width: 100%; box-sizing: border-box; padding: 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.review-card button, #quiz button { margin: 0 6px 6px 0; padding: 4px 10px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+.review-card button:disabled, #quiz button:disabled { opacity: 0.4; cursor: default; }
+#quiz .quiz-opt, .review-card .quiz-opt { display: block; text-align: left; }
+#quiz .quiz-opt.sel, .review-card .quiz-opt.sel { border-color: var(--accent); }
+#quiz input, .review-card input { width: 100%; box-sizing: border-box; padding: 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
 .quiz-conf { margin-top: 12px; }
 .quiz-msg { border-left: 4px solid var(--border); padding: 4px 12px; margin: 12px 0; }
 .quiz-msg.ok { border-color: #3fb950; }
