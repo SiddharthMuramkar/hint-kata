@@ -15,6 +15,7 @@ from app.config import settings
 from app.content import DeeperQuestion, load_lessons
 from app.deps import get_store
 from app.main import app
+from app.review import criterion_item_id, item_key, record_criterion
 from app.store import SqliteStore, open_store
 
 FIXTURES = Path(__file__).parent / "fixtures" / "content"
@@ -64,15 +65,85 @@ def test_all_samples_agree() -> None:
     assert not out.all_met and not out.flagged
 
 
-def test_disagreement_is_uncertain() -> None:
+def test_two_of_three_is_met_but_uncertain() -> None:
     agent, _ = fake_agent([True, True, True], [True, False, True], [True, True, True])
     out = asyncio.run(grade_answer(QUESTION, "my answer", agent=agent))
-    assert [(c.met, c.uncertain) for c in out.criteria] == [
-        (True, False),
-        (False, True),
-        (True, False),
+    assert [(c.name, c.met, c.uncertain) for c in out.criteria] == [
+        ("reuse", True, False),
+        ("tests", True, True),
+        ("scope", True, False),
+    ]
+    assert out.all_met  # a 2-of-3 pass does not block progress
+    assert out.hints == [] and out.criteria[1].hint == ""
+
+
+def test_one_of_three_is_not_met_but_uncertain() -> None:
+    agent, _ = fake_agent([True, True, True], [True, False, True], [True, False, True])
+    out = asyncio.run(grade_answer(QUESTION, "my answer", agent=agent))
+    assert [(c.name, c.met, c.uncertain) for c in out.criteria] == [
+        ("reuse", True, False),
+        ("tests", False, True),
+        ("scope", True, False),
     ]
     assert not out.all_met
+    assert out.criteria[1].hint == "hint tests"  # an unmet criterion still gets its hint
+    assert out.hints == ["hint tests"]
+
+
+def test_unanimous_splits() -> None:
+    all_yes, _ = fake_agent([True, True, True])
+    all_no, _ = fake_agent([False, False, False])
+    yes = asyncio.run(grade_answer(QUESTION, "x", agent=all_yes))
+    no = asyncio.run(grade_answer(QUESTION, "x", agent=all_no))
+    assert [(c.met, c.uncertain) for c in yes.criteria] == [(True, False)] * 3  # 3-0
+    assert [(c.met, c.uncertain) for c in no.criteria] == [(False, False)] * 3  # 0-3
+
+
+def test_evidence_comes_from_a_sample_that_agrees_with_the_majority() -> None:
+    """The first sample dissents on "tests", so its evidence must not be used."""
+    outputs = [[True, False, True], [True, True, True], [True, True, True]]
+    calls: list[int] = []
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        n = len(calls)
+        calls.append(1)
+        g = Grade.model_validate_json(grade_json(outputs[n]))
+        for c in g.criteria:
+            c.evidence = f"sample {n} {c.name}"
+        return ModelResponse(parts=[TextPart(g.model_dump_json())])
+
+    agent = Agent(
+        FunctionModel(respond),
+        deps_type=GraderDeps,
+        output_type=NativeOutput(Grade),
+        instructions=grader._instructions,
+    )
+    out = asyncio.run(grade_answer(QUESTION, "x", agent=agent))
+    assert [c.evidence for c in out.criteria] == [
+        "sample 0 reuse",
+        "sample 1 tests",  # the first sample that said met, not sample 0
+        "sample 0 scope",
+    ]
+
+
+def test_only_unmet_criteria_make_review_cards(store: SqliteStore) -> None:
+    """Met means no card, even when uncertain; unmet means a card (SPEC section 9)."""
+    # reuse 3-0 met, tests 2-1 met (uncertain), scope 1-2 not met (uncertain)
+    agent, _ = fake_agent([True, True, False], [True, False, True], [True, True, False])
+    out = asyncio.run(grade_answer(QUESTION, "x", agent=agent))
+    assert [(c.met, c.uncertain) for c in out.criteria] == [
+        (True, False),
+        (True, True),
+        (False, True),
+    ]
+    uid = store.ensure_user("u")
+    for c in out.criteria:
+        record_criterion(store, uid, "fx-demo", QUESTION.id, c.name, c.met)
+    has_card = [
+        store.get_card(uid, item_key("fx-demo", criterion_item_id(QUESTION.id, n))) is not None
+        for n in NAMES
+    ]
+    assert has_card == [False, False, True]
 
 
 def test_all_met() -> None:
@@ -147,6 +218,20 @@ def test_all_met_reveals_model_answer(client: TestClient, monkeypatch: pytest.Mo
     use_outputs(monkeypatch, [True, True, True])
     r = client.post(URL, json={"answer": "great"}).json()
     assert r["all_met"] and r["can_retry"] is False
+    assert r["model_answer"] == QUESTION.model_answer
+
+
+def test_two_of_three_pass_finishes_the_question(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    use_outputs(monkeypatch, [True, True, True], [True, False, True], [True, True, True])
+    r = client.post(URL, json={"answer": "good enough"}).json()
+    assert r["all_met"] and r["can_retry"] is False
+    assert [(c["met"], c["uncertain"]) for c in r["criteria"]] == [
+        (True, False),
+        (True, True),
+        (True, False),
+    ]
     assert r["model_answer"] == QUESTION.model_answer
 
 

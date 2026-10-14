@@ -50,8 +50,8 @@ class Grade(BaseModel):
 
 class CriterionView(BaseModel):
     name: str
-    met: bool
-    uncertain: bool
+    met: bool  # a majority of the samples (2 of 3) said met
+    uncertain: bool  # the samples did not all agree; never blocks progress
     evidence: str
     hint: str
 
@@ -161,16 +161,17 @@ async def grade_answer(
     views: list[CriterionView] = []
     for i, c in enumerate(question.rubric):
         results = [(g, r) for g in grades if (r := _result(g, i, c.name))]
-        votes = [r.met for _, r in results]
-        met = bool(votes) and all(votes)
-        unmet = next((g for g, r in results if not r.met), None)
+        met_votes = sum(r.met for _, r in results)  # a sample with no verdict counts as not met
+        met = 2 * met_votes > len(grades)
+        # Evidence and hint come from the first sample that agrees with the majority verdict.
+        agree = next(((g, r) for g, r in results if r.met == met), None)
         views.append(
             CriterionView(
                 name=c.name,
                 met=met,
-                uncertain=any(votes) and not met,
-                evidence=results[0][1].evidence if results else "",
-                hint=_hint(unmet, i, c.name, question) if unmet else "",
+                uncertain=0 < met_votes < len(grades),
+                evidence=agree[1].evidence if agree else "",
+                hint=_hint(agree[0], i, c.name, question) if agree and not met else "",
             )
         )
     return GradeOutcome(

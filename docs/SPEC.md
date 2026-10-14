@@ -70,9 +70,9 @@ Rules come from `docs/research/learning-science.md`.
 - Score per lesson = first-try correct / items.
 
 ### 6.3 Think-deeper grading
-- The grader agent returns, per criterion: `evidence` (quote from the answer), `reasoning`, `met` (bool); plus one line of feedback and one hint per unmet criterion.
+- Each grader sample returns, per criterion: `evidence` (quote from the answer), `reasoning`, `met` (bool); plus one line of feedback and one hint per unmet criterion.
 - The learner may revise up to 2 times. After the last try the model answer is shown.
-- The grader runs 3 samples and takes the majority per criterion. Disagreement → criterion shown as "uncertain".
+- The grader runs 3 samples. Per criterion, `met` is true when at least 2 of the 3 samples say met (a sample with no verdict counts as not met), and `uncertain` is true when the 3 samples do not all agree (a 2-1 or 1-2 split). `uncertain` is only a label ("the grader's three readings disagreed; your answer may be borderline"): it never blocks progress, so a 2-of-3 pass counts as met. The criterion's `evidence` comes from the first sample that agrees with the majority, and its `hint` (unmet criteria only) from that same sample.
 - Length and formatting earn nothing (stated in the rubric prompt).
 - The learner's answer is wrapped in delimiters and declared untrusted. Manipulation phrases ("ignore the rubric", "full marks") set a flag and score 0.
 - Calibration: `evals/grader/*.yaml` holds owner-labelled answers (including verbose-wrong, terse-right, synonym, injection). Target agreement kappa ≥ 0.7 per criterion before a rubric is trusted.
@@ -97,7 +97,7 @@ Each step has `summary`, `payload_excerpt`, `annotation` (why + concept tags + d
 
 ## 9. Review queue and mastery
 
-- Cards: one per quiz `concept` and one per unmet rubric criterion. Stored as fsrs `Card` JSON + `due` (ISO UTC).
+- Cards: one per quiz `concept` and one per unmet rubric criterion (`met` false; a criterion that is met but `uncertain` makes no card). Stored as fsrs `Card` JSON + `due` (ISO UTC).
 - Rating map: wrong → Again; correct after a hint or second try, or "Guessing" → Hard; correct + "Sure"/"Think so" → Good; correct + Sure + fast (< 10 s) → Easy.
 - `desired_retention` 0.9 (config). Review items are sibling questions where available, else the same item.
 - Mastery per lesson: `learning` after first visit; `mastered` when quiz ≥ 80% first-try AND every concept recalled correctly without hints on two different days AND the hands-on check passed. Threshold values live in config and every change is logged.
@@ -156,7 +156,7 @@ Datetimes are ISO-8601 UTC text. Lesson/item ids are strings from the content fi
 Pages (HTML): `GET /` home + mastery map · `GET /today` · `GET /lessons/{id}` · `GET /licenses`.
 API (JSON unless noted):
 - `POST /api/quiz/{lesson}/{item}` {answer, confidence, try_no} → {correct, feedback, misconception, card_due}
-- `POST /api/deeper/{lesson}/{q}` {answer} → {criteria:[{name, met, uncertain, evidence, feedback, hint}], attempt_no, model_answer?}
+- `POST /api/deeper/{lesson}/{q}` {answer} → {criteria:[{name, met, uncertain, evidence, hint}], feedback, hints, flagged, all_met, attempt_no, can_retry, model_answer?}
 - `POST /api/tutor/{lesson}` {message} → SSE events `token`, `html`, `citations`, `error`
 - `POST /api/tutor/{lesson}/reveal` → logs the reveal, returns the model answer for the current item
 - `POST /api/check/{lesson}` → {passed, output, details}
@@ -219,7 +219,7 @@ Total: phase 1 ≈ $5–10/month; phase 2 ≈ $5–35; phase 3 ≈ $40–75. Cei
 | Content loads | All 6 lessons render; every section has an anchor; every lesson's sources are in `sources.yaml` with licence + attribution; `scripts/fetch_docs.py --check` passes offline against recorded hashes. |
 | Warm-up | Shown before the reading; answers stored as `kind=warmup`; not counted in scores. |
 | Quiz | Per-option feedback shown after each answer; confidence stored; second try counts as Hard; confident-wrong creates a card due within 24 h; score = first-try correct / items. |
-| Think-deeper | Grader returns per-criterion met/uncertain with evidence; revisions capped at 2; model answer after the last try; injection phrases flagged and scored 0; works with `FunctionModel` in tests. |
+| Think-deeper | Grader returns per-criterion met (majority of 3 samples) and uncertain (samples not unanimous) with evidence; revisions capped at 2; model answer after the last try; injection phrases flagged and scored 0; works with `FunctionModel` in tests. |
 | Tutor | Streams tokens over SSE; final HTML replaces the text; citations only to valid section ids; ceiling ≤ L2 during an active quiz item verified by a deterministic test; history survives a page refresh; "Show me" logs a reveal event and schedules a re-test. |
 | Hands-on | "Check my work" passes on the reference solution and fails on the starter for all 4 Python tasks; GitHub tasks run their `gh` checks and show each result; output shown to the learner; timeout enforced. |
 | Traces | Both trace kinds play step by step; predict checkpoints graded; trace generator scripts re-run in CI and produce identical step structure. |
