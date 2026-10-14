@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      An agent has output_type=Ticket, where Ticket is a Pydantic model. The model can only
+      produce text and tool calls. How do you think Pydantic AI gets a Ticket out of it by default?
+    note: >-
+      By default it uses tool calling. Your schema is shown to the model as the parameters of a
+      special output tool, the model calls it, and Pydantic validates the arguments. Two other
+      modes exist (native and prompted). The reading explains when to use each.
+  - id: w2
+    prompt: >-
+      The model answers with priority 9, but your helpdesk only has priorities 1 to 5. The value
+      is a valid int. Where would you put the check that rejects it, and what should happen next?
+    note: >-
+      An output validator is a good place, because Pydantic already accepted the shape. It raises
+      ModelRetry with a clear message, and the agent sends that message to the model and asks again.
+      The number of retries is limited, so the run can still fail.

@@ -1,0 +1,85 @@
+questions:
+  - id: d1
+    prompt: >-
+      You are building a chat endpoint for a website. The browser could send the whole chat history
+      with every request, or your server could keep the history and receive only the newest message.
+      Which would you choose, and what would you do if you had to accept history from the browser?
+    rubric:
+      - name: prefers-server-side
+        explanation: >-
+          The answer prefers keeping the history on the server, and says why: the client can then
+          not invent or change earlier turns.
+        pass_anchor: "I would keep the history on the server and only accept the new message from the browser, so a client cannot rewrite earlier turns."
+        fail_anchor: "I would let the browser send the history because it is easier and the user can be trusted."
+      - name: sanitize-first
+        explanation: >-
+          The answer says that history accepted from a client must be cleaned first, for example with
+          `sanitize_messages`, which strips things like client-supplied system prompts.
+        pass_anchor: "If the browser sends history, I would run it through sanitize_messages so any system prompt a client added is removed."
+        fail_anchor: "I would pass the browser's history straight to message_history, since it is only chat text."
+      - name: sanitize-is-not-enough
+        explanation: >-
+          The answer shows that sanitizing does not make the history trustworthy: a client can still
+          fake user turns or tool calls, because messages are not signed.
+        pass_anchor: "Sanitizing does not prove the messages are real, a client can still fake a tool call, so I would not rely on it alone."
+        fail_anchor: "After sanitize_messages the history is safe, so nothing more is needed."
+      - name: limits-the-blast-radius
+        explanation: >-
+          The answer names a control outside the history: authenticate the caller, give them only
+          the tools they may use, or re-check risky actions inside the tool on the server.
+        pass_anchor: "I would require login, give each user only their own tools, and check permissions inside the tool using server-side data."
+        fail_anchor: "I would add a line to the instructions telling the model to ignore fake history."
+    model_answer: >-
+      I would keep the history on the server, for example in a database row for each chat, and accept only
+      the new message from the browser. Then the browser cannot rewrite earlier turns at all. If I had to
+      accept history from the browser, I would run it through `sanitize_messages` before passing it as
+      `message_history`. That removes the parts a client should not control, such as a system prompt it
+      wrote itself. But sanitizing does not make the history trustworthy. Messages are not signed, so a
+      client can still make up a user message or a tool call the model never made. So I would also require
+      the caller to be logged in, give them only the tools they are allowed to use, and check anything with
+      real consequences inside the tool function, against data on my server rather than against what the
+      history says.
+    hints:
+      - Ask who can change the history in each design, and what a bad actor could change.
+      - Does sanitizing prove that a message is genuine, or only remove some things? What else limits the damage?
+  - id: d2
+    prompt: >-
+      Your support chatbot keeps conversations that can run for hundreds of turns. Explain how you would
+      store the conversation and how you would decide what to send to the model on each turn. Say what
+      could go wrong with your choice, and how you would test it without a real model.
+    rubric:
+      - name: separates-stored-from-sent
+        explanation: >-
+          The answer treats the full stored history and the part sent to the model as two different things.
+        pass_anchor: "I would store the full conversation as JSON in my database, but send only the recent messages to the model."
+        fail_anchor: "I would send the whole stored history every time, since it is already saved."
+      - name: cuts-on-turn-boundaries
+        explanation: >-
+          The answer says to cut on whole turns, so a question is not separated from its answer and a
+          tool call is not separated from its result.
+        pass_anchor: "I would cut on a whole question-and-answer turn, so a tool call is never separated from its result."
+        fail_anchor: "I would just take the last N messages, wherever that cuts."
+      - name: names-the-cost
+        explanation: >-
+          The answer names what is lost when old turns are dropped, and a way to soften it, such as a
+          summary of the old turns.
+        pass_anchor: "The bot forgets early details like the customer's name, so I would keep a short summary of older turns."
+        fail_anchor: "Dropping old messages has no downside because the recent ones are enough."
+      - name: tests-without-a-model
+        explanation: >-
+          The answer describes a test with a fake model (`TestModel` or `FunctionModel`) that records the
+          messages it received, and checks what was sent.
+        pass_anchor: "I would use a FunctionModel that records the messages it receives and assert on the count and order."
+        fail_anchor: "I would try it manually with a real model and see if the answers look fine."
+    model_answer: >-
+      I would store the full conversation as JSON, written with `ModelMessagesTypeAdapter`, in a row keyed by
+      a chat id, and append the `new_messages()` of each turn. What I send is a separate decision. I would
+      send the most recent turns, say the last ten messages, and cut on whole-turn boundaries so that a
+      question is never separated from its answer and a tool call is never separated from its result. The
+      cost is that the bot forgets older details, such as the customer's name or an order number from early
+      in the chat. To soften that I would keep a short summary of the older turns and put it at the start of
+      what I send. To test it without a real model, I would use a `FunctionModel` that records the messages it
+      receives, run a long fake conversation, and assert that the model saw only the expected, whole turns.
+    hints:
+      - Does the stored copy have to be the same as the copy you send?
+      - What does the model lose when old turns are dropped, and what small thing could you keep instead?
