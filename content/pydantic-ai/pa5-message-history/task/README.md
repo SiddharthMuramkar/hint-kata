@@ -12,7 +12,7 @@ Careful with the difference between `result.all_messages()` and `result.new_mess
 
 ## How the check works
 
-The hidden tests use a `FunctionModel` that records the messages it receives, and set `ALLOW_MODEL_REQUESTS = False`, so no API key or network is needed. They check that:
+The hidden tests use a `FunctionModel` that records the messages it receives (and a `TestModel` for plain replies), and set `ALLOW_MODEL_REQUESTS = False`, so no API key or network is needed. They check that:
 
 - `ask` returns the reply text.
 - After two `ask` calls, the model's second run saw the first turn: the first prompt, the first reply and the new prompt.

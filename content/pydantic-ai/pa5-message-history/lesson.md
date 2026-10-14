@@ -23,7 +23,7 @@ Each message is a container for **parts**. The part says what the content is:
 
 | Message | Parts you will see |
 | --- | --- |
-| `ModelRequest` | `UserPromptPart` (your prompt), `ToolReturnPart` (a tool's result), `RetryPromptPart` (a request to try again), `SystemPromptPart` (only if you used `system_prompt`) |
+| `ModelRequest` | `UserPromptPart` (your prompt), `ToolReturnPart` (a tool's result), `RetryPromptPart` (a request to try again), `SystemPromptPart` (from `system_prompt`, or added by a client, as you will see below) |
 | `ModelResponse` | `TextPart` (the answer), `ToolCallPart` (a tool the model wants to run) |
 
 You get the list from the result object:
@@ -66,7 +66,7 @@ A few details worth knowing:
 
 - Your new prompt goes **after** the history. You do not put it inside the history yourself.
 - Instructions come from the agent you run **now**, as you saw in the first lesson. Old requests keep a copy of the instructions they were sent with, but those copies are not sent again. This is why `instructions` are safer than `system_prompt` when a history moves between agents.
-- With `system_prompt` it works the other way round. A non-empty history is assumed to contain the system prompt already, so a new one is not added. If your history came from somewhere that did not keep it (a database column you trimmed, a browser), the system prompt is simply missing.
+- With `system_prompt` it works the other way round. A non-empty history is assumed to contain the system prompt already, so a new one is not added. If your history came from somewhere that did not keep it (a database column you trimmed, a browser), the system prompt is simply missing. A capability called `ReinjectSystemPrompt` can put it back.
 - The `conversation_id` on each message links the runs of one chat. It is a label for tracing, for example in Logfire. It does **not** make the model remember anything. Only the messages you pass do the remembering.
 
 The same `message_history` argument works with `run`, `run_stream` and with a different agent or model on the next turn. The message format does not depend on the model.
@@ -102,7 +102,7 @@ history = result.all_messages()  # or replace the list with the full one
 
 In the hands-on task you will build a small `Chat` class around the first pattern.
 
-There is one more thing the plain list does not carry: **usage**. If a run gets its history only through `message_history`, its usage starts from zero again, so a `UsageLimits` budget meant to cover the whole chat is reset on every turn. The fix is the `conversation` object. `result.conversation` bundles the messages, the running usage and the conversation id, and you hand it to the next run as `conversation=` in place of `message_history`:
+There is one more thing the plain list does not carry: **usage**. If a run gets its history only through `message_history`, its usage starts from zero again, so a `UsageLimits` budget meant to cover the whole chat is reset on every turn. The fix is the `conversation` object. `result.conversation` bundles the messages, the running usage and the conversation id, and you give it to the next run through the `conversation=` argument instead of `message_history`:
 
 ```python
 second = agent.run_sync("What is my name?", conversation=first.conversation)
@@ -138,7 +138,7 @@ result = agent.run_sync("What is my name?", message_history=history)
 
 `dump_json` returns bytes and `validate_json` accepts bytes, so no encoding step is needed. The adapter checks the data as it reads it, so a damaged file fails with a clear validation error rather than a mystery later. The JSON also keeps the extra fields that are never sent to the model. If you build an adapter of your own from `list[ModelMessage]`, you get the same behaviour.
 
-Where the JSON lives is your choice. A file works for a script. In a web app it is usually a column in your own database, keyed by a chat or thread id. Pydantic AI is deliberately unopinionated about the schema. An agent's memory of the conversation it is having **is** its message history, so you do not need a separate memory system for that. Memory that must survive across conversations is a different problem, handled by the Pydantic AI Harness packages, and a run that must survive a crash mid-tool-call is the job of durable execution.
+Where the JSON lives is your choice. A file works for a script. In a web app it is usually a column in your own database, keyed by a chat or thread id. Pydantic AI is deliberately unopinionated about the schema. For remembering the chat in front of it, an agent needs nothing beyond the stored messages you pass back, so you do not need a separate memory system for that. Memory that must survive across conversations is a different problem, handled by the Pydantic AI Harness packages, and a run that must survive a crash mid-tool-call is the job of durable execution.
 
 Two practical notes:
 
@@ -169,13 +169,13 @@ result = agent.run_sync("Tell me a different joke.", message_history=history)
 
 By default it removes or resets the parts a client should never control:
 
-- **System prompts** are stripped. Only your agent's own instructions steer the model. In 2.56.0 the stripping also raises a warning, so you notice when a client sent one.
+- **System prompts** are stripped. Only your agent's own instructions steer the model. In 2.56.0 it also emits a `UserWarning` and continues, so you notice when a client sent one.
 - File URLs that do not use HTTP, uploaded-file references and workspace references are dropped or reset, so a client cannot point your agent at files or environments it should not touch.
 - Tool calls at the end of the history that have no result yet are removed.
 
-Each of these can be switched off with an argument, but only do that when your own trusted code made the part.
+The first two can be switched off with an argument (for example `strip_system_prompts=False` or an allowed list of URL schemes), but only do that when your own trusted code made the part.
 
-The important lesson is what sanitizing does **not** do. It does not prove the rest of the history is genuine. Pydantic AI does not sign or verify tool calls, tool results or approvals. A client can still invent a user message, an assistant reply, or even a tool call the model never made. So the rules around it matter:
+The important lesson is what sanitizing does **not** do. It does not prove the rest of the history is genuine. Nothing in Pydantic AI checks a signature on tool calls, tool results or approvals. A client can still invent a user message, an assistant reply, or even a tool call the model never made. So the rules around it matter:
 
 1. Put the agent behind your own authentication. Anyone who gets through can submit any history they like.
 2. Give each caller only the tools they are allowed to use.
@@ -216,6 +216,8 @@ agent = Agent(
 ```
 
 Where you cut matters. If a slice separates a tool call from its result, Pydantic AI repairs the history before it goes out: it drops the orphaned result, or answers the orphaned call with an "interrupted" result. The history stays valid, but the model sees something different from what you stored. Cut on whole-turn boundaries to avoid surprises.
+
+One more catch: a processor also changes what `result.all_messages()` returns, which can be just the trimmed window. So when you use a processor, keep your own list with `history += result.new_messages()`, as in the task, and not `history = result.all_messages()`. Otherwise your stored copy quietly shrinks to the window.
 
 **How this site's tutor does it.** Each chat message is saved as one row with a role and its text. On every question the server reads the newest 10 rows, which is about five question-and-answer pairs, and turns them back into a `ModelRequest` or `ModelResponse` each. It passes them as `message_history` with the new question. Three choices make this simple and safe:
 

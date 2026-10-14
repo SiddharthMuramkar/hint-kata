@@ -98,7 +98,7 @@ items:
           It checks a signature on every message and rejects the history if any message was forged.
         misconception: Thinks Pydantic AI signs and verifies messages.
         feedback: >-
-          Pydantic AI does not sign or verify tool calls, tool results or approvals. Sanitizing
+          Pydantic AI has no signature check on tool calls, tool results or approvals. Sanitizing
           removes risky parts. It does not prove origin.
       - text: It raises an error and refuses to run, so a client can never reach the model.
         misconception: Thinks sanitizing rejects the whole request.
