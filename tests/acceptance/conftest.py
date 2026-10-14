@@ -36,8 +36,9 @@ ALL = lessons_with("id")
 
 
 def _first_section(info: AgentInfo) -> str:
-    """The tutor's instructions list the sections as `[§id] Title`; cite the first one."""
-    m = re.search(r"\[§([a-z0-9-]+)\]", info.instructions or "")
+    """The tutor's instructions list the sections as `[§id] Title`, one per line (the fixed rules
+    above them only mention the marker in a sentence); cite the first one."""
+    m = re.search(r"^\[§([a-z0-9-]+)\] ", info.instructions or "", re.M)
     assert m, "the tutor instructions carry no section ids"
     return m[1]
 
