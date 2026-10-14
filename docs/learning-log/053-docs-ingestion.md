@@ -1,0 +1,11 @@
+This PR teaches the site to read the docs we cached and store them so the tutor can search them later. Nothing the learner sees changes yet. A page goes through four small steps in `app/ingest/`. `normalize.py` cleans it (no HTML, plain "Note" and "Tip" labels, the Pydantic AI preamble that talks to AI agents is thrown away as untrusted, never followed). `chunk.py` cuts it at the H2 and H3 headings into pieces of about 300 to 500 tokens, keeps the heading trail ("FastAPI › Dependencies › First Steps") and the anchor, never cuts a code block in half, and glues tiny sections to a neighbour. `embed.py` turns each piece into 1536 numbers through OpenRouter, 64 at a time, and retries once if the network hiccups. `upsert.py` writes the pieces to Neon: it skips a piece whose hash did not change, replaces the ones that did, and deletes the ones that vanished, so a second run costs nothing. `search.py` has `hybrid_search`, which asks Postgres twice (keywords and meaning) and merges the two ranked lists with reciprocal rank fusion. Run it with `uv run python scripts/ingest.py --dry-run` first, then without the flag; `--check` shows what would change. The steps for you are in `docs/runbooks/ingestion.md`.
+
+Two things you may not expect. First, `fetch_docs.py` already inlines the FastAPI code includes and turns the `///` boxes into plain Markdown, so I did not write a second resolver: the normaliser only checks that nothing raw is left and finishes the job. The `pages` and `chunks` tables also came with the Postgres PR, so there is no schema change here. Second, Pydantic AI's embeddings class imports `tiktoken` when it loads, and the `openrouter` extra does not install it, so I pinned `tiktoken==0.14.0`. We never count tokens with it; the chunker just uses `len(text) // 4`.
+
+Read `app/ingest/chunk.py` first, then `tests/test_ingest_chunk.py`. The Postgres tests skip on a laptop without a database and run in CI.
+
+Lesson learned: keep a thing's identity apart from its content. A chunk's key (`sha256(source|anchor|ordinal)`) stays the same when the text is edited, and its hash (`sha256(text + model)`) changes. That one split is what lets an edit update a row in place, a new embedding model re-embed everything on its own, and an unchanged page cost nothing.
+
+Closes #53
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

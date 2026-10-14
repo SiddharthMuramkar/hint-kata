@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     grader_model: str = "openrouter:anthropic/claude-sonnet-5.5"
     author_model: str = "openrouter:anthropic/claude-sonnet-5.5"
     judge_model: str = "openrouter:anthropic/claude-sonnet-5.5"
+    embed_model: str = "openrouter:openai/text-embedding-3-small"
+    embed_dims: int = 1536  # must equal the chunks.embedding column in app/pg_schema.sql
     openrouter_zdr: bool = False
     openrouter_app_title: str = "hint-kata"
     hintkata_db_path: str = "data/hintkata.db"
