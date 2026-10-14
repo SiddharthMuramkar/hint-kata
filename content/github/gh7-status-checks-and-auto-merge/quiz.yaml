@@ -1,0 +1,188 @@
+items:
+  - id: q1
+    type: single
+    concept: check-name-is-job-name
+    source_section: what-a-status-check-is-and-who-posts-it
+    prompt: |
+      The ruleset on `main` requires a check named `checks` from the GitHub Actions app. This
+      workflow runs on the pull request and finishes green on the latest commit. Yet the merge box
+      says **Waiting for status to be reported** for `checks`. Why is the pull request stuck?
+
+      ```yaml
+      name: CI
+      on:
+        pull_request:
+      jobs:
+        tests:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            - run: python3 -m unittest
+      ```
+    options:
+      - text: >-
+          The workflow is named `CI`, but the rule asks for `checks`. Renaming the workflow to
+          `checks` would fix it.
+        misconception: Thinks the name of a check is the name of the workflow.
+        feedback: >-
+          An Actions check is named after the job, not the workflow. Renaming the workflow changes
+          the label in the Actions tab and nothing else. The check would still be called `tests`.
+      - text: >-
+          The job has no `name:`, so its check is called `tests`, after the job id. The rule asks
+          for `checks`, and no check with that name is ever reported.
+        correct: true
+        feedback: >-
+          Right. The rule matches the check name exactly. Give the job `name: checks`, or change
+          the `context` in the ruleset to `tests`. Either way, the two must match.
+      - text: >-
+          The pull request needs an approving review before GitHub looks at required checks.
+        misconception: Mixes up required checks with required reviews.
+        feedback: >-
+          These are separate rules. A required check is evaluated as soon as its result is
+          reported, with or without a review. Here the result is never reported under that name.
+      - text: >-
+          Rules can only require commit statuses. GitHub Actions posts check runs, so it can never
+          satisfy a rule.
+        misconception: Thinks a rule accepts only one of the two kinds of status check.
+        feedback: >-
+          A rule can require checks or commit statuses, and the check runs from Actions are the
+          usual choice. Here the kind is fine. The name is wrong.
+
+  - id: q2
+    type: single
+    concept: skipped-job-counts-as-success
+    source_section: why-a-pull-request-waits
+    prompt: >-
+      The job `lint` is a required check. In its workflow, the job has an `if:` condition that is
+      false for this pull request, so GitHub skips the job. The workflow itself did start. What
+      does the rule do with `lint`?
+    options:
+      - text: It stays pending as "Waiting for status to be reported" until someone runs `lint`.
+        misconception: Mixes up a skipped job with a workflow that never started.
+        feedback: >-
+          A workflow that never starts leaves its checks pending. But here the workflow did start,
+          and the skipped job reported a result. A skipped job reports `skipped`, which is a
+          passing conclusion.
+      - text: It counts as a failure, because a required check that did not run cannot be trusted.
+        misconception: Thinks a skipped required check blocks the merge.
+        feedback: >-
+          GitHub treats `skipped` like `success`. It will not block the merge, even if the check is
+          required. That is why a condition on a required job is a risk.
+      - text: >-
+          The merge is blocked until a person with admin rights approves the skip in the merge box.
+        misconception: Believes a skipped required check needs a manual approval.
+        feedback: >-
+          There is no approval step for a skipped job. The result `skipped` is already a passing
+          result, and the rule is satisfied.
+      - text: >-
+          It counts as passed, so it does not block the merge, even though the job never ran its
+          steps.
+        correct: true
+        feedback: >-
+          Right. A job skipped by a condition reports success. Keep that in mind before you put an
+          `if:` on a job that you also require.
+
+  - id: q3
+    type: single
+    concept: auto-merge-with-failing-check
+    source_section: auto-merge
+    prompt: >-
+      You run `gh pr merge --auto --squash` while the required check `checks` is still running.
+      Then `checks` fails because of a bug in your code. What happens next?
+    options:
+      - text: >-
+          Auto-merge stays armed and nothing merges. After you push a fix and `checks` passes on the
+          new commit, GitHub merges the pull request for you.
+        correct: true
+        feedback: >-
+          Right. A red check does not cancel auto-merge. The pull request waits, and the next
+          green run on the latest commit completes the merge.
+      - text: >-
+          GitHub merges anyway after a while, because you asked for the merge and `--auto` means
+          "do it regardless".
+        misconception: Thinks --auto skips the rules.
+        feedback: >-
+          `--auto` means "merge when every requirement is met". It does not skip anything. With a
+          red required check the rules are not met, so nothing merges.
+      - text: >-
+          Auto-merge is switched off. You fix the bug and then must run the command again.
+        misconception: Thinks a failing check turns auto-merge off.
+        feedback: >-
+          The docs name only two things that switch it off: a push from someone without write
+          access, and a change of the base branch. A failing check is not on that list.
+      - text: GitHub closes the pull request, because it can no longer be merged.
+        misconception: Thinks a failed check closes the pull request.
+        feedback: >-
+          A failed check never closes a pull request. It stays open and blocked until you fix it or
+          close it yourself.
+
+  - id: q4
+    type: order
+    concept: auto-merge-lifecycle
+    source_section: auto-merge
+    prompt: >-
+      The repo allows auto-merge, deletes head branches on merge, and requires the check `checks`.
+      Put these steps in the order they happen.
+    steps:
+      - "You push your commit, and GitHub Actions starts the `checks` job."
+      - "While `checks` is still running, you arm auto-merge with `gh pr merge --auto --squash`."
+      - "The `checks` job ends with the conclusion `success`, so the required check passes."
+      - "GitHub sees that every rule is met and squash-merges the pull request."
+      - "The repo setting deletes the pull request's branch on GitHub."
+    explanation: >-
+      The merge happens only after the required check passes, and the branch can only be deleted
+      after the merge. Notice what deletes the branch: the repo setting, not the `--delete-branch`
+      flag, which does nothing while auto-merge is armed.
+
+  - id: q5
+    type: blank
+    concept: gh-pr-checks-required-flag
+    source_section: watching-checks-from-the-terminal
+    prompt: |
+      A pull request has five checks, but only `checks` can block the merge. Fill in the flag that
+      makes `gh` watch only the checks that are required:
+
+      ```bash
+      gh pr checks --watch ____
+      ```
+    answer: "re:(--)?required"
+    explanation: >-
+      `gh pr checks --watch --required` follows only the checks that a rule requires. Without it you
+      also see checks, such as CodeQL here, that run but do not block the merge.
+
+  - id: q6
+    type: single
+    concept: delete-branch-with-auto-merge
+    source_section: auto-merge
+    prompt: >-
+      You run `gh pr merge --auto --squash --delete-branch` on the pull request from the branch
+      `fix-typo`, while the required check is still running. The repo setting that deletes head
+      branches on merge is off. The check passes later and GitHub merges the pull request. What
+      happens to the branch `fix-typo` on GitHub?
+    options:
+      - text: >-
+          GitHub deletes it at once, as soon as you run the command, before the pull request has
+          merged.
+        misconception: Thinks --delete-branch acts immediately, before the merge.
+        feedback: >-
+          Deleting the branch of an open pull request would close it. The flag is meant to act
+          after a merge, and with `--auto` it does nothing at all.
+      - text: >-
+          `gh` keeps running in the background and deletes it right after GitHub merges.
+        misconception: Thinks gh waits around for the auto-merge to finish.
+        feedback: >-
+          `gh` exits as soon as auto-merge is armed. It has no process left to delete anything when
+          the merge finally happens later.
+      - text: >-
+          GitHub deletes it, because every squash merge deletes its branch.
+        misconception: Thinks a squash merge always removes the branch.
+        feedback: >-
+          The merge method has no effect on the branch. Deleting it is a separate repo setting,
+          and in this case that setting is off.
+      - text: >-
+          It stays. `gh` skips the deletion when auto-merge is armed, and the repo setting that
+          would delete it is off.
+        correct: true
+        feedback: >-
+          Right. In `gh` 2.102 the flag does nothing with `--auto`. Turn on the repo setting with
+          `gh repo edit --delete-branch-on-merge`, and GitHub deletes the branch after any merge.
