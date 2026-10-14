@@ -4,6 +4,7 @@ uv run python evals/run_grader.py
 """
 
 import asyncio
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -14,11 +15,13 @@ from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import Evaluator, EvaluatorContext
 from pydantic_evals.evaluators.llm_as_a_judge import set_default_judge_model
 
-from app.agents.grader import grade_answer
-from app.config import settings
-from app.content import DeeperQuestion, load_lessons
-
 ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT))  # run as a script: put the repo root on the path
+
+from app.agents.grader import grade_answer  # noqa: E402
+from app.config import settings  # noqa: E402
+from app.content import DeeperQuestion, load_lessons  # noqa: E402
+
 FIXTURES = ROOT / "tests" / "fixtures" / "content"
 
 
