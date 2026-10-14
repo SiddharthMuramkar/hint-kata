@@ -158,7 +158,9 @@ def build(repo: str, number: int) -> Trace:
             "repo": repo,
             "pr": number,
             "pr_url": pr["html_url"],
-            "captured_at": (pr.get("merged_at") or pr.get("created_at") or datetime.now(UTC).isoformat())[:10],
+            "captured_at": (
+                pr.get("merged_at") or pr.get("created_at") or datetime.now(UTC).isoformat()
+            )[:10],
         },
         steps=steps,
         takeaways=[
