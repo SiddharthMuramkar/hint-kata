@@ -1,0 +1,67 @@
+questions:
+  - id: d1
+    prompt: >-
+      How would you test a route that writes to Postgres without a real database?
+    rubric:
+      - name: overrides-the-dependency
+        explanation: The answer replaces the database dependency with a fake using app.dependency_overrides.
+        pass_anchor: "Override get_db (or the session dependency) with an in-memory fake through app.dependency_overrides."
+        fail_anchor: "Only says 'mock the database' or 'use a test database' without naming how the route gets the fake."
+      - name: checks-the-write
+        explanation: The answer says how the test proves the route did the write, not only that it returned 200.
+        pass_anchor: "Reads the fake back, or asserts the fake received the right values, as well as the response."
+        fail_anchor: "Only asserts the status code."
+      - name: cleans-up
+        explanation: The answer removes the override after the test so later tests are not affected.
+        pass_anchor: "Clears dependency_overrides in a fixture teardown or a finally block."
+        fail_anchor: "Sets the override and never mentions removing it."
+      - name: keeps-some-real-coverage
+        explanation: The answer admits a fake cannot catch SQL or schema bugs and suggests a few tests against a real database.
+        pass_anchor: "Keeps a small number of integration tests against a real throwaway Postgres."
+        fail_anchor: "Claims the fake alone proves the real queries work."
+    model_answer: >-
+      I would find the dependency that gives the route its database session, for example `get_db`.
+      In the test I would replace it by setting `app.dependency_overrides[get_db]` to a function that
+      returns a small fake. The fake can be an in-memory object with the same methods, such as a dict
+      or a list wrapped in a class. Then I call the route with `TestClient` and assert the status code
+      and the response body. I also read the fake back, or check what it recorded, to prove the route
+      stored the right values. I put the override in a fixture that clears `app.dependency_overrides`
+      after the test, so it cannot leak into other tests. A fake cannot catch mistakes in real SQL or
+      in the table schema. So I would also keep a few integration tests that run against a throwaway
+      Postgres, and run them in CI.
+    hints:
+      - How does the route receive its database? Can you swap that one piece for the length of one test?
+      - After the request, how can the test see what was written, and how do you stop the fake from reaching other tests?
+  - id: d2
+    prompt: >-
+      A test passes on your laptop but fails in CI only sometimes. How do you find out why?
+    rubric:
+      - name: reads-the-evidence
+        explanation: The answer starts from the actual CI failure output instead of guessing.
+        pass_anchor: "Reads the failing log and traceback first, and notes which test and which assert failed."
+        fail_anchor: "Re-runs the pipeline hoping it goes away, or jumps straight to a theory."
+      - name: reproduces-it
+        explanation: The answer tries to make the failure happen on demand.
+        pass_anchor: "Runs the test many times, runs it alone and in the full suite, and tries the CI test order."
+        fail_anchor: "Runs it once locally, sees it pass and stops."
+      - name: finds-shared-state
+        explanation: The answer suspects state that is shared between tests, such as leaked dependency overrides or module-level data.
+        pass_anchor: "Checks for dependency_overrides not cleared, global dicts, or tests that depend on order."
+        fail_anchor: "Blames CI for being 'flaky' without naming any state."
+      - name: compares-environments
+        explanation: The answer lists differences between the laptop and CI that could matter.
+        pass_anchor: "Mentions timing, env vars, library versions, time zones, parallel workers or leftover files."
+        fail_anchor: "Assumes both environments are identical."
+    model_answer: >-
+      I would begin with the CI log, because it tells me which test failed and how. Then I would try
+      to reproduce the failure. I would run that test alone, and then run the whole suite several
+      times, in the same order that CI uses. If it only fails in the full run, I suspect shared state.
+      The usual culprits are a dependency override that was never cleared, a module-level dict that
+      one test changes, or a test that only works after another one. If it fails even alone, I would
+      compare the environments: library versions, environment variables, time zones, the clock, and
+      whether CI runs tests in parallel. Once I have a theory, I would add a small fix, such as a
+      fixture that clears overrides after every test, and run the test many times to check that the
+      failure is gone. I would never just re-run the job and call it fixed.
+    hints:
+      - What can you do to make a rare failure happen more often on your own machine?
+      - If a test passes alone but fails in the full suite, what do the tests in that suite share?

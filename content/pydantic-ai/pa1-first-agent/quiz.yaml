@@ -1,0 +1,111 @@
+items:
+  - id: q1
+    type: single
+    concept: instructions-vs-system-prompt
+    source_section: instructions-not-system-prompts
+    prompt: >-
+      Run 1 used agent A, which has `instructions="Answer in French."`. Run 2 uses agent B, which has
+      `instructions="Answer in German."`, and passes `message_history` from run 1. Which instructions
+      does the model get on run 2?
+    options:
+      - text: Only agent B's. Instructions stored in older messages are left out.
+        correct: true
+        feedback: >-
+          Right. `instructions` always come from the agent you are running now, so the old French
+          text does not follow the history around. That is the main reason to prefer `instructions`
+          over `system_prompt`.
+      - text: Both. Agent A's instructions stay in the history and agent B's are added on top.
+        misconception: Thinks instructions behave like a system prompt that stays in the message history.
+        feedback: >-
+          That is how `system_prompt` works: it is kept in the history and sent again. Instructions
+          are different. Only the current agent's instructions are included in the request.
+      - text: Only agent A's. Instructions are fixed when the conversation starts.
+        misconception: Thinks instructions are sent once per conversation and then locked in.
+        feedback: >-
+          Instructions are not a one-time setup. They are rebuilt from the current agent on every
+          request, so changing them in code changes the next call.
+      - text: Neither. Once `message_history` is passed, the model ignores instructions.
+        misconception: Thinks passing a message history replaces the agent's instructions.
+        feedback: >-
+          Message history adds earlier messages to the request. It does not switch the agent's
+          instructions off. The current agent's instructions are still sent.
+  - id: q2
+    type: single
+    concept: model-string-prefix
+    source_section: model-strings-and-providers
+    prompt: What happens when you run `Agent("gpt-5")` in Pydantic AI 2?
+    options:
+      - text: It raises a `UserError` saying the model is unknown.
+        correct: true
+        feedback: >-
+          Right. A model string must look like `provider:model`. Without the prefix Pydantic AI does
+          not guess, and it fails as soon as the agent is created.
+      - text: It picks OpenAI, because `gpt-5` is an OpenAI model name.
+        misconception: Thinks Pydantic AI infers the provider from the model name.
+        feedback: >-
+          It is a tempting guess, but version 2 does not make it. You must write
+          the provider yourself, for example `openai:gpt-5` or `openrouter:openai/gpt-5`.
+      - text: It creates the agent fine and only fails on the first `run_sync` call.
+        misconception: Thinks model errors only show up when a request is sent.
+        feedback: >-
+          Pydantic AI checks the model string when you build the agent. A bad string or a missing API
+          key stops you right away, before any network call.
+      - text: It sends the request to OpenRouter, because that is the default provider.
+        misconception: Thinks there is a default provider.
+        feedback: >-
+          There is no default provider. OpenRouter is only used when your string starts with
+          `openrouter:`.
+  - id: q3
+    type: single
+    concept: structured-output-benefits
+    source_section: structured-output-with-a-pydantic-model
+    prompt: Why use `output_type=CityFacts` instead of asking for JSON text and parsing it yourself?
+    options:
+      - text: >-
+          Pydantic validates the answer and gives you a typed `CityFacts` object. If the data is invalid,
+          the model is asked to try again.
+        correct: true
+        feedback: >-
+          Right. Validation, typing and a retry on bad data come for free. Your code reads fields like
+          `result.output.city` instead of parsing strings.
+      - text: It guarantees that every fact the model reports is true.
+        misconception: Thinks validation checks facts, not shape.
+        feedback: >-
+          Validation checks the shape and types of the data. A well-formed `CityFacts` can still hold a
+          wrong population. Facts still need other checks.
+      - text: It is required. An agent without an `output_type` cannot run.
+        misconception: Thinks `output_type` is mandatory.
+        feedback: >-
+          It is optional. Without it the output is plain text and `result.output` is a `str`.
+      - text: It replaces the need for instructions, because the schema already tells the model what to do.
+        misconception: Thinks the output schema is a substitute for instructions.
+        feedback: >-
+          The schema describes the shape of the answer. Instructions say how to behave: tone, length,
+          what to do when unsure. A good agent usually has both.
+  - id: q4
+    type: order
+    concept: run-flow-order
+    source_section: running-an-agent
+    prompt: Put the steps of one `agent.run_sync(...)` call with an `output_type` in order.
+    steps:
+      - You call `agent.run_sync(prompt)`.
+      - Pydantic AI sends the instructions and your prompt to the model.
+      - The model replies with data for the output type.
+      - Pydantic validates that data, and asks the model to retry if it is invalid.
+      - The result comes back and you read `result.output`.
+    explanation: >-
+      The call goes out with the agent's instructions. The reply is validated before you ever see
+      it, so `result.output` is already a checked object.
+  - id: q5
+    type: blank
+    concept: result-output
+    source_section: running-an-agent
+    prompt: |-
+      Fill in the blank. Which attribute holds the final value of a run?
+
+      result = agent.run_sync("Tell me about Lisbon.")
+      print(result.____)
+    answer: output
+    explanation: >-
+      `result.output` is the final value. Its type follows the agent's `output_type`. In Pydantic AI 2
+      `result.usage` (a property, no parentheses) holds token and request counts.

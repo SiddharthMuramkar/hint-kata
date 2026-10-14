@@ -1,0 +1,15 @@
+items:
+  - id: w1
+    prompt: >-
+      You register a function called price_of on an agent and ask "How much is tea?".
+      Who decides whether price_of is called: your code, or the model?
+    note: >-
+      The model decides. Your code only offers the tool. The model replies with a tool call
+      (a name plus arguments) and the agent then runs your function.
+  - id: w2
+    prompt: >-
+      A tool needs a database connection. Where would you keep that connection so the tool
+      can use it, and so a test can swap in a fake one?
+    note: >-
+      Put it in a dependencies object. You pass it in with deps= when you run the agent and the
+      tool reads it from ctx.deps, so a test can pass a different object.

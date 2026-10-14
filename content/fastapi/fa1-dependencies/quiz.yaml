@@ -1,0 +1,114 @@
+items:
+  - id: q1
+    type: single
+    concept: depends-when-called
+    source_section: what-depends-does
+    prompt: >-
+      A route has the parameter `page: Annotated[dict, Depends(common_filters)]`.
+      When does `common_filters` run?
+    options:
+      - text: On every request that reaches the route. FastAPI calls it first and passes the result in as `page`.
+        correct: true
+        feedback: >-
+          Right. FastAPI owns the call. It runs before the route function, once per request,
+          and the return value becomes the `page` argument.
+      - text: Once, when the module is imported and the decorator runs.
+        misconception: Thinks Depends calls the function at import time.
+        feedback: >-
+          Tempting, because decorators do run at import time. But `Depends` only records the
+          function. The call happens per request, so each request gets fresh values.
+      - text: When the route body calls `page()` itself.
+        misconception: Thinks the injected value is a callable the route must invoke.
+        feedback: >-
+          The route gets the result, not the function. `page` is already the dict that
+          `common_filters` returned, so there is nothing to call.
+      - text: Only if you write `Depends(common_filters())` with brackets.
+        misconception: Thinks you must call the function yourself inside Depends.
+        feedback: >-
+          Brackets would call the function while the module loads and hand `Depends` its result.
+          You pass the function itself and let FastAPI call it.
+  - id: q2
+    type: single
+    concept: sub-dependency-parameters
+    source_section: sub-dependencies-and-how-parameters-flow
+    prompt: >-
+      The dependency `get_user(token: str)` is used by the route `read_me(user: Annotated[str, Depends(get_user)])`.
+      The route itself has no `token` parameter. Where does `token` come from?
+    options:
+      - text: FastAPI reads it from the request as a query parameter, the same way it would for a route.
+        correct: true
+        feedback: >-
+          Right. A dependency's parameters are resolved like a route's. A plain `str` with no
+          other marker is a query parameter, and a missing value gives a 422.
+      - text: The route must declare `token` too and pass it down to `get_user`.
+        misconception: Thinks parameters must be threaded down by hand through the route.
+        feedback: >-
+          Nothing is passed down by hand. FastAPI reads `token` straight from the request for
+          `get_user`, so the route can stay unaware of it.
+      - text: It can only be a path parameter, because dependencies cannot see query strings.
+        misconception: Thinks dependencies cannot read request data.
+        feedback: >-
+          Dependencies see the same request data as routes: path, query, headers, cookies and
+          body. Which source applies depends on how you declare the parameter.
+      - text: It is `None` unless a global variable named `token` exists.
+        misconception: Thinks dependency parameters come from module-level state.
+        feedback: >-
+          There is no global lookup. The value comes from the incoming request, so it can
+          differ on every call.
+  - id: q3
+    type: single
+    concept: yield-scope-default
+    source_section: dependencies-with-yield
+    prompt: >-
+      A dependency uses `yield`, and the route uses it as `Depends(get_db)` with no `scope`.
+      When does the code after the `yield` run?
+    options:
+      - text: After the response has been sent to the client.
+        correct: true
+        feedback: >-
+          Right. The default scope for a `yield` dependency is `"request"`, so tear-down waits
+          until the whole request and response cycle is done.
+      - text: Right after the route function returns, before the response is sent.
+        misconception: Mixes up the default with scope="function".
+        feedback: >-
+          That is what `Depends(get_db, scope="function")` does. It is opt-in. Without it,
+          tear-down runs later, after the response.
+      - text: Only when the route raises an exception.
+        misconception: Thinks the code after yield is an error handler only.
+        feedback: >-
+          With `try`/`finally` the tear-down runs on success and on error. It is not limited
+          to failures.
+      - text: When the server shuts down.
+        misconception: Thinks a yield dependency lives as long as the app, like a lifespan resource.
+        feedback: >-
+          A dependency runs per request, so its tear-down does too. App-wide resources belong
+          in a lifespan handler, not here.
+  - id: q4
+    type: order
+    concept: yield-chain-order
+    source_section: dependencies-with-yield
+    prompt: >-
+      The route needs `dep_b`, and `dep_b` needs `dep_a`. Both use `yield` with the default scope.
+      Put the steps in the order they happen for one request.
+    steps:
+      - "`dep_a` runs up to its `yield`"
+      - "`dep_b` runs up to its `yield`, using the value from `dep_a`"
+      - "The route function runs"
+      - "The response is sent to the client"
+      - "`dep_b` runs its code after the `yield`"
+      - "`dep_a` runs its code after the `yield`"
+    explanation: >-
+      Set-up goes from the leaf up to the route. With the default request scope, tear-down
+      starts after the response is sent and runs in reverse, so `dep_b` finishes before
+      `dep_a`. That lets `dep_b` still use `dep_a` while it cleans up.
+  - id: q5
+    type: blank
+    concept: dependency-overrides
+    source_section: overriding-dependencies-in-tests
+    prompt: >-
+      Fill in the blank so that, in this test, the route gets `fake_get_db` instead of `get_db`:
+      `app.____[get_db] = fake_get_db`
+    answer: dependency_overrides
+    explanation: >-
+      `app.dependency_overrides` maps an original dependency function to its replacement.
+      Remember to clear it after the test.
