@@ -1,0 +1,33 @@
+{
+  "id": "fx-trace",
+  "kind": "pydantic_ai_run",
+  "title": "Fixture trace",
+  "objectives": ["Check the player API"],
+  "source": {"generator": "hand-written"},
+  "steps": [
+    {
+      "idx": 0,
+      "kind": "user_prompt",
+      "actor": "user",
+      "title": "Question",
+      "summary": "The user asks something.",
+      "metrics": {"input_tokens": 3},
+      "annotation": {"why": "Runs start with a prompt.", "concept_tags": ["agent"], "citations": []}
+    },
+    {
+      "idx": 1,
+      "kind": "tool_call",
+      "actor": "model",
+      "title": "Tool call",
+      "summary": "The model calls a tool.",
+      "checkpoint": {
+        "type": "predict_next",
+        "prompt": "What next?",
+        "options": ["Answer", "Call a tool"],
+        "answer": 1,
+        "explanation": "Instructions say never to guess."
+      }
+    }
+  ],
+  "takeaways": ["Tools are called by the agent, not the model."]
+}
