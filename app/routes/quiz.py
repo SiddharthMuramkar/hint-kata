@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from app.content import Lesson
 from app.deps import get_store, get_user_id
 from app.quiz import grade_item, score, scramble
+from app.review import record_quiz_attempt
 from app.store import Store
 
 router = APIRouter(prefix="/api/quiz")
@@ -85,6 +86,9 @@ def post_quiz(
         body.try_no,
         body.elapsed_ms,
     )
+    card_due = record_quiz_attempt(
+        store, user_id, lesson_id, item, r, body.confidence, body.try_no, body.elapsed_ms
+    )
     attempts = store.attempts_for(user_id, lesson_id)
     answered = {a["item_id"] for a in attempts}
     return {
@@ -94,6 +98,7 @@ def post_quiz(
         "explanation": r.explanation,
         "correct_answer": r.correct_answer if r.correct or body.try_no == 2 else None,
         "surprise": body.confidence == "sure" and not r.correct,
+        "card_due": card_due,
         "score": score(attempts, lesson.quiz),
         "done": all(q.id in answered for q in lesson.quiz),
     }
