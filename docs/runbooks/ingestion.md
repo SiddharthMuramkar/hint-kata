@@ -5,7 +5,9 @@ captures its meaning), and stores them in Neon next to a keyword index. Search t
 You run it from your own laptop. Nothing here runs on Vercel.
 
 ## Before you start
-- Neon is set up and `scripts/migrate.py` has run once (`docs/runbooks/neon.md`).
+- Neon is set up and `scripts/migrate.py` has run once (`docs/runbooks/neon.md`). Use Postgres 17 or newer
+  with pgvector 0.8 or newer; the tutor's track filter relies on 0.8 (older builds still work, the filter then
+  skips one setting and may return fewer results).
 - The docs pages are in `.cache/docs/` (run `uv run python scripts/fetch_docs.py` if that folder is empty).
 
 ## 1. Put the keys in the local env file
@@ -74,6 +76,8 @@ search as above, limited to the lesson's track (a FastAPI lesson only sees FastA
 
 What must be set, in the local env file (Explorer, next to `.env.example`):
 - `DATABASE_URL` is the pooled Neon URL (the host has `-pooler`). Without it the tutor uses the lesson only.
+  Setting it also moves your progress data (attempts, chats, review cards) from the local SQLite file to
+  Postgres, because the site uses Postgres whenever it is set.
 - `OPENROUTER_API_KEY` is the key the tutor already uses. The question is embedded with it (a fraction of a cent).
 - `RAG_ENABLED` and `RAG_K` stay empty. They default to `true` and `6` (how many doc pieces the tutor gets per
   question). Set `RAG_ENABLED=false` to switch it off again.

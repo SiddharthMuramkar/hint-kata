@@ -39,6 +39,7 @@ def configure_logging() -> None:
     a token is set. The tutor logs how many docs chunks each turn used."""
     app_log = logging.getLogger("app")
     app_log.setLevel(logging.INFO)
+    app_log.propagate = False  # our handlers print; a root handler would print every line twice
     if not app_log.handlers:
         console = logging.StreamHandler()
         console.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))

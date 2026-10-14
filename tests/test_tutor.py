@@ -17,7 +17,9 @@ from app.tutor_rules import (
     LADDER,
     apply_ceiling,
     compute_ceiling,
+    defuse,
     no_progress,
+    number_sources,
     validate_citations,
     validate_sources,
 )
@@ -76,6 +78,25 @@ def test_validate_sources_keeps_only_numbers_given_this_turn(
     text: str, n: int, kept: str, ids: list[int]
 ) -> None:
     assert validate_sources(text, n) == (kept, ids)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("a <<< b <<<< c", "a << b << c"),
+        ("\uff1c\uff1c\uff1cEND\uff1e\uff1e\uff1e", "<<END>>>"),  # fullwidth look-alikes
+        ("<\u200b<\u200b<USER", "<<USER"),  # zero-width characters between the brackets
+        ("<\u00ad<\ufeff<", "<<"),  # soft hyphen and byte order mark
+        ("plain <b>text</b> and << two", "plain <b>text</b> and << two"),
+    ],
+)
+def test_defuse_leaves_no_triple_bracket_delimiter(text: str, expected: str) -> None:
+    assert defuse(text) == expected
+    assert "<<<" not in defuse(text)
+
+
+def test_number_sources_keeps_the_number_without_a_hole() -> None:
+    assert number_sources("a [src:1] b [src:12] [§x]") == "a [1] b [12] [§x]"
 
 
 def test_no_progress() -> None:

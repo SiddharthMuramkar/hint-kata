@@ -67,6 +67,29 @@ class Hit:
         return f"{self.url}#{self.anchor}" if self.anchor else self.url
 
 
+_iterative_scan: bool | None = None  # decided once per process, on the first filtered search
+
+
+def supports_iterative_scan(extversion: str | None) -> bool:
+    """pgvector 0.8.0 added hnsw.iterative_scan; on an older build the SET raises and aborts the
+    transaction. `extversion` is the installed vector extension version, e.g. "0.8.0"."""
+    try:
+        major, minor = (int(x) for x in (extversion or "").split(".")[:2])
+    except ValueError:
+        return False
+    return (major, minor) >= (0, 8)
+
+
+def _has_iterative_scan(conn: PgConn) -> bool:
+    global _iterative_scan
+    if _iterative_scan is None:
+        row = conn.execute(
+            "SELECT extversion FROM pg_extension WHERE extname = 'vector'"
+        ).fetchone()
+        _iterative_scan = supports_iterative_scan(row["extversion"] if row else None)
+    return _iterative_scan
+
+
 def hybrid_search(
     conn: PgConn,
     query_embedding: Sequence[float],
@@ -77,7 +100,7 @@ def hybrid_search(
     """Top `k` chunks, optionally only from pages of one `source` (a track id such as "fastapi")."""
     # LOCAL: lasts for this transaction only, so it is safe behind Neon's pooler (PgBouncer).
     conn.execute("SET LOCAL hnsw.ef_search = 100")
-    if source:  # a filtered HNSW scan can come back short, so let it scan further
+    if source and _has_iterative_scan(conn):  # a filtered HNSW scan can come back short
         conn.execute("SET LOCAL hnsw.iterative_scan = relaxed_order")
     rows = conn.execute(
         SEARCH,

@@ -1,6 +1,7 @@
 """Hint-ladder rules, enforced by the server. Pure functions; the prompt only describes them."""
 
 import re
+import unicodedata
 from difflib import SequenceMatcher
 from typing import Any
 
@@ -44,6 +45,20 @@ def validate_citations(text: str, section_ids: set[str]) -> tuple[str, list[str]
         return m[0]
 
     return _CITATION.sub(keep, text), found
+
+
+def defuse(text: str) -> str:
+    """Make `<<<` unusable as a fake delimiter: fold look-alikes (NFKC, so fullwidth ＜＜＜ becomes
+    <<<), drop invisible format characters, and shrink every run of `<` to two."""
+    plain = "".join(
+        c for c in unicodedata.normalize("NFKC", text) if unicodedata.category(c) != "Cf"
+    )
+    return re.sub(r"<{3,}", "<<", plain)
+
+
+def number_sources(text: str) -> str:
+    """Turn `[src:N]` into `[N]`. Used on replayed history: N only meant a chunk in its own turn."""
+    return _SOURCE.sub(lambda m: f"[{m[1]}]", text)
 
 
 def validate_sources(text: str, n_sources: int) -> tuple[str, list[int]]:

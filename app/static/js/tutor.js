@@ -25,7 +25,7 @@
         a.href = c.url;
         a.target = "_blank";
         a.rel = "noopener noreferrer";
-        a.textContent = "[" + c.n + "] " + c.title;
+        a.textContent = "[" + c.n + "] " + (c.title || c.url.replace(/^https?:\/\/([^/]+).*/, "$1"));
         p.append(a, " ");
         return;
       }

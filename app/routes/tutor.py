@@ -30,7 +30,9 @@ from app.store import Store
 from app.tutor_rules import (
     apply_ceiling,
     compute_ceiling,
+    defuse,
     no_progress,
+    number_sources,
     validate_citations,
     validate_sources,
 )
@@ -62,7 +64,7 @@ def get_lesson(request: Request, lesson_id: str) -> Lesson:
 
 def _wrap(text: str) -> str:
     """Mark learner text as data. Any marker-like text the learner typed is defused first."""
-    return f"<<<USER>>>\n{text.replace('<<<', '<<')}\n<<<END>>>"
+    return f"<<<USER>>>\n{defuse(text)}\n<<<END>>>"
 
 
 def _plain(section_html: str) -> str:
@@ -123,7 +125,7 @@ async def chat(
         ModelRequest(parts=[UserPromptPart(_wrap(m["content"]))])
         if m["role"] == "user"
         # [src:N] numbers belong to the turn that made them; this turn's N means other chunks.
-        else ModelResponse(parts=[TextPart(validate_sources(m["content"], 0)[0])])
+        else ModelResponse(parts=[TextPart(number_sources(m["content"]))])
         for m in stored
     ]
     # Docs change every turn: they go in the learner's turn, not the cached instructions.
