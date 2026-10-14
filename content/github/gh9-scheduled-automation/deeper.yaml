@@ -1,0 +1,108 @@
+questions:
+  - id: d1
+    prompt: >-
+      You want a job in a public repo to run every night, to be startable by hand for testing, and
+      never to run twice at the same time. Say how you would write the `on:` triggers and the
+      `concurrency:` block, which minute you would put in the `cron` line and why, and what happens
+      to the schedule if the repo sits idle for a long time and what you would do about it.
+    rubric:
+      - name: off-the-hour-minute
+        explanation: The answer picks a cron minute that avoids the busiest moment and gives the reason.
+        pass_anchor: >-
+          Picks a cron line whose minute is not 0 (for example `23 3 * * *`) and says why: runs at the
+          start of the hour are delayed, or dropped, when GitHub is busy.
+        fail_anchor: >-
+          Picks minute 0 with no thought for load, or picks a non-zero minute with no reason, or
+          writes a cron line with the wrong number of fields.
+      - name: manual-trigger
+        explanation: The answer adds the trigger that lets a person start the workflow by hand.
+        pass_anchor: >-
+          Adds `workflow_dispatch` under `on:` next to `schedule`, so the workflow can be started from
+          the Actions tab or with `gh workflow run`.
+        fail_anchor: >-
+          Has only `schedule`, or says to push a fake commit to test, or does not name any manual
+          trigger.
+      - name: no-overlap
+        explanation: The answer stops two runs from overlapping.
+        pass_anchor: >-
+          Adds a `concurrency:` block with a fixed group name, so at most one run in that group is
+          active at a time.
+        fail_anchor: >-
+          Leaves out `concurrency`, or says a bigger runner or a `timeout-minutes` value prevents
+          overlap.
+      - name: sixty-day-disable
+        explanation: The answer knows what an idle public repo does to the schedule, and how to fix it.
+        pass_anchor: >-
+          Says GitHub switches the scheduled workflow off after 60 days without repository activity
+          on a public repo, and that you turn it back on (enable button or `gh workflow enable`).
+        fail_anchor: >-
+          Says the schedule keeps running for ever, or that the file is deleted, or gives no way to
+          turn it back on.
+    model_answer: >-
+      I would write `on:` with two triggers. A `schedule` with `cron: "23 3 * * *"`, and
+      `workflow_dispatch`, so I can start a run by hand from the Actions tab or with
+      `gh workflow run nightly.yml`. I would choose minute 23 and not minute 0, because the start of
+      every hour is busy. At busy times scheduled runs can be late, and some can be dropped. Then I
+      would add a `concurrency:` block with a group name that only this workflow uses, such as
+      `nightly`, and `cancel-in-progress: false` so a running job is left to finish. That keeps two
+      runs from overlapping. On a public repo, GitHub switches the scheduled workflow off by itself
+      after 60 days with no repository activity. No error appears, the runs just stop. I would
+      check with `gh workflow list --all` and turn it back on with `gh workflow enable nightly.yml`
+      or the enable button on the Actions tab.
+    hints:
+      - Which minute of the hour is the busiest for scheduled runs?
+      - What does the repo do to a scheduled workflow after 60 quiet days, and which command lists a workflow that is switched off?
+
+  - id: d2
+    prompt: >-
+      A busy team keeps finding that two pull requests, each green on its own, break `main` when both
+      merge. Explain how a merge queue fixes this, what a workflow needs so that its required checks
+      run for the queue, and why Hint Kata cannot use one. Then say what you would see on a pull
+      request that a weekly workflow opens with the default `GITHUB_TOKEN`, and what a person does about it.
+    rubric:
+      - name: queue-tests-the-combination
+        explanation: The answer says what the queue actually tests.
+        pass_anchor: >-
+          Says the queue runs the required checks on the pull request combined with the latest base
+          branch and the pull requests ahead of it, and merges in first in first out order.
+        fail_anchor: >-
+          Says the queue only runs the same checks again on the pull request's own branch, or merges
+          pull requests in a random order.
+      - name: merge-group-trigger
+        explanation: The answer names the trigger that checks need for the queue.
+        pass_anchor: >-
+          Says the workflow must also run on the `merge_group` event (for example
+          `on: pull_request:` and `merge_group:`), or the required check never reports.
+        fail_anchor: >-
+          Says `pull_request` or `push` is enough, or does not name an event.
+      - name: personal-account-limit
+        explanation: The answer gives the reason this repo cannot use a queue.
+        pass_anchor: >-
+          Says the repo belongs to a personal account, and that merge queues are for repos owned by an
+          organization (or on an enterprise plan), as the project's research note records.
+        fail_anchor: >-
+          Says the repo is too small, or has too few pull requests, or gives no ownership reason.
+      - name: token-pr-approval
+        explanation: The answer describes the state of checks on a token-made pull request and the fix.
+        pass_anchor: >-
+          Says the `checks` run is created but waits for approval, and a person with write access
+          chooses **Approve workflows to run** (a personal access token or GitHub App token also avoids it).
+        fail_anchor: >-
+          Says no run is created at all, or that it starts by itself, or that nothing can be done.
+    model_answer: >-
+      A merge queue takes a pull request that has passed its checks and builds a temporary branch
+      with the latest base branch, the pull requests ahead of it, and this one. It runs the required
+      checks on that combination, and only then merges, first in first out. A pull request that
+      fails is removed, and the others carry on. So two pull requests that clash get caught before
+      they reach `main`. For this to work, the workflow that reports the required checks must also
+      run on the `merge_group` event, next to `pull_request`. Without that the check never reports
+      and the merge fails. Hint Kata cannot use a queue because the repo belongs to a personal
+      account, and the project's research note records the docs as offering merge queues to
+      organization-owned repos (or on an enterprise plan). When the weekly workflow opens a pull
+      request with the default `GITHUB_TOKEN`, the `checks` run is created but it waits in an
+      approval required state. The merge box shows a banner. A person with write access chooses
+      **Approve workflows to run**. A personal access token or a GitHub App token would avoid the
+      approval, at the cost of a bigger credential.
+    hints:
+      - What exactly does the queue build and test before it merges, compared with the pull request's own branch?
+      - Which person can release a held run, and what does the merge box show them?
