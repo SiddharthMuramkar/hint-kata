@@ -2,7 +2,7 @@
 id: pa10-evals
 track: pydantic-ai
 title: "Evals and LLM-as-judge"
-minutes: 30
+minutes: 35
 pins:
   pydantic-ai: "2.56.0"
   pydantic-evals: "2.56.0"
@@ -21,7 +21,7 @@ Prompts, rubrics and models change. Each change can fix one answer and spoil ano
 
 The [Pydantic Evals overview](https://pydantic.dev/docs/ai/evals/evals/) uses a unit-testing picture. A **case** plus its **evaluators** is one test. A **dataset** is the test suite. Running the suite on your function is an **experiment**, and you get a **report** back. The same page says that evals are still an emerging practice, so treat any rule about them as advice and not as law.
 
-Two details about the package. `pydantic-evals` does not depend on `pydantic-ai`, and any function can be the thing you test. This repo pins both packages at 2.56.0.
+Two details about the package. The docs say `pydantic-evals` does not depend on `pydantic-ai`, and that any function can be the thing you test. We checked the 2.56.0 wheel: it does require `pydantic-ai-slim==2.56.0`, the core package, so `Agent`, `TestModel` and `FunctionModel` come with it. This repo pins both packages at 2.56.0.
 
 Our running example is a tiny task, `summarize`. It returns the first sentence of a text. It is plain Python, so every run is free and the same each time.
 
@@ -255,7 +255,7 @@ Here is what happens when you forget. We ran a dataset with `LLMJudge(rubric=...
 
 - Nothing raised. `report.failures` was `[]`.
 - The case had no assertion. `report.averages().assertions` was `None`.
-- The table showed only an "Evaluator Failures" column: `LLMJudge: UserError: Set the OPENAI_API_KEY environment variable ...`.
+- The table showed only an "Evaluator Failures" column: `LLMJudge: UserError: Set the `OPENAI_API_KEY` environment variable ...`.
 
 A missing judge looks like a quiet report, not a red one. This is why the gate in the last section checks `evaluator_failures`.
 
@@ -340,8 +340,8 @@ report_evaluators: []
 
 - An evaluator without arguments is just its name. One with a single argument can be `Contains: Rain`. We also loaded a hand-written file with the long form (`Contains: {value: hello, case_sensitive: false}`) and an `LLMJudge` with `rubric`, `model` and `include_input`. Putting `model:` in the file pins the judge with the data.
 - `to_file` also wrote `summaries_schema.json` next to the file. The first line of the YAML points to it, so an editor can check and complete your file.
-- Load without `custom_evaluator_types` and you get an `ExceptionGroup`. Inside it the message says `Evaluator 'ShorterThanInput' is not in the provided custom_evaluator_types`, and lists the built-in names.
-- Give the dataset a metadata type when you save it, as we did with `dict[str, str]`. With `Dataset[str, str, None]`, `to_file` raised `Dataset is not fully defined; you should define meta_type`.
+- Load without `custom_evaluator_types` and you get an `ExceptionGroup`. Inside it the message says ``Evaluator 'ShorterThanInput' is not in the provided `custom_evaluator_types`. Valid choices: [...]``, with the built-in names in the list.
+- Give the dataset a metadata type when you save it, as we did with `dict[str, str]`. With `Dataset[str, str, None]`, `to_file` raised ``Dataset` is not fully defined; you should define `meta_type`, then call `Dataset.model_rebuild()`.``
 
 The [Dataset Management](https://pydantic.dev/docs/ai/evals/how-to/dataset-management/) page covers saving, loading and generating datasets. It is linked only. It is not one of this site's registered sources.
 

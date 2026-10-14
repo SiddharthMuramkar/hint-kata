@@ -42,9 +42,13 @@ def test_dataset_has_four_complete_cases() -> None:
         )
         assert isinstance(case.expected_output, str), f"case {case.name!r}: set expected_output"
         assert case.metadata, f"case {case.name!r}: set metadata, for example {{'topic': 'food'}}"
-        assert any(isinstance(e, Contains) for e in case.evaluators), (
-            f"case {case.name!r}: add its own Contains(value=...) to evaluators"
-        )
+        contains = [e for e in case.evaluators if isinstance(e, Contains)]
+        assert contains, f"case {case.name!r}: add its own Contains(value=...) to evaluators"
+        for e in contains:
+            assert e.value, f"case {case.name!r}: Contains needs a non-empty value"
+            assert e.value in case.expected_output, (
+                f"case {case.name!r}: the Contains value should appear in expected_output"
+            )
 
 
 def test_expected_outputs_match_the_task() -> None:
