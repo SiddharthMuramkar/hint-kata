@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 from app.content import Lesson
 from app.deps import get_store, get_user_id
-from app.review import record_quiz_attempt
 from app.quiz import grade_item, score, scramble
+from app.review import record_quiz_attempt
 from app.store import Store
 
 router = APIRouter(prefix="/api/quiz")

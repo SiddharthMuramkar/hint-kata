@@ -17,21 +17,21 @@ from app.store import Store, open_store
 router = APIRouter()
 
 
-def _due_count() -> int:
+def _due_count(request: Request) -> dict[str, int]:
     """For the nav link: how many cards are due now (0 when there is no database yet)."""
     if not Path(settings.hintkata_db_path).exists():
-        return 0
+        return {"due_count": 0}
     store = open_store(settings.hintkata_db_path)
     try:
-        now = datetime.now(UTC).isoformat()
-        return len(store.due_cards(store.ensure_user("owner"), now, limit=99))
+        lessons = getattr(request.app.state, "lessons", {})
+        due = due_items(store, lessons, store.ensure_user("owner"), datetime.now(UTC))
+        return {"due_count": len(due)}
     finally:
         store.close()
 
 
 templates = Jinja2Templates(
-    directory=Path(__file__).parent.parent / "templates",
-    context_processors=[lambda request: {"due_count": _due_count()}],
+    directory=Path(__file__).parent.parent / "templates", context_processors=[_due_count]
 )
 
 
@@ -91,10 +91,7 @@ def post_review(
     store: Annotated[Store, Depends(get_store)],
     user_id: Annotated[int, Depends(get_user_id)],
 ) -> dict[str, Any]:
-    # the store has no get-card-by-id yet, so scan the user's cards (a far-future "now")
-    card = next(
-        (c for c in store.due_cards(user_id, "9999", limit=10_000) if c["id"] == card_id), None
-    )
+    card = store.card_by_id(user_id, card_id)
     d = resolve(card, request.app.state.lessons) if card else None
     if d is None:
         raise HTTPException(404, "Card not found")

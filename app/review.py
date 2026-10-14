@@ -53,7 +53,7 @@ def record_result(
     card = (
         Card.from_json(row["card_json"])
         if row
-        else Card(card_id=int.from_bytes(hashlib.sha256(key.encode()).digest()[:6]))
+        else Card(card_id=int.from_bytes(hashlib.sha256(f"{user_id}:{key}".encode()).digest()[:6]))
     )
     card, log = Scheduler(desired_retention=settings.desired_retention).review_card(
         card, rating, review_datetime=now
