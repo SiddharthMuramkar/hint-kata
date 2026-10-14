@@ -11,7 +11,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from tools_task import Deps, make_agent  # ty: ignore[unresolved-import]
+from tools_task import Deps, make_agent
 
 models.ALLOW_MODEL_REQUESTS = False  # no test here may reach a real model
 

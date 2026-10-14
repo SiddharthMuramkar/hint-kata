@@ -91,6 +91,18 @@ def test_validate_catches_each_problem(lessons: dict[str, Lesson]) -> None:
         assert expected in problems
 
 
+def test_validate_flags_blank_items(lessons: dict[str, Lesson]) -> None:
+    lesson = lessons["fx-demo"].model_copy(deep=True)
+    blank = lesson.quiz[0].model_copy(update={"id": "b1", "type": "blank", "answer": ""})
+    broken = blank.model_copy(update={"id": "b2", "answer": "re:(unclosed"})
+    fine = blank.model_copy(update={"id": "b3", "answer": "re:depends?"})
+    lesson.quiz = [blank, broken, fine]
+    problems = validate({lesson.id: lesson}, {})
+    assert "fx-demo/b1: blank item has an empty answer" in problems
+    assert "fx-demo/b2: answer regex does not compile" in problems
+    assert not any("b3" in p for p in problems)
+
+
 def test_lesson_page(client: TestClient) -> None:
     r = client.get("/lessons/fx-demo")
     assert r.status_code == 200
