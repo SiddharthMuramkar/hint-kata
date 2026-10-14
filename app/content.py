@@ -5,8 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from mdit_py_plugins.anchors.index import slugify
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.markdown import render_markdown
 
@@ -70,7 +69,7 @@ class DeeperQuestion(BaseModel):
 
 
 class Lesson(BaseModel):
-    id: str
+    id: str = Field(pattern=r"^[a-z0-9-]+$")
     track: str
     title: str
     minutes: int
@@ -105,17 +104,24 @@ def _split_sections(body: str, title: str) -> list[Section]:
     out = []
     for heading, lines in chunks:
         text = "\n".join(lines).strip()
-        if heading:
-            out.append(Section(id=slugify(heading), title=heading, html=str(render_markdown(text))))
-        elif text:
-            out.append(Section(id="intro", title=title, html=str(render_markdown(text))))
+        if not (heading or text):
+            continue
+        html = str(render_markdown(text))
+        # Read the id the anchors plugin gave the heading, so the two can never disagree.
+        m = re.search(r'<h2 id="([^"]+)"', html) if heading else None
+        out.append(Section(id=m.group(1) if m else "intro", title=heading or title, html=html))
     return out
 
 
 def _load_lesson(md_path: Path) -> Lesson:
     d = md_path.parent
-    _, front, body = md_path.read_text(encoding="utf-8").split("---", 2)
+    raw = md_path.read_text(encoding="utf-8")
+    if not raw.startswith("---"):
+        raise ValueError(f"{md_path}: lesson.md must start with YAML frontmatter ('---')")
+    _, front, body = raw.split("---", 2)
     meta = yaml.safe_load(front)
+    if meta.get("id") != d.name:
+        raise ValueError(f"{md_path}: frontmatter id {meta.get('id')!r} != folder {d.name!r}")
     meta["pins"] = {str(k): str(v) for k, v in (meta.get("pins") or {}).items()}
     readme = d / "task" / "README.md"
     task_kind = "pytest" if (d / "task" / "tests").is_dir() else None
@@ -137,8 +143,13 @@ def _load_lesson(md_path: Path) -> Lesson:
 
 
 def load_lessons(root: Path = Path("content")) -> dict[str, Lesson]:
-    lessons = (_load_lesson(p) for p in sorted(root.glob("*/*/lesson.md")))
-    return {lesson.id: lesson for lesson in lessons}
+    out: dict[str, Lesson] = {}
+    for p in sorted(root.glob("*/*/lesson.md")):
+        lesson = _load_lesson(p)
+        if lesson.id in out:
+            raise ValueError(f"duplicate lesson id {lesson.id!r} ({p})")
+        out[lesson.id] = lesson
+    return out
 
 
 def load_sources(path: Path) -> dict[str, Source]:
