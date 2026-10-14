@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Tracks</h1>
+{% for track in tracks %}
+<section class="card">
+  <h2>{{ track.name }}</h2>
+  <ul>
+    {% for lesson in track.lessons %}<li>{{ lesson }}</li>{% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}
