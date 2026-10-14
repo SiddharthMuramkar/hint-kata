@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A route inserts a row into a `sqlite3` database and then raises an error before anything
+      calls `commit()`. The connection is closed at the end of the request. Is the row in the
+      database afterwards? Take a guess before you read.
+    note: >-
+      No. A change that was never committed is thrown away when the connection closes. That is
+      why a dependency can open a connection, commit only when the route finished well, and
+      close it in every case.
+  - id: w2
+    prompt: >-
+      You open a `sqlite3` connection in one thread and use it from another thread. What do you
+      think happens with the default settings? Take a guess before you read.
+    note: >-
+      `sqlite3` raises `ProgrammingError`: SQLite objects created in a thread can only be used in
+      that same thread. The option `check_same_thread=False` turns that check off. The lesson
+      explains why a FastAPI app needs it.
