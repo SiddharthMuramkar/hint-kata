@@ -1,0 +1,109 @@
+questions:
+  - id: d1
+    prompt: >-
+      A friend wants `@claude` to answer comments on issues and pull requests in their public repo.
+      Describe the workflow's top-level `permissions:` block: which permissions you grant, and why
+      the job needs `id-token: write` even though it does not write to the repo. Then say how you
+      write the `uses:` line for the action and why, and where the credential for the model lives.
+    rubric:
+      - name: small-permission-set
+        explanation: The answer grants only the areas the job needs, as a list.
+        pass_anchor: >-
+          Lists a short `permissions:` block such as `contents: read` with `pull-requests: write`
+          and `issues: write`, and does not use `write-all` or grant `contents: write` without a
+          reason.
+        fail_anchor: >-
+          Leaves `permissions:` out, uses `write-all`, or lists many permissions the job does not
+          need.
+      - name: id-token-reason
+        explanation: >-
+          The answer knows what `id-token: write` is for.
+        pass_anchor: >-
+          Says `id-token: write` lets the job ask GitHub for a short-lived identity (OIDC) token that
+          the action uses, and that it does not give write access to files in the repo.
+        fail_anchor: >-
+          Says it lets the job push code, or says it is not needed, or gives no reason.
+      - name: pin-to-commit
+        explanation: The answer fixes the code that runs, and says why.
+        pass_anchor: >-
+          Writes `uses:` with a full 40-character commit SHA and a version comment, and says a tag
+          such as `v1` can be moved by the action's owner.
+        fail_anchor: >-
+          Uses `@v1`, `@main` or a short SHA, or pins but gives no reason.
+      - name: credential-in-secret
+        explanation: The answer keeps the model credential out of the file.
+        pass_anchor: >-
+          Stores the key or token as a repository secret (for example `ANTHROPIC_API_KEY`) and
+          refers to it with `${{ secrets.ANTHROPIC_API_KEY }}`, never as text in the YAML.
+        fail_anchor: >-
+          Puts the key in the workflow file or the README, or does not say where it lives.
+    model_answer: >-
+      I would write a small block at the top: `contents: read`, `pull-requests: write`,
+      `issues: write` and `id-token: write`. Reading the code and posting comments needs no more, and
+      every area I leave out becomes `none`. The example workflow gives `contents: write` so Claude
+      can push a branch, but my friend only wants answers, so I would not. The job needs
+      `id-token: write` because the action asks GitHub for a short-lived identity (OIDC) token. The
+      name says write, but it gives no access to the repo's files. For the `uses:` line I would not
+      write `@v1`. A tag is a label the owner can move, and the action runs inside my job with my
+      token. I would look up the commit behind the release tag, check its type is `commit`, because
+      annotated tags point first at a tag object, and write the full 40-character SHA with the
+      version in a comment, such as `# v1.0.249`. The credential would be a repository secret named
+      `ANTHROPIC_API_KEY`, added with `gh secret set` at the hidden prompt. The workflow would only
+      say `${{ secrets.ANTHROPIC_API_KEY }}`. A key in the file would be public at once.
+    hints:
+      - What would break or be at risk if the job could push code, and does your friend's goal need that?
+      - Who controls what a tag such as `v1` points to, and who controls what a commit SHA points to?
+
+  - id: d2
+    prompt: >-
+      A maintainer says: "Only people with write access can trigger the action, so prompt injection
+      is not a risk for us." Do you agree? Explain what the access check covers, how text from an
+      outsider can still reach the model, one mitigation that the action's documentation offers,
+      and what limits the damage if an injection works anyway.
+    rubric:
+      - name: check-covers-who-starts
+        explanation: The answer separates who starts a run from who wrote the text.
+        pass_anchor: >-
+          Says the write-access check decides who may trigger the action, and that it says nothing
+          about who wrote the words Claude reads.
+        fail_anchor: >-
+          Says the check makes the content safe, or does not explain what the check covers.
+      - name: untrusted-text-path
+        explanation: The answer shows how outside text reaches the model.
+        pass_anchor: >-
+          Says a maintainer can mention Claude on an issue or pull request written by an outsider, so
+          the outsider's text, possibly with hidden instructions such as HTML comments or invisible
+          characters, is part of what the model reads.
+        fail_anchor: >-
+          Says outsiders cannot get text to the model, or names no way their text arrives.
+      - name: documented-mitigation
+        explanation: The answer names one control that the action's docs describe.
+        pass_anchor: >-
+          Names at least one of these: review the raw text from outside contributors;
+          `include_comments_by_actor` or `exclude_comments_by_actor`; limiting tools with
+          `--allowedTools`; leaving `show_full_output` off.
+        fail_anchor: >-
+          Names no control, or names one the docs do not describe, such as "ask Claude to ignore
+          bad instructions".
+      - name: damage-is-capped
+        explanation: The answer explains how a small token limits what a successful attack can do.
+        pass_anchor: >-
+          Says that a small `permissions:` block (least privilege) means injected instructions can
+          only use what the job's token allows, for example no `contents: write`.
+        fail_anchor: >-
+          Says nothing about limiting the token, or says that filtering alone is enough.
+    model_answer: >-
+      I disagree. The check only decides who may start the action: a person with write access.
+      It does not look at who wrote the words Claude reads. If a maintainer writes `@claude` on a
+      pull request from a stranger, the stranger's description and comments become part of what the
+      model sees. They can hide instructions in HTML comments, invisible characters or hidden
+      attributes. The action strips several of those, but its own page says new ways around the
+      filter may appear. So I would use the layers the docs describe. For example, I would read the
+      raw text of outside contributions before asking Claude to work on them, and on a public repo I
+      would use `include_comments_by_actor` so only trusted people's comments reach Claude. I would
+      also limit the tools with `--allowedTools`. And I would keep the token small, with
+      `contents: read` where I can, so that if an injection works, it can only do what the token
+      allows. That is least privilege, and it caps the damage.
+    hints:
+      - The check runs at one moment. Whose words are in the thread at that moment, and who wrote them?
+      - If the model were fooled completely, what would still stop it from doing harm?

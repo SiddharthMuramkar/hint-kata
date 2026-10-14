@@ -1,0 +1,25 @@
+checks:
+  - name: the file .github/workflows/claude.yml exists
+    args: ["api", "repos/{repo}/contents/.github/workflows/claude.yml", "--jq", ".type"]
+    expect: "file"
+  - name: claude-code-action is pinned to a full 40-character commit SHA
+    args:
+      - api
+      - repos/{repo}/contents/.github/workflows/claude.yml
+      - --jq
+      - >-
+        .content | @base64d
+        | test("(?m)^[ \\t]*(- )?uses:[ \\t]*[\"']?anthropics/claude-code-action@[0-9a-f]{40}\\b")
+    expect: "true"
+  - name: the file grants id-token write
+    args:
+      - api
+      - repos/{repo}/contents/.github/workflows/claude.yml
+      - --jq
+      - >-
+        .content | @base64d
+        | test("(?m)^[ \\t]*id-token:[ \\t]*write[ \\t\\r]*(#.*)?$")
+    expect: "true"
+  - name: the file has no string that starts with sk-ant-
+    args: ["api", "repos/{repo}/contents/.github/workflows/claude.yml", "--jq", ".content | @base64d | test(\"sk-ant-\")"]
+    expect: "false"

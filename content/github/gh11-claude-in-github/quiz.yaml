@@ -1,0 +1,208 @@
+items:
+  - id: q1
+    type: single
+    concept: credential-never-in-file
+    source_section: how-it-gets-installed
+    prompt: |
+      You are about to push this workflow to a public repo. Everything else is fine. What is the
+      one thing you must fix first?
+
+      ```yaml
+      name: Claude
+      on:
+        issue_comment:
+          types: [created]
+      permissions:
+        contents: read
+        pull-requests: write
+        issues: write
+        id-token: write
+      jobs:
+        claude:
+          if: contains(github.event.comment.body, '@claude')
+          runs-on: ubuntu-latest
+          steps:
+            - uses: anthropics/claude-code-action@34968b5981d5d170904281aa3df6f3c0d4a28855 # v1.0.249
+              with:
+                anthropic_api_key: sk-ant-...
+      ```
+    options:
+      - text: >-
+          `id-token: write` must be removed, because it lets the job write to the repo.
+        misconception: Thinks `id-token` is a write permission for the repo's files.
+        feedback: >-
+          `id-token: write` lets the job ask GitHub for an identity token. It does not change files.
+          The setup guide says the action needs it.
+      - text: >-
+          The key is written in the file. Replace it with `${{ secrets.ANTHROPIC_API_KEY }}` and
+          add the value as a repository secret.
+        correct: true
+        feedback: >-
+          Right. In a public repo, a key in a workflow file is public the moment you push. The setup
+          guide tells you never to commit a key and to use a repository secret. If a real key ever
+          lands in a file, rotate it first, as in GH5.
+      - text: >-
+          The `if:` line must also check that the commenter is a collaborator, because the action
+          does not check who wrote the comment.
+        misconception: Thinks the action has no access check of its own.
+        feedback: >-
+          The action checks for write access itself on issue, comment and review events. The `if:`
+          line only filters on the text, so a job does not start for every comment.
+      - text: >-
+          The workflow must listen to `issues` and `pull_request_review` as well. One event is not
+          enough.
+        misconception: Thinks the action needs every event the example file lists.
+        feedback: >-
+          The example listens to several events, but each one is a choice. A workflow with only
+          `issue_comment` is valid. It just reacts to fewer things.
+
+  - id: q2
+    type: single
+    concept: write-access-check
+    source_section: who-can-trigger-it
+    prompt: >-
+      Your public repo runs the action on `issue_comment`, and the job has
+      `if: contains(github.event.comment.body, '@claude')`. A stranger with no write access
+      comments "@claude explain the build" on an issue. What happens?
+    options:
+      - text: Claude answers the question, because the comment contains the trigger phrase.
+        misconception: Thinks the trigger phrase is the access control.
+        feedback: >-
+          Anyone can type `@claude`, so the phrase cannot be a lock. The action decides by the
+          commenter's access to the repo.
+      - text: >-
+          GitHub never starts the workflow, because people without write access cannot create
+          workflow runs.
+        misconception: Thinks GitHub itself blocks events from outsiders.
+        feedback: >-
+          On a public repo, a comment from anyone is an event that can start a workflow. The
+          defence is in the workflow and the action, not in GitHub's event system.
+      - text: >-
+          Claude runs, but with a read-only token, because the commenter has read access only.
+        misconception: Thinks the action runs with the commenter's own permissions.
+        feedback: >-
+          The token comes from the workflow's `permissions:` block, not from the person who
+          commented. The action stops instead of running with less.
+      - text: >-
+          The `if:` line matches, so the job starts. The action then checks the commenter's access,
+          finds no write access, and stops.
+        correct: true
+        feedback: >-
+          Right. The `if:` line only looks at the text. The write-access check is inside the action.
+          Never mistake the first for the second.
+
+  - id: q3
+    type: single
+    concept: injection-survives-access-check
+    source_section: the-prompt-injection-surface
+    prompt: >-
+      A maintainer, who has write access, comments "@claude summarize this pull request" on a pull
+      request from a stranger. The pull request description hides an instruction to Claude inside an
+      HTML comment. Which statement is true?
+    options:
+      - text: >-
+          There is no risk, because only a user with write access can start the run.
+        misconception: Thinks that trusting who starts a run means trusting the text it reads.
+        feedback: >-
+          The stranger's text is in the context anyway. The access check cannot see the words in
+          the pull request.
+      - text: >-
+          There is no risk, because the action strips every kind of hidden content before the model
+          reads it.
+        misconception: Thinks the sanitising is complete.
+        feedback: >-
+          The security page lists what is removed, then says new ways around it may appear. It
+          asks you to review the raw text yourself.
+      - text: >-
+          The access check passed because the maintainer started the run, but the stranger wrote
+          the text Claude reads. The action removes some hidden content, and its own page says new
+          bypasses may appear, so the raw text should be reviewed.
+        correct: true
+        feedback: >-
+          Right. The check is about who starts the run, not about who wrote the words in the
+          context. Filtering helps, but it is one layer. Small permissions limit the damage.
+      - text: >-
+          Set `allowed_non_write_users: '*'` so that the stranger's text is checked like any other.
+        misconception: Thinks the non-write-user switch adds a check on text.
+        feedback: >-
+          That switch does the opposite. It lets people without write access trigger the action,
+          and the page calls it a significant risk.
+
+  - id: q4
+    type: order
+    concept: mention-flow
+    source_section: who-can-trigger-it
+    prompt: >-
+      Put these steps in the order they happen when a maintainer comments "@claude" on an issue
+      in a repo that uses the action with the example workflow.
+    steps:
+      - "The maintainer posts a comment that contains `@claude`."
+      - "GitHub starts the workflow for the `issue_comment` event, and the job's `if:` line matches the text."
+      - "The action checks that the commenter has write access to the repo."
+      - "The action reads the issue and the comments, and runs Claude Code on the runner."
+      - "Claude posts its answer back to the issue, using the job's token."
+    explanation: >-
+      The text match comes first and decides only whether the job starts. The access check comes
+      next, before Claude runs. The untrusted text reaches the model only after both. The reply
+      goes out with the token, so the token's permissions limit what it can do.
+
+  - id: q5
+    type: blank
+    concept: id-token-permission
+    source_section: the-permissions-the-workflow-grants
+    prompt: |
+      Fill in the permission the action needs so that the job can fetch GitHub's identity (OIDC)
+      token:
+
+      ```yaml
+      permissions:
+        contents: read
+        ____: write
+      ```
+    answer: "id-token"
+    explanation: >-
+      `id-token: write` lets the job ask GitHub for a short-lived identity token. The setup guide
+      says the action uses it. The default GitHub app path needs it, and so does workload identity
+      federation. Despite the word `write`, it gives no write access to the repo's files.
+
+  - id: q6
+    type: single
+    concept: annotated-tag-sha
+    source_section: pinning-the-action-to-a-commit
+    prompt: |
+      You want to pin the action to the release `v1.0.249`. You run this and see `"type": "tag"`
+      in the output:
+
+      ```bash
+      gh api repos/anthropics/claude-code-action/git/ref/tags/v1.0.249 --jq '.object'
+      ```
+
+      What do you do next?
+    options:
+      - text: >-
+          Paste the SHA from the output after the `@`. It has 40 characters, so it is a commit SHA.
+        misconception: Thinks any 40-character SHA is a commit SHA.
+        feedback: >-
+          Tag objects and commits both have 40-character SHAs. The `type` field tells them apart.
+          The workflow checker cannot tell them apart either, so you must look.
+      - text: >-
+          Use `@v1.0.249` instead. A version tag with a full number cannot be moved.
+        misconception: Thinks a precise version tag is as fixed as a commit SHA.
+        feedback: >-
+          Any tag can be moved or deleted and made again by whoever owns the repo. Only a commit
+          SHA names exact code.
+      - text: >-
+          Follow the tag object to its commit, for example with
+          `gh api repos/anthropics/claude-code-action/commits/v1.0.249 --jq '.sha'`, and pin that
+          commit SHA.
+        correct: true
+        feedback: >-
+          Right. For an annotated tag, the ref lookup gives the SHA of the tag object, one step
+          before the commit. Use the SHA whose type is `commit`.
+      - text: >-
+          Use the first 7 characters of the SHA, because that is how `git log` shows commits.
+        misconception: Thinks a short SHA is enough for a pin.
+        feedback: >-
+          A pin should be the full 40-character commit SHA, as in this repo's `ci.yml`. A short
+          prefix is easier to get wrong and could in theory match more than one commit.
+
