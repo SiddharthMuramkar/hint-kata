@@ -9,7 +9,7 @@
 
 <article class="markdown-body">
 {% for s in lesson.sections %}
-{{ s.html|safe }}
+{% if s.id == "intro" %}<section id="intro">{{ s.html|safe }}</section>{% else %}{{ s.html|safe }}{% endif %}
 {% endfor %}
 </article>
 
@@ -24,7 +24,7 @@
   <ul>
     {% for s in sources %}
     <li><a href="{{ s.url }}">{{ s.title }}</a>
-      ({{ s.version }}{% if s.fetched_at %}, fetched {{ s.fetched_at }}{% endif %})
+      {% if s.version or s.fetched_at %}({{ s.version }}{% if s.fetched_at %}, fetched {{ s.fetched_at }}{% endif %}){% endif %}
       &middot; {{ s.license }}<br><small>{{ s.attribution }}</small></li>
     {% endfor %}
   </ul>

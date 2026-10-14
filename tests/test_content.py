@@ -1,3 +1,4 @@
+import shutil
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -35,7 +36,12 @@ def test_loader_fields(lessons: dict[str, Lesson]) -> None:
     assert (lesson.track, lesson.title, lesson.minutes) == ("fastapi", "Demo lesson", 8)
     assert lesson.pins == {"fastapi": "0.143.0"}
     assert lesson.sources == ["fx-source"]
-    assert [s.id for s in lesson.sections] == ["intro", "using-depends", "second-section"]
+    assert [s.id for s in lesson.sections] == [
+        "intro",
+        "using-depends",
+        "second-section",
+        "see-the-docs-now",
+    ]
     assert len(lesson.warmup) == 1
     assert [q.type for q in lesson.quiz] == ["single", "order", "blank"]
     assert len(lesson.deeper[0].rubric) == 3
@@ -53,6 +59,7 @@ def test_section_ids_match_rendered_anchors(lessons: dict[str, Lesson]) -> None:
     for section in lessons["fx-demo"].sections[1:]:
         assert f'id="{section.id}"' in section.html
         assert f'id="{section.id}"' in md.render(f"## {section.title}")
+    assert "see-the-docs-now" in [s.id for s in lessons["fx-demo"].sections]  # heading with a link
 
 
 def test_fixture_is_valid(lessons: dict[str, Lesson], sources: dict[str, Source]) -> None:
@@ -60,7 +67,8 @@ def test_fixture_is_valid(lessons: dict[str, Lesson], sources: dict[str, Source]
 
 
 def test_real_content_is_valid() -> None:
-    assert validate(load_lessons(), load_sources(Path("content/sources.yaml"))) == []
+    root = Path(__file__).parents[1] / "content"
+    assert validate(load_lessons(root), load_sources(root / "sources.yaml")) == []
 
 
 def test_validate_catches_each_problem(lessons: dict[str, Lesson]) -> None:
@@ -89,6 +97,7 @@ def test_lesson_page(client: TestClient) -> None:
     assert 'id="using-depends"' in r.text and 'id="second-section"' in r.text
     assert "Fixture source" in r.text and "https://example.com/fx" in r.text
     assert "MIT" in r.text and "Adapted from the Fixture docs" in r.text
+    assert 'id="intro"' in r.text
     assert "<details>" in r.text  # warm-up
 
 
@@ -107,3 +116,37 @@ def test_api_lessons(client: TestClient) -> None:
     assert client.get("/api/lessons").json() == [
         {"id": "fx-demo", "track": "fastapi", "title": "Demo lesson", "minutes": 8}
     ]
+
+
+def _copy_fixture(tmp_path: Path) -> Path:
+    root = tmp_path / "content"
+    shutil.copytree(FIXTURES, root)
+    return root
+
+
+def test_frontmatter_id_must_match_folder(tmp_path: Path) -> None:
+    root = _copy_fixture(tmp_path)
+    (root / "fastapi" / "fx-demo").rename(root / "fastapi" / "other")
+    with pytest.raises(ValueError, match="!= folder"):
+        load_lessons(root)
+
+
+def test_duplicate_lesson_id_is_rejected(tmp_path: Path) -> None:
+    root = _copy_fixture(tmp_path)
+    shutil.copytree(root / "fastapi" / "fx-demo", root / "github" / "fx-demo")
+    with pytest.raises(ValueError, match="duplicate lesson id"):
+        load_lessons(root)
+
+
+def test_lesson_id_pattern_and_frontmatter_required(tmp_path: Path) -> None:
+    root = _copy_fixture(tmp_path)
+    md = root / "fastapi" / "fx-demo" / "lesson.md"
+    text = md.read_text()
+    md.write_text(text.replace("id: fx-demo", "id: Fx_Demo"))
+    (root / "fastapi" / "Fx_Demo").mkdir()
+    md.rename(root / "fastapi" / "Fx_Demo" / "lesson.md")
+    with pytest.raises(ValueError, match="pattern"):
+        load_lessons(root)
+    (root / "fastapi" / "Fx_Demo" / "lesson.md").write_text("no frontmatter")
+    with pytest.raises(ValueError, match="frontmatter"):
+        load_lessons(root)
