@@ -1,0 +1,135 @@
+questions:
+  - id: d1
+    prompt: >-
+      A repo has many pull requests open at the same time, and a ruleset with the required check
+      `checks`. A teammate wants to turn on "Require branches to be up to date before merging" (the
+      strict policy). Explain what strict mode requires of a pull request, what it costs when many
+      pull requests are open, what happens to a pull request that has auto-merge armed when its
+      branch is behind `main`, and how a bad mix of two pull requests that were each green is
+      stopped or noticed under the mode you choose. Then say which mode you would choose for this
+      repo, with a reason.
+    rubric:
+      - name: what-strict-requires
+        explanation: The answer says what strict mode demands of a pull request branch.
+        pass_anchor: >-
+          Says that with strict mode the pull request branch must contain the latest base branch
+          (be up to date with `main`) before it can merge.
+        fail_anchor: >-
+          Says strict mode means "more checks", "stricter tests" or "approvals needed", or does not
+          mention the branch being up to date.
+      - name: what-strict-costs
+        explanation: The answer names the cost of strict mode when many pull requests are open.
+        pass_anchor: >-
+          Says every merge puts the other open pull requests behind `main`, so each must be brought
+          up to date and checked again.
+        fail_anchor: >-
+          Says only that it is "slower" or "annoying", or names no cost.
+      - name: auto-merge-waits
+        explanation: The answer knows what happens to an armed auto-merge on a branch that is behind.
+        pass_anchor: >-
+          Says an armed auto-merge does not merge a pull request that is behind `main` under
+          strict mode. It waits until someone brings the branch up to date.
+        fail_anchor: >-
+          Says auto-merge updates the branch by itself, or merges anyway, or does not mention
+          auto-merge.
+      - name: how-clashes-are-caught
+        explanation: >-
+          The answer says how two pull requests that are each green on their own are kept from
+          breaking each other unseen.
+        pass_anchor: >-
+          Says strict mode blocks the clash before the merge because the tested code is the code
+          that lands, or says that without strict mode CI running on every push to `main` shows it
+          right after the merge.
+        fail_anchor: >-
+          Says there is no risk without strict mode, or says nothing about how a clash would be
+          stopped or noticed.
+      - name: choice-with-reason
+        explanation: The answer makes a decision and ties it to the situation.
+        pass_anchor: >-
+          Picks strict or non-strict and gives a reason that fits many pull requests open at once,
+          such as saving CI runs or preferring safety.
+        fail_anchor: >-
+          Gives no choice, or a choice with no reason, or a reason that has nothing to do with the
+          repo.
+    model_answer: >-
+      Strict mode means a pull request can only merge when its branch already contains the latest
+      `main`. If `main` has moved on, the pull request is behind and blocked until someone merges or
+      rebases `main` into it, for example with `gh pr update-branch`, and the checks run again. The
+      cost shows up when many pull requests are open. Every merge puts all the others behind, so
+      each one needs an update and a full CI run again. Auto-merge does not update the branch for
+      you, so an armed pull request just waits until someone brings `main` in. The gain is that what
+      you tested is exactly what lands, so two pull requests that were green on their own cannot
+      break each other after both merge. Without strict mode that risk is real, but I can cover it
+      by running the same CI on every push to `main`, so a bad combination shows up right after the
+      merge and I can revert it. For a repo like this one, with several pull requests in flight, I
+      would choose non-strict. It saves a lot of CI runs, and the push-to-`main` run is my safety
+      net.
+    hints:
+      - After one pull request merges, what has changed for every other open pull request?
+      - Does arming auto-merge change the fact that the branch is behind `main`?
+
+  - id: d2
+    prompt: >-
+      The ruleset requires a check named `unit-tests`. Two pull requests are stuck on "Waiting for
+      status to be reported". The first only edits `README.md`, and its workflow has a `paths:`
+      filter for `src/**`. The second changes code, but last week someone renamed the job from
+      `tests` to `unit-tests` in the workflow, and nobody changed the ruleset, which still requires
+      `tests`. Explain why each pull request is stuck, how you would fix each one, and what catch
+      comes with your fix for the README one.
+    rubric:
+      - name: filter-cause
+        explanation: The answer explains why the README pull request is stuck.
+        pass_anchor: >-
+          Says the `paths:` filter stops the workflow from starting for a README-only change, so no
+          check is reported, and the required check stays pending.
+        fail_anchor: >-
+          Says the tests failed, or the pull request needs a review, or does not connect the
+          filter to the missing check.
+      - name: rename-cause
+        explanation: The answer explains why the second pull request is stuck.
+        pass_anchor: >-
+          Says the rule still requires the old name `tests`, the job now posts `unit-tests`, and
+          the rule matches names exactly, so a check with the required name is never reported.
+        fail_anchor: >-
+          Blames the code or the CI run, or says the new check is "failing", when the problem is
+          the name mismatch.
+      - name: fix-the-rename
+        explanation: The answer fixes the name mismatch.
+        pass_anchor: >-
+          Makes the job name and the ruleset `context` match, by changing the ruleset to
+          `unit-tests` or by renaming the job back to `tests`.
+        fail_anchor: >-
+          Suggests merging around the rule, adding a bypass actor, or re-running the failed job,
+          without making the two names match.
+      - name: fix-the-filter
+        explanation: The answer fixes the path-filter problem in a way that works.
+        pass_anchor: >-
+          Stops requiring a workflow that can be skipped: removes the filter so the workflow always
+          starts and puts the condition on a job inside it, or stops requiring that check.
+        fail_anchor: >-
+          Only says to edit a file in `src/` to trigger the workflow, or suggests merging around
+          the rule or adding a bypass actor.
+      - name: skipped-job-catch
+        explanation: The answer knows what a skipped job reports.
+        pass_anchor: >-
+          Says that a job skipped by an `if:` condition reports success, so it passes the rule even
+          though its steps never ran.
+        fail_anchor: >-
+          Says a skipped job keeps the pull request waiting or counts as a failure, or names no
+          catch at all.
+    model_answer: >-
+      The README pull request is stuck because the workflow has a `paths:` filter for `src/**`. A
+      change to `README.md` does not match it, so the workflow never starts, no check is reported
+      and the required check stays pending. The second pull request is stuck because of a name
+      mismatch. The job is now called `unit-tests`, so that is the check it posts, but the ruleset
+      still requires `tests`. The rule matches the name exactly, so no check called `tests` is ever
+      reported. To fix the second one, I would make the two names match, by changing the `context`
+      in the ruleset to `unit-tests` or by renaming the job back. To fix the first one, I would stop
+      requiring a workflow that can be skipped. I would remove the filter so the workflow always
+      starts, and put the condition on a job inside it. The catch is that a job skipped by an `if:`
+      reports success, so it passes the rule even though its steps never ran. If the condition is
+      wrong, the required check passes without testing anything, so I would write it with care
+      and keep the always-needed work outside the condition.
+    hints:
+      - In the README case, did any job report a result at all?
+      - What does a job that is skipped by an `if:` report to the rule?
