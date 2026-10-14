@@ -59,7 +59,7 @@
       const res = await fetch(base, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
-        body: JSON.stringify({ message, active_item: null }),
+        body: JSON.stringify({ message, active_item: root.dataset.activeItem || null }),
       });
       if (!res.ok || !res.body) throw new Error("HTTP " + res.status);
       const reader = res.body.getReader();
@@ -82,6 +82,7 @@
           const v = JSON.parse(data);
           if (type === "token") reply.textContent += v;
           else if (type === "html") reply.innerHTML = v; // server-rendered with html=False
+          else if (type === "ceiling") level.textContent = v;
           else if (type === "citations") cites(reply, v);
           else if (type === "error") reply.textContent += "\n[error] " + v;
         }
@@ -96,7 +97,7 @@
   const reveal = document.getElementById("tutor-reveal");
   if (reveal) {
     reveal.addEventListener("click", async () => {
-      if (!window.confirm("Revealing schedules a re-test tomorrow. Revealed items are usually forgotten faster. Continue?")) return;
+      if (!window.confirm("This is logged and you will be re-tested on it later. Continue?")) return;
       const item_id = document.getElementById("tutor-item").value;
       const res = await fetch(base + "/reveal", {
         method: "POST",

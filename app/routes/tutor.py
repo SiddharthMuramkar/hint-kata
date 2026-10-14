@@ -1,5 +1,6 @@
 import html
 import json
+import logging
 import re
 from collections.abc import AsyncIterable
 from functools import lru_cache
@@ -25,6 +26,7 @@ from app.store import Store
 from app.tutor_rules import apply_ceiling, compute_ceiling, no_progress, validate_citations
 
 router = APIRouter(prefix="/api/tutor")
+log = logging.getLogger(__name__)
 
 
 class ChatIn(BaseModel):
@@ -110,8 +112,10 @@ async def chat(
         ) as result:
             async for delta in result.stream_text(delta=True):
                 parts.append(delta)
-                yield ServerSentEvent(event="token", data=delta)
+                if ceiling >= 4:  # below L4 the learner sees only the filtered final html
+                    yield ServerSentEvent(event="token", data=delta)
     except Exception:
+        log.exception("tutor run failed")
         yield ServerSentEvent(event="error", data="The tutor failed, please retry.")
         return
     text, cited = validate_citations(
@@ -123,6 +127,7 @@ async def chat(
     citations = [
         {"id": i, "title": titles[i], "href": f"#{i}", "source_url": source_url} for i in cited
     ]
+    yield ServerSentEvent(event="ceiling", data=f"L{ceiling}")
     yield ServerSentEvent(event="html", data=_render(text))
     yield ServerSentEvent(event="citations", data=citations)
     store.add_chat(user_id, lesson_id, "user", body.message, None, None)

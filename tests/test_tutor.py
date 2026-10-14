@@ -119,3 +119,25 @@ def test_reveal_logs_event_and_lifts_ceiling(client: TestClient) -> None:
 def test_unknown_lesson_is_404(client: TestClient) -> None:
     assert client.post("/api/tutor/nope", json={"message": "x"}).status_code == 404
     assert client.get("/api/tutor/nope/history").status_code == 404
+
+
+def test_active_item_caps_ceiling_even_after_reveal(client: TestClient) -> None:
+    client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q1"})
+    ev = _chat(client, item="q1")
+    assert "x=1" not in str(ev["html"]) and "<pre" not in str(ev["html"])
+    assert ev["ceiling"] == "L2"
+    assert client.get("/api/tutor/fx-demo/history").json()[1]["ceiling"] == "L2"
+
+
+def test_no_tokens_below_l4_and_tokens_at_l4(client: TestClient) -> None:
+    low = client.post("/api/tutor/fx-demo", json={"message": "a"}).text
+    assert "event: token" not in low and "x=1" not in low.split("event: html")[0]
+    client.post("/api/tutor/fx-demo/reveal", json={"item_id": "q1"})
+    assert "event: token" in client.post("/api/tutor/fx-demo", json={"message": "b"}).text
+
+
+def test_script_and_javascript_links_do_not_survive(client: TestClient) -> None:
+    evil = "<script>alert(1)</script> [x](javascript:alert(1))"
+    with get_tutor().override(model=TestModel(custom_output_text=evil)):
+        html = str(_chat(client)["html"])
+    assert "<script" not in html and "javascript:" not in html
