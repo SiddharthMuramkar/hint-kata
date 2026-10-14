@@ -13,6 +13,7 @@ from app.config import settings
 from app.content import Lesson, Source, load_lessons, load_sources
 from app.routes.check import router as check_router
 from app.routes.tutor import router as tutor_router
+from app.routes.trace import router as trace_router
 
 HERE = Path(__file__).parent
 
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(trace_router)
 app.mount("/static", StaticFiles(directory=HERE / "static"), name="static")
 templates = Jinja2Templates(directory=HERE / "templates")
 app.include_router(check_router)

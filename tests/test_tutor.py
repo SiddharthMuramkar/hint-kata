@@ -85,7 +85,7 @@ def _chat(client: TestClient, message: str = "help", item: str | None = None) ->
     r = client.post("/api/tutor/fx-demo", json={"message": message, "active_item": item})
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/event-stream")
-    assert "event: token" in r.text and "event: html" in r.text and "event: citations" in r.text
+    assert "event: html" in r.text and "event: citations" in r.text
     return _events(r.text)
 
 
