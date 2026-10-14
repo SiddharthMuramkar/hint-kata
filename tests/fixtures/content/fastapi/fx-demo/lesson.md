@@ -21,3 +21,7 @@ x = 1
 ## Second `section`
 
 More text.
+
+## See [the docs](https://example.com) now
+
+Linked heading.
