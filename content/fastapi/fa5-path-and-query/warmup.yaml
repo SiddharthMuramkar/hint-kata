@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A route is `@app.get("/items/{item_id}")` and the function takes `item_id: int`.
+      A client sends `GET /items/3`, and later `GET /items/foo`. What type does `item_id`
+      have inside the function for the first request? What do you expect the client to get
+      for the second? Take a guess before you read.
+    note: >-
+      A Python `int`, the number `3`, not the string `"3"`. For `/items/foo` the client gets
+      a 422 that points at the path parameter `item_id`, and the function never runs.
+  - id: w2
+    prompt: >-
+      A route has the parameter `limit: Annotated[int, Query(le=100)] = 10`. A client sends
+      `GET /items/?limit=500`. Do you think the function gets `100`, gets `500`, or never
+      runs? Take a guess before you read.
+    note: >-
+      The function never runs. FastAPI answers 422 with `loc` `["query", "limit"]`. It does
+      not shrink the value to 100, and it does not let 500 through.

@@ -1,0 +1,152 @@
+items:
+  - id: q1
+    type: single
+    concept: route-order
+    source_section: route-order-fixed-before-variable
+    prompt: >-
+      A file declares `@app.get("/users/{user_id}")` first, with `user_id: int`, and
+      `@app.get("/users/me")` second. A client sends `GET /users/me`. What happens?
+    options:
+      - text: >-
+          The client gets a 422, because `{user_id}` matches `me` first and `"me"` is not an
+          integer. `read_me` never runs.
+        correct: true
+        feedback: >-
+          Right. The first declared path that matches wins, and `{user_id}` matches any text.
+          The conversion then fails, so the client gets a 422. The fix is to declare
+          `/users/me` before `/users/{user_id}`.
+      - text: >-
+          `read_me` runs. FastAPI sees that `"me"` is not an int and tries the next route.
+        misconception: Thinks FastAPI falls through to the next route when a conversion fails.
+        feedback: >-
+          The route is chosen by its path alone. Once `{user_id}` has matched, the conversion
+          happens, and a failure is an error for the client. FastAPI does not go back and try
+          `/users/me`.
+      - text: >-
+          `read_me` runs, because the exact path `/users/me` is more specific than
+          `/users/{user_id}`.
+        misconception: Thinks FastAPI picks the most specific path, whatever the order.
+        feedback: >-
+          Order decides, not how specific the path is. The first declared path that matches
+          wins. That is why fixed paths go before variable ones.
+      - text: >-
+          The client gets a 200 and the body `{"user_id": "me"}`.
+        misconception: Thinks the `int` annotation is only a hint and the value stays a string.
+        feedback: >-
+          FastAPI enforces the annotation. `"me"` cannot become an `int`, so the client gets a
+          422. You would see `{"user_id": "me"}` only if `user_id` were declared as `str`,
+          and that is the quieter, worse bug.
+  - id: q2
+    type: single
+    concept: required-query-parameter
+    source_section: query-parameters-optional-required-defaults
+    prompt: >-
+      A route `GET /items/{item_id}` has the function
+      `read(item_id: str, needy: str, skip: int = 0, limit: int | None = None)`.
+      A client sends `GET /items/foo?skip=2`. What does the client get?
+    options:
+      - text: >-
+          A 422. The error has `type` `missing` and `loc` `["query", "needy"]`, because
+          `needy` has no default.
+        correct: true
+        feedback: >-
+          Right. With no default, a query parameter is required. Sending `skip` does not
+          help, and the error names exactly the parameter that is missing.
+      - text: A 200, with `needy` set to `None`.
+        misconception: Thinks a missing query parameter becomes `None` by itself.
+        feedback: >-
+          Only a parameter declared with `= None` gets `None`. `needy` has no default, so it
+          is required, and leaving it out is an error.
+      - text: A 200, with `needy` set to an empty string.
+        misconception: Thinks a missing string parameter defaults to an empty string.
+        feedback: >-
+          Missing and empty are different things. `?needy=` would give `""`. No `needy` at all
+          is a 422.
+      - text: A 404, because the URL has no value for `needy`.
+        misconception: Thinks a missing query parameter means the route is not found.
+        feedback: >-
+          The route is matched on the path, `/items/foo`, and the query string plays no part in
+          that. A missing required query parameter is a 422 that names `needy`.
+  - id: q3
+    type: single
+    concept: bool-conversion
+    source_section: bool-and-list-query-values
+    prompt: >-
+      A route has the parameter `short: bool = False`. A client sends `GET /items?short=maybe`.
+      What happens in FastAPI 0.143.0?
+    options:
+      - text: A 422 with `type` `bool_parsing` and `loc` `["query", "short"]`.
+        correct: true
+        feedback: >-
+          Right. Only known words convert to a bool: `1`, `true`, `on`, `yes` and their false
+          partners. Any other text is an error, and the error names the parameter.
+      - text: "`short` is `False`, because only the true words count as true."
+        misconception: Thinks any text that is not a true word becomes `False`.
+        feedback: >-
+          One doc page says this, but when we ran 0.143.0 the answer was a 422. Anything that
+          is not on the list of true or false words is rejected, not turned into `False`.
+      - text: "`short` is `True`, because `\"maybe\"` is not an empty string."
+        misconception: Thinks FastAPI uses Python truthiness on the text.
+        feedback: >-
+          Python's `bool("maybe")` is `True`, but FastAPI does not use it. It reads the text
+          against a fixed list of words, and `maybe` is not on the list.
+      - text: "`short` is the string `\"maybe\"`."
+        misconception: Thinks the annotation does not convert query values.
+        feedback: >-
+          The annotation is enforced. A `bool` parameter never receives a string. It gets `True`
+          or `False`, or the client gets a 422.
+  - id: q4
+    type: single
+    concept: query-list-needs-query
+    source_section: bool-and-list-query-values
+    prompt: >-
+      You want `GET /search?tags=a&tags=b` to give your function the list `["a", "b"]`.
+      Which declaration does that?
+    options:
+      - text: "`tags: Annotated[list[str] | None, Query()] = None`"
+        correct: true
+        feedback: >-
+          Right. The list type says what shape you want, and `Query()` tells FastAPI to read it
+          from the query string, with one item for each repeated key.
+      - text: "`tags: list[str] | None = None`"
+        misconception: Thinks a list type alone makes a repeated query parameter.
+        feedback: >-
+          Without `Query()`, FastAPI reads a `list` parameter from the request body. The URL
+          is ignored and `tags` stays `None`.
+      - text: "`tags: str | None = None`. FastAPI joins repeated keys into one comma-separated string."
+        misconception: Thinks repeated keys are joined into one string.
+        feedback: >-
+          A `str` parameter gets one value, and with a repeated key that is the last one,
+          `"b"`. Nothing is joined.
+      - text: "`tags: Annotated[str | None, Query()] = None`. `Query()` is what collects repeated keys."
+        misconception: Thinks `Query()` alone turns repeated keys into a list.
+        feedback: >-
+          `Query()` adds rules and says where to read the value from. The type decides the
+          shape. With `str` you still get one value, the last one, `"b"`. You need `list[str]`.
+  - id: q5
+    type: order
+    concept: validation-flow
+    source_section: path-parameters-and-type-conversion
+    prompt: >-
+      The route is `GET /items/{item_id}` with `item_id: int`. A client sends `GET /items/abc`.
+      Put the steps in the order they happen.
+    steps:
+      - "The URL `/items/abc` matches the path `/items/{item_id}` and captures the text `abc`"
+      - "FastAPI tries to convert `abc` to an `int` and fails"
+      - "FastAPI builds an error entry with `loc` `[\"path\", \"item_id\"]`"
+      - "The client receives a 422, and your function never runs"
+    explanation: >-
+      The path is matched first, and only then is the captured text converted. A failed
+      conversion becomes an entry in the error list, with `loc` saying where it went wrong.
+      Your function is called only when every check passes.
+  - id: q6
+    type: blank
+    concept: numeric-bounds
+    source_section: rules-with-query-and-path
+    prompt: >-
+      Fill in the blank so `item_id` must be 1 or more (1 is allowed, 0 is not):
+      `item_id: Annotated[int, Path(____=1)]`
+    answer: ge
+    explanation: >-
+      `ge` means "greater than or equal to". `gt=1` would reject 1 itself. The other bounds
+      are `lt` (less than) and `le` (less than or equal to).
