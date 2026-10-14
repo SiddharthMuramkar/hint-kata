@@ -11,7 +11,7 @@ sources:
   - pydantic-ai-guides-testing
 ---
 
-Every request to a model carries two kinds of control. The first is words: the instructions that say who the model is and how to answer. The second is numbers: the settings that cap its length, set a timeout and say how hard it should think. In lesson 1 you wrote one fixed instruction. Here the words follow your data, you learn where each setting can live and which one wins, and you see how this site's own tutor and grader are set up. At the end you check all of it without an API key.
+Every request to a model carries two kinds of control. The first is words: the instructions that say who the model is and how to answer. The second is numbers: the settings that cap its length, set a timeout and say how hard it should think. In [PA1](/lessons/pa1-first-agent) you wrote one fixed instruction. Here the words follow your data, you learn where each setting can live and which one wins, and you see how this site's own tutor and grader are set up. At the end you check all of it without an API key.
 
 A note on how to read this lesson. "I checked" means I ran a small script against Pydantic AI 2.56.0 with a fake model. A claim with a link is in the official docs. A few claims come only from the installed source code, and I say so each time.
 
@@ -44,7 +44,7 @@ Agent(FunctionModel(spy), system_prompt="Be brief.").run_sync("hi")
 
 Instructions are not a message part. The agent puts them beside the messages, on the request, and rebuilds them for every request. A system prompt is a `SystemPromptPart` inside the first request, so it becomes part of the conversation record.
 
-That difference matters on a later run that passes `message_history`. [Lesson 5](/lessons/pa5-message-history) explains history itself. Here is what each kind does with it.
+That difference matters on a later run that passes `message_history`. [PA5](/lessons/pa5-message-history) explains history itself. Here is what each kind does with it.
 
 - **Instructions** come from the agent you run now. Old requests keep a copy of the instructions they were sent with, but the docs say those copies are left out of the next request. I checked: agent A had "Be brief.", agent B had "Speak French.", and B ran on A's history. The model's `info.instructions` was only "Speak French."
 - **A system prompt** stays in the history and is sent again with it. A new run adds its own system prompt only when the history is empty. I checked a history that held earlier turns but no system prompt, run by an agent with `system_prompt="SYS-NEW"`. The model never saw `SYS-NEW`. If your stored history lost its system prompt, it stays lost.
@@ -99,7 +99,7 @@ Dynamic instructions run again on every run, even when you pass history. I check
 
 **Runtime** instructions are given to one call: `agent.run_sync("...", instructions="Answer in one sentence.")`. They are extra text for that run only. I checked that the next run, without the argument, did not carry them. Use them for a one-off need that is not data in `deps`.
 
-The parts are joined into one string with a blank line between them. The docs also say static text always sorts before dynamic text, so a provider that caches a prompt can keep the stable start and leave the changing end out. Runtime instructions count as dynamic. I checked one static string, two functions and one runtime string. The model saw the static text first. The runtime text came next, and the two function texts followed. I would not rely on the order among dynamic parts, because the docs only promise that static comes first. The [Instruction parts](https://pydantic.dev/docs/ai/core-concepts/agent/#instruction-parts) section shows how to inspect each part and give it a name.
+The parts are joined into one string with a blank line between them. The docs also say static text always sorts before dynamic text, so a provider that caches a prompt can keep the stable start and leave the changing end out. The docs class runtime instructions as dynamic. In 2.56.0 I found something different. I checked one static string, one function and one runtime string, and read `info.model_request_parameters.instruction_parts`. The runtime part was flagged static, and the order was static, then runtime, then the function. That is why the runtime text came before the function text. I then mapped those parts for OpenRouter with `openrouter_cache_instructions=True`. The cache marker landed on the runtime part, so a per-call runtime instruction sits inside the cached start and changes it on every call. Do not use `run(instructions=...)` for text that must stay outside the cache. Put it in an `@agent.instructions` function instead. The [Instruction parts](https://pydantic.dev/docs/ai/core-concepts/agent/#instruction-parts) section shows how to inspect each part and give it a name.
 
 ## Model settings
 
@@ -117,9 +117,9 @@ Two more keys are shared across providers. They are in the installed source, in 
 
 A model class translates these two keys only when its profile says it can. I checked a plain `FunctionModel`: it dropped both without a word. A `FunctionModel` whose profile claimed support passed `thinking` and `cache` on in `info.model_request_parameters.thinking` and `.cache`, and neither stayed in `info.model_settings`. Through `OpenRouterModel("anthropic/claude-haiku-5.5")`, `thinking="low"` became `openrouter_reasoning={'effort': 'low', 'enabled': True}`, and `cache=True` became `openrouter_cache_*` settings with a five-minute lifetime. A later section shows the provider side of that.
 
-Thinking uses tokens, and they count against `max_tokens`. If the cap runs out while the model is still thinking, there is no answer to return. The Models page [mentions this case](https://pydantic.dev/docs/ai/models/overview/#finish-reason-example). I checked with a fake reply that held only a thinking part and a `length` finish reason. The run raised `UnexpectedModelBehavior` and told me to raise `max_tokens`. Leave room for thinking.
+Thinking uses tokens, and they count against `max_tokens`. If the cap runs out while the model is still thinking, there is no answer to return. The Models Overview page [mentions this case](https://pydantic.dev/docs/ai/models/overview/#finish-reason-example). I checked with a fake reply that held only a thinking part and a `length` finish reason. The run raised `UnexpectedModelBehavior` and told me to raise `max_tokens`. Leave room for thinking.
 
-One more tool, mentioned once. `max_tokens` caps one reply. [`UsageLimits`](https://pydantic.dev/docs/ai/core-concepts/agent/#usage-limits) caps a whole run, in tokens, requests, tool calls or cost, and you pass it as `usage_limits=` to a run. Lesson PA11 covers it.
+One more tool, mentioned once. `max_tokens` caps one reply. [`UsageLimits`](https://pydantic.dev/docs/ai/core-concepts/agent/#usage-limits) caps a whole run, in tokens, requests, tool calls or cost, and you pass it as `usage_limits=` to a run. PA11 covers it.
 
 ## Which setting wins
 
@@ -179,7 +179,7 @@ settings = OpenRouterModelSettings(
 
 Provider keys beat the shared ones. I checked that when `openrouter_reasoning` is set, `thinking` is ignored, and that when any `openrouter_cache_*` key is set, the shared `cache` adds nothing.
 
-A closer look at `openrouter_cache_instructions`. Caching works on a stable start, so the marker goes on the static part of the instructions. I mapped a request by hand. With one static part and one dynamic part, the marker sat on the static part and the dynamic text came after it, unmarked. With only dynamic instructions, no marker was placed at all. Keep that in mind when you split your text between static and dynamic.
+A closer look at `openrouter_cache_instructions`. Caching works on a stable start, so the marker goes after the last part that is not flagged dynamic. I mapped requests by hand. With one static part and one dynamic part, the marker sat on the static part and the dynamic text came after it, unmarked. With only dynamic instructions, no marker was placed at all. With a runtime part in the middle, the marker sat on the runtime part, as the previous section showed. Keep that in mind when you split your text between static, runtime and dynamic.
 
 Now the rule this site follows: **never set `temperature` or `top_p` on Claude 5.x models, and set `max_tokens` instead.** It is in this repo's `.claude/rules/agents.md`. Pydantic AI knows these models do not take sampling settings: for `anthropic/claude-haiku-5.5` on OpenRouter, the profile flag `anthropic_disallows_sampling_settings` is `True`. I checked what happens on the OpenRouter path, though. `prepare_request` with `{'temperature': 0.2, 'max_tokens': 100}` returned both keys and printed no warning. The source says the Anthropic adapter drops such keys with a warning, but I did not run it, because the `anthropic` package is not installed in this project. So on this path nothing protects you, and the rule has to be a habit. It also means temperature 0 cannot make a grader repeatable. This site's grader takes three samples instead, and marks a criterion as uncertain when they disagree.
 
@@ -218,4 +218,4 @@ The test never reads the agent's own fields. It reads what the model received, w
 
 That is the whole kit for the task. You build a persona agent whose instructions come from `deps`, with a token cap that follows its tone. The hidden tests play the model, so no key or network is needed.
 
-Sources: [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/), [Models and Providers](https://pydantic.dev/docs/ai/models/overview/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) from the Pydantic AI documentation, version 2.56.0, MIT licence. © Pydantic Services Inc. 2024 to present. The remarks on the shared `thinking` and `cache` keys, the OpenRouter settings, where the cache marker goes and how temperature is handled come from the installed 2.56.0 source code and my own checks, not from these pages. This site is not affiliated with Pydantic.
+Sources: [Agents](https://pydantic.dev/docs/ai/core-concepts/agent/), [Models Overview](https://pydantic.dev/docs/ai/models/overview/) and [Unit Testing](https://pydantic.dev/docs/ai/guides/testing/) from the Pydantic AI documentation, version 2.56.0, MIT licence. © Pydantic Services Inc. 2024 to present. The remarks on the shared `thinking` and `cache` keys, the OpenRouter settings, where the cache marker goes (including on runtime instructions) and how temperature is handled come from the installed 2.56.0 source code and my own checks, not from these pages. This site is not affiliated with Pydantic.

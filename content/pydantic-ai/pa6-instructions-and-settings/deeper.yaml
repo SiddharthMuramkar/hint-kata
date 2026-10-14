@@ -25,8 +25,8 @@ questions:
         pass_anchor: "Older requests keep a copy of their instructions, but only the current ones are sent. A system prompt would stay in the history and carry the old tone along."
         fail_anchor: "All the earlier instructions are sent again, stacked one after another."
       - name: fake-model-test
-        explanation: The answer tests with a recording FunctionModel (or similar fake) that reads what the model received, with real requests blocked.
-        pass_anchor: "I run the agent with a FunctionModel that stores info.instructions, set ALLOW_MODEL_REQUESTS to False, and assert that the tone and word limit appear."
+        explanation: The answer tests with a recording fake model, such as a FunctionModel, that reads the instructions the model received.
+        pass_anchor: "I run the agent with a FunctionModel that stores info.instructions, and assert that the tone and word limit appear."
         fail_anchor: "I call the real model and read its reply to see if the tone sounds right."
     model_answer: >-
       I put the tone and the word limit in a deps dataclass. Then I write a function with
@@ -51,7 +51,7 @@ questions:
       wins when the same key is set on the model, the agent and the run? (2) The run names only
       max_tokens. What happens to the reasoning setting the agent already has? (3) Which settings
       class and field carry the reasoning effort for OpenRouter? (4) Would you add a temperature to
-      make the answers steadier? Explain.
+      make the answers steadier? Say why, and say what you would use for steadiness instead.
     hints:
       - There are three places that can hold settings. Which one is the narrowest, and what does it do to the keys it does not name?
       - Provider settings have a prefix that tells you which provider they belong to. For temperature, think about what this site's agents set and what Claude 5.x models accept.
@@ -69,8 +69,8 @@ questions:
         pass_anchor: "I use OpenRouterModelSettings and set openrouter_reasoning={'effort': 'low'}."
         fail_anchor: "I put reasoning_effort in plain ModelSettings, because every provider uses the same key."
       - name: no-temperature
-        explanation: The answer says not to set temperature on Claude 5.x models, because they take no sampling settings and the OpenRouter path does not remove the key for you, and to rely on max_tokens, rubrics and samples instead.
-        pass_anchor: "No. This site never sets temperature or top_p on Claude 5.x. The models take no sampling settings and nothing drops the key on the OpenRouter path, so I would use rubric anchors and several samples for steadiness."
+        explanation: The answer does not add a temperature, because Claude 5.x models take no sampling settings, and names something else for steadier answers, such as rubric anchors or several samples.
+        pass_anchor: "No. Claude 5.x models take no sampling settings, so this site never sets temperature. I would use rubric anchors and several samples for steadiness."
         fail_anchor: "Yes, I set temperature to 0 so the output is fully repeatable."
     model_answer: >-
       I pass the larger limit as model_settings on that one run, for example
