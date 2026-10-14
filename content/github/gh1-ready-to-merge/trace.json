@@ -1,0 +1,217 @@
+{
+  "id": "pr-siddharth-0044-hint-kata-23",
+  "kind": "github_pr",
+  "title": "From commits to merge: PR #23",
+  "objectives": [
+    "Read the signals on a pull request: commits, checks and reviews.",
+    "Decide whether a PR is ready to merge, and say why."
+  ],
+  "source": {
+    "generator": "gh api",
+    "script": "traces/scripts/pr_timeline.py",
+    "repo": "siddharth-0044/hint-kata",
+    "pr": 23,
+    "pr_url": "https://github.com/siddharth-0044/hint-kata/pull/23",
+    "captured_at": "2026-10-14"
+  },
+  "steps": [
+    {
+      "idx": 0,
+      "kind": "git_commit",
+      "actor": "siddharth-0044",
+      "title": "Commit 8a4c0c9",
+      "summary": "feat(app): FastAPI skeleton with dark theme and safe Markdown",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "Each commit is one saved step on the branch. Clear, focused commits make the review easier.",
+        "concept_tags": [
+          "commits"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/get-started/about-pull-requests",
+            "title": "About pull requests"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 1,
+      "kind": "git_commit",
+      "actor": "siddharth-0044",
+      "title": "Commit 6dab82b",
+      "summary": "fix(app): logfire fastapi extra, drop dead nav link, scope pygments css",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "Each commit is one saved step on the branch. Clear, focused commits make the review easier.",
+        "concept_tags": [
+          "commits"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/get-started/about-pull-requests",
+            "title": "About pull requests"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 2,
+      "kind": "pr_opened",
+      "actor": "siddharth-0044",
+      "title": "PR #23 opened",
+      "summary": "feat(app): FastAPI skeleton with dark theme and safe Markdown (18 files, +2536 -4)",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "Opening a PR asks for the branch to be merged into the base branch. It also starts the CI checks and the review.",
+        "concept_tags": [
+          "pull request"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/get-started/about-pull-requests",
+            "title": "About pull requests"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 3,
+      "kind": "ci_check",
+      "actor": "github-actions",
+      "title": "Check: Analyze (actions)",
+      "summary": "completed, conclusion: success",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "This check passed. A passing check is automatic evidence that the change did not break the tests or the build.",
+        "concept_tags": [
+          "CI",
+          "status checks"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/reference/status-checks",
+            "title": "Status checks"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 4,
+      "kind": "ci_check",
+      "actor": "github-actions",
+      "title": "Check: Analyze (python)",
+      "summary": "completed, conclusion: success",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "This check passed. A passing check is automatic evidence that the change did not break the tests or the build.",
+        "concept_tags": [
+          "CI",
+          "status checks"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/reference/status-checks",
+            "title": "Status checks"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 5,
+      "kind": "ci_check",
+      "actor": "github-actions",
+      "title": "Check: CodeQL",
+      "summary": "completed, conclusion: neutral",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "This check finished with a neutral result. GitHub Actions treats neutral like a success for dependent checks, but read its details before you rely on it.",
+        "concept_tags": [
+          "CI",
+          "status checks"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/reference/status-checks",
+            "title": "Status checks"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 6,
+      "kind": "ci_check",
+      "actor": "github-actions",
+      "title": "Check: checks",
+      "summary": "completed, conclusion: success",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "This check passed. A passing check is automatic evidence that the change did not break the tests or the build.",
+        "concept_tags": [
+          "CI",
+          "status checks"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/reference/status-checks",
+            "title": "Status checks"
+          }
+        ]
+      },
+      "checkpoint": null
+    },
+    {
+      "idx": 7,
+      "kind": "merge",
+      "actor": "siddharth-0044",
+      "title": "PR #23 merged",
+      "summary": "Merged into main.",
+      "payload_excerpt": "",
+      "metrics": {},
+      "annotation": {
+        "why": "Merging makes the change part of the base branch. Nobody reviewed this PR. A solo repo can allow that, because an author cannot approve their own PR. The checks above were the main evidence.",
+        "concept_tags": [
+          "merge",
+          "merge methods"
+        ],
+        "citations": [
+          {
+            "url": "https://docs.github.com/en/pull-requests/reference/pull-request-merges",
+            "title": "Pull request merges"
+          },
+          {
+            "url": "https://docs.github.com/en/pull-requests/get-started/about-pull-requests",
+            "title": "About pull requests"
+          }
+        ]
+      },
+      "checkpoint": {
+        "type": "predict_next",
+        "prompt": "Look at the checks and reviews so far. Was this PR ready to merge?",
+        "options": [
+          "Yes: checks passed and nothing blocked it",
+          "No: a check failed or changes were requested"
+        ],
+        "answer": 0,
+        "explanation": "4 check(s) all passed; no review requested changes (no review was left at all)."
+      }
+    }
+  ],
+  "takeaways": [
+    "A PR collects its evidence in one place: commits, CI checks and reviews.",
+    "Merge when the required checks pass and no review blocks it, not before."
+  ]
+}

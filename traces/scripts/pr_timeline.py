@@ -17,21 +17,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from app.traces import Annotation, Checkpoint, Citation, Step, StepKind, Trace  # noqa: E402
 
 DOCS = "https://docs.github.com/en/pull-requests/"
-PR_DOC = Citation(
-    url=DOCS
-    + "collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests",
-    title="About pull requests",
-)
-CHECKS_DOC = Citation(
-    url=DOCS
-    + "collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks",
-    title="About status checks",
-)
-REVIEW_DOC = Citation(
-    url=DOCS
-    + "collaborating-with-pull-requests/reviewing-changes-in-pull-requests/about-pull-request-reviews",
-    title="About pull request reviews",
-)
+PR_DOC = Citation(url=DOCS + "get-started/about-pull-requests", title="About pull requests")
+CHECKS_DOC = Citation(url=DOCS + "reference/status-checks", title="Status checks")
+REVIEW_DOC = Citation(url=DOCS + "reference/pull-request-reviews", title="Pull request reviews")
+MERGE_DOC = Citation(url=DOCS + "reference/pull-request-merges", title="Pull request merges")
+
+CHECK_WHY = {
+    "success": "This check passed. A passing check is automatic evidence that the change did not break the tests or the build.",
+    "neutral": "This check finished with a neutral result. GitHub Actions treats neutral like a success for dependent checks, but read its details before you rely on it.",
+    "skipped": "This check was skipped. GitHub reports a skipped job as a success, so it does not block the merge.",
+}
+CHECK_WHY_DEFAULT = "This check did not succeed. Open its details before you merge: a failed, cancelled or timed-out check usually means someone must act."
 
 
 def gh(path: str) -> Any:
@@ -48,7 +44,10 @@ def build(repo: str, number: int) -> Trace:
     pr = gh(f"repos/{repo}/pulls/{number}")
     commits = gh(f"repos/{repo}/pulls/{number}/commits?per_page=100")
     reviews = gh(f"repos/{repo}/pulls/{number}/reviews?per_page=100")
-    checks = gh(f"repos/{repo}/commits/{pr['head']['sha']}/check-runs")["check_runs"]
+    checks = sorted(
+        gh(f"repos/{repo}/commits/{pr['head']['sha']}/check-runs")["check_runs"],
+        key=lambda c: c["name"],
+    )
 
     steps: list[Step] = []
 
@@ -98,7 +97,7 @@ def build(repo: str, number: int) -> Trace:
             "github-actions",
             f"Check: {run['name']}",
             f"{run['status']}, conclusion: {run['conclusion']}",
-            "A passing check is automatic evidence the change did not break the tests or the build. A failing one should block the merge.",
+            CHECK_WHY.get(run["conclusion"], CHECK_WHY_DEFAULT),
             ["CI", "status checks"],
             [CHECKS_DOC],
         )
@@ -108,7 +107,7 @@ def build(repo: str, number: int) -> Trace:
             r["user"]["login"],
             f"Review: {r['state'].lower().replace('_', ' ')}",
             clip(r.get("body") or "(no comment)"),
-            "Approvals are human evidence the change is wanted and correct. Changes requested should block the merge.",
+            "An approval is human evidence that the change is wanted and correct. A review that requests changes should be settled before the merge.",
             ["code review"],
             [REVIEW_DOC],
         )
@@ -122,9 +121,14 @@ def build(repo: str, number: int) -> Trace:
             merger,
             f"PR #{number} merged",
             f"Merged into {pr['base']['ref']}.",
-            "Merging makes the change part of the base branch. The checks and reviews above are the evidence it was safe to do.",
-            ["merge"],
-            [PR_DOC],
+            "Merging makes the change part of the base branch. "
+            + (
+                "The reviews and checks above are the evidence it was safe to do."
+                if reviews
+                else "Nobody reviewed this PR. A solo repo can allow that, because an author cannot approve their own PR. The checks above were the main evidence."
+            ),
+            ["merge", "merge methods"],
+            [MERGE_DOC, PR_DOC],
         )
         ready = checks_ok and not blocked
         merge.checkpoint = Checkpoint(
@@ -136,7 +140,8 @@ def build(repo: str, number: int) -> Trace:
             ],
             answer=0 if ready else 1,
             explanation=f"{len(checks)} check(s) {'all passed' if checks_ok else 'did not all pass'}; "
-            f"{'a review requested changes' if blocked else 'no review requested changes'}.",
+            f"{'a review requested changes' if blocked else 'no review requested changes'}"
+            f"{'' if reviews else ' (no review was left at all)'}.",
         )
 
     return Trace(
@@ -153,7 +158,9 @@ def build(repo: str, number: int) -> Trace:
             "repo": repo,
             "pr": number,
             "pr_url": pr["html_url"],
-            "captured_at": datetime.now(UTC).strftime("%Y-%m-%d"),
+            "captured_at": (
+                pr.get("merged_at") or pr.get("created_at") or datetime.now(UTC).isoformat()
+            )[:10],
         },
         steps=steps,
         takeaways=[

@@ -121,7 +121,9 @@ cat "$FAKE_DIR/$(printf '%s' "$2" | tr '/?=' '___')"
 """
 
 
-def canned(conclusion: str) -> dict[str, object]:
+def canned(
+    conclusion: str, reviews: bool = True, merged_at: str | None = None
+) -> dict[str, object]:
     pr = {
         "title": "Add thing",
         "user": {"login": "ann"},
@@ -134,6 +136,8 @@ def canned(conclusion: str) -> dict[str, object]:
         "deletions": 1,
         "html_url": "https://github.com/o/r/pull/7",
     }
+    if merged_at:
+        pr["merged_at"] = merged_at
     commit = {
         "sha": "1111111aaaa",
         "commit": {"message": "feat: a\n\nSECRETBODY", "author": {"name": "Ann"}},
@@ -143,15 +147,18 @@ def canned(conclusion: str) -> dict[str, object]:
     return {
         "repos_o_r_pulls_7": pr,
         "repos_o_r_pulls_7_commits_per_page_100": [commit],
-        "repos_o_r_pulls_7_reviews_per_page_100": [review],
+        "repos_o_r_pulls_7_reviews_per_page_100": [review] if reviews else [],
         "repos_o_r_commits_abc1234_check-runs": {"check_runs": [run]},
     }
 
 
-@pytest.mark.parametrize(("conclusion", "answer"), [("success", 0), ("failure", 1)])
-def test_pr_timeline_with_fake_gh(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, conclusion: str, answer: int
-) -> None:
+def run_pr_timeline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    conclusion: str,
+    reviews: bool = True,
+    merged_at: str | None = None,
+) -> tuple[Trace, str]:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     gh = bin_dir / "gh"
@@ -159,14 +166,21 @@ def test_pr_timeline_with_fake_gh(
     gh.chmod(gh.stat().st_mode | stat.S_IEXEC)
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
     monkeypatch.setenv("FAKE_DIR", str(tmp_path))
-    for name, payload in canned(conclusion).items():
+    for name, payload in canned(conclusion, reviews, merged_at).items():
         (tmp_path / name).write_text(json.dumps(payload))
     out = tmp_path / "pr.json"
     monkeypatch.setattr(
         sys, "argv", ["pr_timeline.py", "--repo", "o/r", "--pr", "7", "--out", str(out)]
     )
     script("pr_timeline").main()
-    trace = Trace.model_validate_json(out.read_text())
+    return Trace.model_validate_json(out.read_text()), out.read_text()
+
+
+@pytest.mark.parametrize(("conclusion", "answer"), [("success", 0), ("failure", 1)])
+def test_pr_timeline_with_fake_gh(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, conclusion: str, answer: int
+) -> None:
+    trace, text = run_pr_timeline(tmp_path, monkeypatch, conclusion)
     assert trace.kind == "github_pr"
     assert [s.kind for s in trace.steps] == [
         "git_commit",
@@ -178,7 +192,21 @@ def test_pr_timeline_with_fake_gh(
     assert trace.steps[0].summary == "feat: a"
     checkpoint = trace.steps[-1].checkpoint
     assert checkpoint and checkpoint.answer == answer
-    assert "SECRETBODY" not in out.read_text()  # only the headline is kept
+    assert "SECRETBODY" not in text  # only the headline is kept
+
+
+def test_pr_timeline_neutral_check_without_reviews(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    trace, _ = run_pr_timeline(
+        tmp_path, monkeypatch, "neutral", reviews=False, merged_at="2026-10-14T13:58:26Z"
+    )
+    assert trace.source["captured_at"] == "2026-10-14"
+    assert [s.kind for s in trace.steps] == ["git_commit", "pr_opened", "ci_check", "merge"]
+    check, merge = trace.steps[2], trace.steps[-1]
+    assert check.annotation and "neutral" in check.annotation.why
+    assert merge.annotation and "Nobody reviewed" in merge.annotation.why
+    assert merge.checkpoint and merge.checkpoint.answer == 0
 
 
 def test_partial_renders_only_with_trace() -> None:
