@@ -36,7 +36,7 @@ Never commit the pulled file. It is git-ignored.
 - Standard Protection is the default. Vercel Authentication guards every preview URL, so only your team can open them.
 - Production domains stay public under Standard Protection. To keep production owner-only until phase 3, open Project > Settings > Deployment Protection and switch Standard Protection to All Deployments.
 - To open production to the public later, switch it back to Standard Protection. That is the one setting to flip.
-- For scripts, send the bypass header `x-vercel-protection-bypass`.
+- For scripts, create a Protection Bypass for Automation secret under Deployment Protection and send it in the `x-vercel-protection-bypass` header.
 
 ## Preview deployments
 Every push to a non-production branch and every pull request gets its own preview URL. Vercel posts it on the PR. Preview variables can differ from Production.
@@ -44,5 +44,6 @@ Every push to a non-production branch and every pull request gets its own previe
 ## What breaks on Vercel today
 - SQLite lives in `/tmp` and is wiped when an instance recycles. Instances do not share it. Progress resets per instance until `PostgresStore` and Neon land. `connect()` creates the parent folder, so the `/tmp` path just works.
 - Streaming responses stop at 300 s, the Hobby maximum. `vercel.json` sets `maxDuration` to 300.
-- The hands-on checker runs pytest in a `workspace/` folder. The bundle leaves that out and the disk is read-only. Hands-on checks will not work here.
+- Pytest hands-on tasks need a writable `workspace/` folder. The bundle omits it and the disk is read-only, so those checks fail here.
+- `PRACTICE_REPO` checks run the `gh` CLI, which Vercel does not provide. They fail with "gh is not installed".
 - The bundle limit is 500 MB. `excludeFiles` and `.vercelignore` drop tests, docs, caches, evals and traces.
