@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      You call `agent.run_sync("My name is Ana.")`. Then, in a separate line of code, you call
+      `agent.run_sync("What is my name?")` on the same agent object. What do you expect the
+      second answer to say?
+    note: >-
+      The model cannot know. Each run starts with an empty conversation, and the agent object does
+      not remember earlier runs. To continue a chat you have to pass the earlier messages back in
+      yourself, which is what this lesson is about. It is fine if you guessed wrong.
+  - id: w2
+    prompt: >-
+      A chat app keeps the conversation in a Python list. The server restarts and the list is
+      gone. What would you store so the chat can carry on after the restart, and in what format?
+    note: >-
+      Store the messages of the conversation (the requests and responses, with all their parts).
+      JSON is a good format. Pydantic AI has a type adapter that writes the messages to JSON and
+      reads them back as real message objects, so you can pass them to the next run.
