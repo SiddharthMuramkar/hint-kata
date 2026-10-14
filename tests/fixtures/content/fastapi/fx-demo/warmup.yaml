@@ -1,0 +1,4 @@
+items:
+  - id: w1
+    prompt: What happens when two routes share a dependency?
+    note: It is called once per request.

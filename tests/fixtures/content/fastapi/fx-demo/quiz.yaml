@@ -1,0 +1,26 @@
+items:
+  - id: q1
+    type: single
+    concept: depends-basics
+    source_section: using-depends
+    prompt: What is a dependency?
+    options:
+      - text: A function
+        correct: true
+        feedback: Right.
+      - text: A class decorator
+        misconception: Dependencies need decorators.
+        feedback: No decorator is needed.
+  - id: q2
+    type: order
+    concept: depends-order
+    source_section: using-depends
+    prompt: Order the steps.
+    steps: [Declare, Inject, Call]
+  - id: q3
+    type: blank
+    concept: depends-syntax
+    source_section: second-section
+    prompt: "x = ____(get_db)"
+    answer: Depends
+    explanation: Depends wraps the callable.
