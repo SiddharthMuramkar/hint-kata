@@ -102,7 +102,7 @@ You should see a `required_status_checks` rule that lists the context `checks`.
 
 ## 5. Optional: break it on purpose
 
-Make a new branch and rename the job to `ci` (keep the rest). Open a pull request. You should see "Waiting for status to be reported", because no check called `checks` is reported. Put the name back, or close the pull request. Then break a step on purpose, for example `python3 -c "raise SystemExit(1)"`, and read the failure with `gh run view --log-failed`.
+Make a new branch and change `name: checks` to `name: ci` in the workflow (the job id can stay `checks`). Open a pull request. You should see "Waiting for status to be reported", because no check called `checks` is reported. Put the name back, or close the pull request. Then break a step on purpose, for example `python3 -c "raise SystemExit(1)"`, and read the failure with `gh run view --log-failed`.
 
 ## Check my work
 

@@ -12,6 +12,7 @@ sources:
   - github-actions-reference-workflows-and-actions-workflow-syntax
   - github-actions-reference-workflows-and-actions-events-that-trigger-workflows
   - github-actions-tutorials-build-and-test-code-python
+  - github-pull-requests-reference-status-checks
 ---
 CI means "continuous integration". Every change gets built and tested by a machine before it can be merged. On GitHub, that machine work is called Actions. In this lesson you read one real workflow, learn the few keys that matter, and then add one to your own practice repo.
 
@@ -38,7 +39,7 @@ You will use four triggers most of the time. ([Events that trigger workflows](ht
 
 - **`pull_request`.** Runs when a pull request is opened, reopened, or gets new commits. This is your main CI trigger. The run tests the merge result (your branch merged into the base), not only your branch. If the pull request has a merge conflict, the run does not start.
 - **`push` with `branches: [main]`.** Runs when commits land on main. Use it to check that main is still green after a merge. Without the branch filter, every push to every branch would start a run, and a pull request branch would be tested twice.
-- **`workflow_dispatch`.** A manual "Run workflow" button, and `gh workflow run`. The workflow file must be on the default branch for the button to show. A check made by a manual run does not count for a pull request.
+- **`workflow_dispatch`.** A manual "Run workflow" button, and `gh workflow run`. The workflow file must be on the default branch for the button to show. A check made by a manual run does not count for a pull request ([GitHub Docs, Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks)).
 - **`schedule`.** Runs on a cron timetable, such as `"17 3 * * 1"`. It has caveats. It only runs from the default branch. It uses UTC unless you set `timezone`. The shortest gap is 5 minutes. Runs can be late, especially at the start of an hour, so pick an odd minute. In a public repo, GitHub turns a scheduled workflow off after 60 days with no repo activity.
 
 Here is the trigger block you will use in this lesson:
@@ -51,7 +52,7 @@ on:
   workflow_dispatch:
 ```
 
-A trigger can also have filters, like `paths:`. Be careful with them on a workflow you plan to make a required check. If a filter stops the workflow from starting, the check never appears, and the pull request waits for it forever.
+A trigger can also have filters, like `paths:`. Be careful with them on a workflow you plan to make a required check. If a filter stops the workflow from starting, the check never appears, and the pull request waits for it forever ([GitHub Docs, Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks)).
 
 ## A minimal Python job with uv
 
@@ -132,7 +133,7 @@ Now the confusing part. A pull request can show **Waiting for status to be repor
 
 One more rule that surprises people. A job that is skipped by an `if:` condition counts as a success. A whole workflow that is skipped by a filter does not. In that case the check just never appears.
 
-Also keep job names unique across all your workflows. Two workflows that both have a job called `checks` make the required check ambiguous. For more on this, read [Status checks](https://docs.github.com/en/pull-requests/reference/status-checks) and [Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks).
+Also keep job names unique across all your workflows. Two workflows that both have a job called `checks` make the required check ambiguous. For more on this, read [Status checks](https://docs.github.com/en/pull-requests/reference/status-checks) and [GitHub Docs, Troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks).
 
 Create the workflow and let it run once before you add the rule. That way you can see the exact check name first.
 
@@ -161,5 +162,6 @@ A good habit: when CI fails, say in your own words what the log says before you 
 [Understanding GitHub Actions](https://docs.github.com/en/actions/get-started/understand-github-actions) ·
 [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax) ·
 [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) ·
-[Building and testing Python](https://docs.github.com/en/actions/tutorials/build-and-test-code/python).
+[Building and testing Python](https://docs.github.com/en/actions/tutorials/build-and-test-code/python) ·
+[Status checks](https://docs.github.com/en/pull-requests/reference/status-checks).
 Content licence: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

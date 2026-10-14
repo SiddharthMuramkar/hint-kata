@@ -9,8 +9,8 @@ items:
       such as checkout copies it in.
   - id: w2
     prompt: >-
-      Your pull request has a required check called `checks`. You rename the job in the workflow
-      file to `ci` and push. What do you think the pull request shows now?
+      Your pull request has a required check called `checks`. You change `name: checks` to `name: ci`
+      in the workflow file (the job id stays) and push. What do you think the pull request shows now?
     note: >-
       "Waiting for status to be reported". The rule asks for a check named `checks`, and the job
       now reports a check named `ci`. The two names must match exactly, so nothing satisfies the

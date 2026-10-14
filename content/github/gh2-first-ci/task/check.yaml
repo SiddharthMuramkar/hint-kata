@@ -6,5 +6,5 @@ checks:
     args: ["run", "list", "-R", "{repo}", "--event", "pull_request", "--json", "conclusion", "--jq", "length"]
     expect: 're:[1-9][0-9]*'
   - name: checks is a required status check on main
-    args: ["ruleset", "check", "main", "-R", "{repo}"]
-    expect: 're:(?s).*required_status_checks.*context:checks[ \]].*'
+    args: ["api", "repos/{repo}/rules/branches/main", "--jq", "[.[] | select(.type==\"required_status_checks\") | .parameters.required_status_checks[].context] | index(\"checks\") != null"]
+    expect: "true"
