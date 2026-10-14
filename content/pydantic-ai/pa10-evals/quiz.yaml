@@ -1,0 +1,159 @@
+items:
+  - id: q1
+    type: single
+    concept: evaluator-return-types
+    source_section: writing-your-own-evaluator
+    prompt: >-
+      A custom evaluator's evaluate method returns len(ctx.output) / len(ctx.inputs), a float.
+      How does that result appear in the report?
+    options:
+      - text: As an assertion, a tick if the number is above zero and a cross if not.
+        misconception: Thinks every evaluator result is turned into a pass or fail mark.
+        feedback: >-
+          Tempting, because most built-in checks give ticks and crosses. But the type you return
+          decides the column. Only a bool becomes an assertion. A number stays a number.
+      - text: As a score, a number in the Scores column.
+        correct: true
+        feedback: >-
+          Right. An int or a float is a score. A bool is an assertion, a str is a label, and a
+          dict can hold several results at once.
+      - text: As a label, shown as text such as "0.5".
+        misconception: Thinks labels hold any value that is not a bool.
+        feedback: >-
+          Labels are for str results, such as "short" or "long". A float is kept as a score, so
+          the report can average it.
+      - text: As an error, because evaluate must return a bool.
+        misconception: Thinks evaluate can only return a bool.
+        feedback: >-
+          A bool is only one option. The method can return a bool, a number, a string, an
+          EvaluationReason or a dict of those.
+  - id: q2
+    type: single
+    concept: judge-default-model
+    source_section: always-set-the-judge-model
+    prompt: >-
+      Your project has no OpenAI key. A dataset has LLMJudge(rubric="The summary is short.") with
+      no model set, and you call dataset.evaluate_sync(task). What do you see?
+    options:
+      - text: evaluate_sync raises a UserError before any case runs, so you never get a report.
+        misconception: Thinks a missing key stops the whole run.
+        feedback: >-
+          Tempting, because a missing key is an error. But the judge runs as an evaluator, and an
+          evaluator that raises is recorded while the run goes on. In our run evaluate_sync
+          returned a report.
+      - text: The judge uses the model of whichever provider has a key in your environment.
+        misconception: Thinks the library picks a judge from the keys it finds.
+        feedback: >-
+          It does not look around. With no model given, it uses one fixed default, openai:gpt-5.2
+          in 2.56.0. That is why you should always name the judge yourself.
+      - text: The judge passes the case, because it found nothing in the output that breaks the rubric.
+        misconception: Thinks a judge that cannot run counts as a pass.
+        feedback: >-
+          A judge that cannot run gives no verdict at all. There is no pass and no fail, which is
+          why the problem is easy to miss.
+      - text: evaluate_sync returns a report. The judge adds no assertion, and evaluator_failures holds a UserError about the key.
+        correct: true
+        feedback: >-
+          Right. The failure is recorded on the case and the table has an Evaluator Failures
+          column. The default judge model needs an OpenAI key, and set_default_judge_model or
+          model= avoids this.
+  - id: q3
+    type: single
+    concept: evaluator-failures-gate
+    source_section: reading-the-report
+    prompt: |-
+      This test is green. The evaluator has a bug, so the test proves nothing.
+
+      ```python
+      @dataclass
+      class ShorterThanInput(Evaluator[str, str]):
+          def evaluate(self, ctx: EvaluatorContext[str, str]) -> bool:
+              return len(ctx.output) < len(ctx.input)
+
+
+      report = dataset.evaluate_sync(summarize, progress=False)
+      assert report.failures == []
+      assert all(a.value for c in report.cases for a in c.assertions.values())
+      ```
+
+      Why does the test stay green?
+    options:
+      - text: report.failures == [] is wrong, because report.failures lists the cases whose checks failed.
+        misconception: Thinks report.failures holds cases whose assertions failed.
+        feedback: >-
+          report.failures only lists cases where the task itself raised. A check that fails is
+          just an assertion with the value False.
+      - text: all() should be any(), because the test only needs one passing assertion in the whole report.
+        misconception: Thinks the fault is in the choice of all or any.
+        feedback: >-
+          The problem is earlier. The case has no assertions, so all() has nothing to reject.
+          any() would only flip the result to false, and you still would not know why. The test
+          must first notice the missing results.
+      - text: ctx.input does not exist (it is ctx.inputs). The AttributeError lands in evaluator_failures, which the test never reads.
+        correct: true
+        feedback: >-
+          Right. An evaluator that raises leaves the case in the report with no mark. A safe gate
+          also checks that every case has an empty evaluator_failures list.
+      - text: progress=False turns the evaluators off, so no check ever ran on any of the cases.
+        misconception: Thinks progress=False skips the evaluation.
+        feedback: >-
+          progress only hides the progress bar. The task and the evaluators still run, which is
+          how the AttributeError happened.
+  - id: q4
+    type: single
+    concept: repeat-for-flaky-tasks
+    source_section: flaky-tasks-and-repeat
+    prompt: >-
+      A task that calls a model is right on about two runs in three. What does
+      dataset.evaluate_sync(task, repeat=3) do for you?
+    options:
+      - text: 'It runs every case three times, adds a row per run such as "a [2/3]", and averages over all runs.'
+        correct: true
+        feedback: >-
+          Right. With three runs per case the average estimates how often the task is right,
+          instead of one lucky or unlucky run. The cost grows with the number of runs.
+      - text: It retries a case until it passes, with at most three tries for each case.
+        misconception: Thinks repeat is a retry on failure.
+        feedback: >-
+          A retry stops at the first pass. repeat always runs every case the full number of
+          times and keeps all the results, including the failures.
+      - text: It runs each case once and asks every evaluator to check the same output three times.
+        misconception: Thinks repeat applies to the evaluators, not the task.
+        feedback: >-
+          The task is what varies, so the task is what runs again. Each run gets its own full
+          set of evaluator results.
+      - text: It makes the model give the same answer on all three runs of each case.
+        misconception: Thinks repeat makes the output stable.
+        feedback: >-
+          Nothing in repeat touches the model. It only gives you more samples, so that you can
+          see how much the answers vary.
+  - id: q5
+    type: order
+    concept: yaml-dataset-round-trip
+    source_section: yaml-datasets
+    prompt: >-
+      You want to keep a dataset with a custom evaluator in a YAML file and run it from there.
+      Put the steps in the order you do them.
+    steps:
+      - "Build a Dataset in Python with its cases and evaluators"
+      - "Save it with dataset.to_file(path, custom_evaluator_types=[...])"
+      - "Load it with Dataset.from_file(path, custom_evaluator_types=[...])"
+      - "Run the loaded dataset with evaluate_sync(task)"
+      - "Read report.failures and each case's evaluator_failures and assertions"
+    explanation: >-
+      You cannot save a dataset before it exists, load a file before it is saved, or run a dataset
+      before it is loaded. The report comes last, because it is the result of the run. Both the
+      save and the load need the custom evaluator listed in custom_evaluator_types, or the load
+      fails with an ExceptionGroup.
+  - id: q6
+    type: blank
+    concept: set-default-judge-model
+    source_section: always-set-the-judge-model
+    prompt: |-
+      Fill in the function name so that every LLMJudge without its own model uses this model:
+
+      ____("anthropic:claude-sonnet-4-6")
+    answer: set_default_judge_model
+    explanation: >-
+      set_default_judge_model(model) changes the default judge for the whole process. Call it
+      before you run the dataset. An evaluator that sets its own model= keeps that model.

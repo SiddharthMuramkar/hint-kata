@@ -1,0 +1,82 @@
+questions:
+  - id: d1
+    prompt: >-
+      Your team edits the prompt of a grader that marks each rubric criterion as met or not met.
+      You want to know whether the edit made the grader worse. Describe how you would set this
+      up with a pydantic-evals Dataset. Say what each Case holds, what the custom evaluator does
+      and returns, which single number you would compare between runs and why you would not use
+      plain percent agreement for it, and what you do after the edit.
+    hints:
+      - "Think about what you need to know in advance to say whether the grader was right. Where would that knowledge sit inside a Case, and what does the evaluator do with it and the grader's output?"
+      - "A grader that says 'met' for everything still agrees with the labels some of the time. What number does not reward that, and which two runs do you compare?"
+    rubric:
+      - name: case-holds-label
+        explanation: The answer says each Case holds a learner answer as the inputs and the hand-made labels, which criteria are met, as the expected output.
+        pass_anchor: "Each Case has a sample learner answer as inputs and, as expected_output, a label for every criterion saying whether a careful human would mark it met."
+        fail_anchor: "Each Case holds the grader's prompt and I compare the prompts."
+      - name: evaluator-compares
+        explanation: The answer says a custom Evaluator compares the grader's output with the labels and returns a result, such as a score for the share of agreeing criteria.
+        pass_anchor: "A custom Evaluator reads ctx.output and ctx.expected_output and returns a float, the share of criteria where the grader's met flag equals the label."
+        fail_anchor: "I use IsInstance, because it checks that the grader returned something."
+      - name: kappa-not-agreement
+        explanation: The answer names a chance-corrected number such as Cohen's kappa and says plain agreement is inflated by luck, for example by a grader that always says met.
+        pass_anchor: "I compare Cohen's kappa. A grader that always says met still agrees with many labels, so percent agreement looks good, but kappa for it is zero."
+        fail_anchor: "I compare the percent of labels where the grader agrees, since a higher percent is always better."
+      - name: rerun-same-dataset
+        explanation: The answer says to run the same dataset again after the edit and compare the number with the earlier run.
+        pass_anchor: "After the edit I run the same dataset again and compare the new kappa with the one from before the edit."
+        fail_anchor: "After the edit I write new cases that the new prompt already handles well."
+    model_answer: >-
+      I would build a Dataset with one Case per sample learner answer. The inputs of a Case is the
+      answer text. The expected_output is the label, a dict that says for every criterion whether a
+      careful human would mark it met. I would include hard samples, such as a long answer that
+      says nothing and a short answer that is right. Then I would write a custom Evaluator. It
+      reads ctx.output, the dict of met flags that the grader returned, and ctx.expected_output,
+      the label, and it returns a float: the share of criteria where the two agree. The task I
+      pass to evaluate is a function that runs the grader on the answer and returns that dict.
+      To compare runs, I would not use plain percent agreement. A grader that says met for
+      everything still agrees with all the labels that are true, so its percent looks fine. Cohen's
+      kappa removes the agreement that luck gives, so that grader scores zero. I would use kappa
+      over all the criterion labels. Before I edit the prompt I run the dataset and note the
+      kappa. After the edit I run the same dataset again and compare the new kappa with the old
+      one. If it dropped, the edit made the grader worse.
+  - id: d2
+    prompt: >-
+      A colleague adds LLMJudge(rubric="The reply is helpful") to a dataset, sees no cross in the
+      printed table, and says the eval is green. Explain why that may be wrong. Say which judge
+      model runs when none is set and what follows from it, how a judge that fails to run shows
+      up in the report, how your test code would catch it, and how you would pick the judge model
+      for the whole project.
+    hints:
+      - "Look at what LLMJudge does when you give it no model. Does the library pick one that matches the key you have? What does the run do when that model cannot be called?"
+      - "A table with no cross can still hide a problem. Think about which attribute of each case holds errors from evaluators, and which function sets one judge for all evaluators."
+    rubric:
+      - name: default-judge-model
+        explanation: The answer says that with no model set the judge falls back to a default, openai:gpt-5.2, so it needs an OpenAI key and may not be the provider you meant.
+        pass_anchor: "Without a model, LLMJudge uses the default openai:gpt-5.2, so it needs an OpenAI key even if the project uses another provider."
+        fail_anchor: "Without a model, LLMJudge uses whichever model my project's agents use."
+      - name: silent-evaluator-failure
+        explanation: The answer says a judge that cannot run adds no tick or cross. The error is recorded on the case and the run does not raise.
+        pass_anchor: "A judge that cannot run leaves no mark. The error is stored in the case's evaluator failures and evaluate_sync still returns a report, so the table has no cross."
+        fail_anchor: "A judge that cannot run makes evaluate_sync raise, so a green table means the judge passed."
+      - name: gate-in-code
+        explanation: The answer says the test should check report.failures and each case's evaluator_failures as well as the assertion values.
+        pass_anchor: "My test asserts report.failures is empty, every case.evaluator_failures is empty, and all assertion values are True."
+        fail_anchor: "My test only asserts that all the assertion values are True."
+      - name: set-the-judge
+        explanation: The answer says to choose the judge on purpose, with model= on the evaluator or set_default_judge_model for the whole process.
+        pass_anchor: "I set the judge once with set_default_judge_model from my config, before running, or pass model= to each LLMJudge."
+        fail_anchor: "I trust the default, because the library chooses a good judge."
+    model_answer: >-
+      The table can look fine and still be wrong. When no model is given, LLMJudge falls back to
+      a default judge model. In 2.56.0 that is openai:gpt-5.2. So it needs an OpenAI key, even if
+      everything else in the project uses another provider, and it is a model nobody chose. If
+      the key is missing, the judge cannot run. That does not raise an error out of
+      evaluate_sync. The error is recorded on the case, in its evaluator_failures list. The case
+      gets no assertion from the judge, so the table has no cross and no tick for it, and the
+      averages leave it out. A quiet table does not mean a pass. My test would check three
+      things: report.failures is empty, every case has an empty evaluator_failures list, and all
+      the assertion values are True. To pick the judge, I would not rely on the default. I would
+      read the model name from the project's config and call set_default_judge_model with it
+      before I run the dataset. I could also pass model= to a single LLMJudge. Then every score
+      comes from a judge I chose, and runs can be compared.
