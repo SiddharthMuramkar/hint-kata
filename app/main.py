@@ -12,7 +12,7 @@ from markupsafe import Markup
 
 from app.config import settings
 from app.content import Lesson, Source, load_lessons, load_sources
-from app.deps import get_store, get_user_id
+from app.deps import get_store, get_user_id, open_store_from_settings
 from app.mastery import log_config, refresh
 from app.review import due_items
 from app.routes.check import router as check_router
@@ -22,7 +22,7 @@ from app.routes.review import router as review_router
 from app.routes.review import templates
 from app.routes.trace import router as trace_router
 from app.routes.tutor import router as tutor_router
-from app.store import Store, open_store
+from app.store import Store
 
 HERE = Path(__file__).parent
 
@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     root = Path(settings.content_root)
     app.state.lessons = load_lessons(root)
     app.state.sources = load_sources(root / "sources.yaml")
-    store = open_store(settings.hintkata_db_path)
+    store = open_store_from_settings()
     try:
         log_config(store, store.ensure_user("owner"))
     finally:
