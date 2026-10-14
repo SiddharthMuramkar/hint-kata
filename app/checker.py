@@ -41,7 +41,7 @@ def _inside(path: Path, root: Path) -> Path:
     base = os.path.realpath(root)
     full = os.path.realpath(path)
     if not full.startswith(base + os.sep):
-        raise ValueError(f"path is outside {root}")
+        raise ValueError(f"{path} is outside {root}")
     return Path(full)
 
 
@@ -113,11 +113,7 @@ def run_gh_checks(task_dir: Path, repo: str) -> CheckResult:
 
 
 def run_check(lesson_id: str, settings: Settings, store: Store, user_id: int) -> CheckResult:
-    task_dir = (
-        find_task_dir(lesson_id, Path(settings.content_root))
-        if valid_lesson_id(lesson_id)
-        else None
-    )
+    task_dir = find_task_dir(lesson_id, Path(settings.content_root))  # raises on a bad id
     if task_dir and (task_dir / "tests").is_dir():
         result = run_pytest_check(task_dir, prepare_workspace(lesson_id, task_dir))
     elif task_dir and (task_dir / "check.yaml").is_file():

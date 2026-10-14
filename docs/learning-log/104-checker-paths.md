@@ -4,8 +4,9 @@ The hands-on checker builds file paths from the lesson id that comes in the URL.
 
 - `LESSON_ID_RE` and `validate_lesson_id` in `app/checker.py`: an id must be 1 to 64 characters, start with a letter or digit, and use only lowercase letters, digits and `-`. Anything else (`..`, `a/b`, an empty string, `Lesson-A`) raises `ValueError`. `find_task_dir` and `prepare_workspace` call it on their first line.
 - `_inside(path, root)`: resolves the path with `os.path.realpath` (follows `..` and symlinks) and raises `ValueError` unless the result starts with the root plus a separator. It guards the task folder (under `content/`), the learner workspace (under `workspace/`), and the `starter` and `tests` folders (under the task folder).
-- The route in `app/routes/check.py` needed no change. It already returns 404 for an invalid id before any file work, and it still returns 200 with "no hands-on task" for a valid id that has no task (an existing test relies on that).
-- Valid ids behave as before. The only difference is that ids with a leading `-` or more than 64 characters are now refused.
+- The route in `app/routes/check.py` now returns 404 unless the id is well formed (checked first) and names a lesson the app has loaded, the same way `/lessons/{id}` and `/api/quiz/{id}` already do. This happens before any file work. A known lesson with no task folder still returns 200 with "no hands-on task".
+- `run_check` no longer guards the id itself. `find_task_dir` raises `ValueError` on a bad id, and the route never lets one through.
+- Lessons that exist behave as before. Two things changed: ids with a leading `-` or more than 64 characters are refused, and an id that is not a loaded lesson now gets 404 instead of 200 with "no hands-on task".
 
 ## Why CodeQL flagged it
 
@@ -15,7 +16,7 @@ My first version used `Path.resolve()` and `Path.is_relative_to()`. They are cor
 
 ## Read first
 
-`app/checker.py`, from `LESSON_ID_RE` down to `prepare_workspace`. Then the new tests at the bottom of `tests/test_checker.py`: bad ids raise before anything is created on disk, a symlink that leaves its root is refused, and bad ids give 404 through the route.
+`app/checker.py`, from `LESSON_ID_RE` down to `prepare_workspace`. Then `app/routes/check.py` (`_require_valid`) and the new tests in `tests/test_checker.py`: bad ids raise before anything is created on disk, a symlink that leaves its root is refused, and bad or unknown ids give 404 through the route.
 
 ## Lesson learned
 

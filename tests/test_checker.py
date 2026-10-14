@@ -15,9 +15,14 @@ FIXTURE = Path(__file__).parent / "fixtures" / "checker" / "task"
 
 @pytest.fixture
 def content(tmp_path: Path) -> Path:
-    """A content tree with one lesson whose task is the fixture."""
+    """A content tree: lesson-a has the fixture task, no-task has none."""
     root = tmp_path / "content"
     shutil.copytree(FIXTURE, root / "track" / "lesson-a" / "task")
+    for lesson_id in ("lesson-a", "no-task"):  # the route only serves lessons the app has loaded
+        (root / "track" / lesson_id).mkdir(exist_ok=True)
+        (root / "track" / lesson_id / "lesson.md").write_text(
+            f"---\nid: {lesson_id}\ntrack: track\ntitle: T\nminutes: 1\n---\nBody\n"
+        )
     return root
 
 
@@ -140,9 +145,15 @@ def test_check_endpoints(client: TestClient) -> None:
 
 
 def test_check_endpoint_without_task(client: TestClient) -> None:
-    r = client.post("/api/check/unknown")
+    r = client.post("/api/check/no-task")
     assert r.json()["passed"] is False and r.json()["kind"] == "none"
-    assert client.get("/api/check/unknown").json() == {"passed": None}
+    assert client.get("/api/check/no-task").json() == {"passed": None}
+
+
+def test_unknown_lesson_is_404(client: TestClient) -> None:
+    assert client.post("/api/check/unknown-valid").status_code == 404
+    assert client.get("/api/check/unknown-valid").status_code == 404
+    assert not Path("workspace").exists()
 
 
 def test_bad_lesson_id_is_404(client: TestClient) -> None:
