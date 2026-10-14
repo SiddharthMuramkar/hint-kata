@@ -276,7 +276,7 @@ def main(argv: list[str] | None = None) -> int:
             text = build(e, args.cache)
         except Exception as exc:  # one bad page must not stop the rest; reported, exit code 1
             failed += 1
-            print(f"{'FAILED':<8}{e['id']:<55}{type(exc).__name__}: {' '.join(str(exc).split())}")
+            print(f"{'FAILED':<8}{e['id']:<55} {type(exc).__name__}: {' '.join(str(exc).split())}")
             continue
         f = cache_file(args.cache, e)
         f.parent.mkdir(parents=True, exist_ok=True)

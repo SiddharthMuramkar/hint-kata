@@ -9,21 +9,22 @@ Two jobs in one file, two kinds of trigger.
 1. Downloads every page listed in `content/sources.yaml` with `fetch_docs.py --update`. That refreshes `sha256` and `fetched_at`.
 2. Runs `resync_report.py`. It compares the new manifest with the one on `main` and writes a Markdown report: which source ids changed, which lessons cite them (their quizzes may be stale), which ids failed to download.
 3. If any `sha256` changed, it opens or updates one pull request from the branch `docs-resync`, with the report as the PR body. If nothing changed, it opens nothing. (`fetched_at` changes on every run, so the file always differs. Only a new `sha256` counts as news.)
-4. If a page failed to download, the run ends red, so you get GitHub's failure email.
+4. If a page failed to download, the run ends red, so the failure shows on the Actions tab.
 
 **`embed`** runs on every push to `main` that touches `content/sources.yaml`. That is the merge of a plan PR, or any content PR that adds a source.
 1. A small `gate` job checks that the repository secrets `OPENROUTER_API_KEY` and `DATABASE_URL_UNPOOLED` exist. If one is missing, `embed` is skipped and the run stays green.
-2. `embed` finds the ids whose `sha256` changed in that push, downloads just those pages, then runs `scripts/ingest.py --only <ids>`. Only the ingest step sees the secrets.
+2. `embed` finds the ids whose `sha256` changed in that push, downloads just those pages, then runs `scripts/ingest.py --only <id>` once per changed id. Only the ingest step sees the secrets.
 3. If `scripts/ingest.py` is not on `main` yet, the step prints a notice and does nothing.
 
 The plan job never sees repository secrets. Its write permission (`contents` and `pull-requests`) is set on that job only; every other job is read-only.
 
 ## One-time setup for the owner
 - [ ] In the repo go to Settings > Actions > General > Workflow permissions. Tick **Allow GitHub Actions to create and approve pull requests**. It is off today. Without it the PR step fails with "GitHub Actions is not permitted to create or approve pull requests".
+  This reverses the hardening in `docs/research/github-plans-and-actions.md` (line 449, `can_approve_pull_request_reviews=false`). It is acceptable here because the default token stays read-only, and only a workflow that asks for `pull-requests: write` in its own `permissions:` block can use the setting. The one workflow that asks is `docs-resync.yml`, and workflow files change only through PRs you review.
 - [ ] To turn on embedding, add two repository secrets (Settings > Secrets and variables > Actions): `OPENROUTER_API_KEY` and `DATABASE_URL_UNPOOLED` (the Neon direct URL). Type the values yourself. Skip this until `scripts/ingest.py` is on `main`.
 - [ ] After the workflow is on `main`, run it once by hand (next section) and read the report.
 
-GitHub may hold the first run of a new workflow file, or a run it flags as suspicious, until a repo collaborator approves it in the browser. If a run sits in "waiting", open it on the Actions tab and click **Approve and run**.
+On a public repo GitHub holds a run it flags as potentially malicious until a collaborator approves it in a logged-in browser session. It does not publish the criteria. If a run sits in a waiting state, open it on the Actions tab and approve it.
 
 ## Run it by hand
 The workflow must be on `main`. It only runs from `main`; a run from another branch is skipped.
@@ -37,12 +38,12 @@ gh run watch
 Use `gh workflow list --all` to see whether it is active or disabled.
 
 ## Reviewing a plan PR
-1. Read the report in the PR body. Open each changed source and each lesson on the list.
+1. Read the report in the PR body, not the diff. `--update` rewrites `fetched_at` on every entry, so the diff of `content/sources.yaml` is mostly timestamps. Open each changed source and each lesson on the list.
 2. If a lesson needs new text or quiz items, fix it in a normal issue and PR. The plan PR only changes `content/sources.yaml`.
 3. Make CI run (next section), wait for `checks` to pass, then squash-merge. The merge triggers `embed`.
 
 ## PRs opened with GITHUB_TOKEN do not run `checks`
-The plan job opens the PR with the default `GITHUB_TOKEN`. GitHub does not let that token start other workflows, so the `checks` workflow does not run on its own. Since June 2026 GitHub still creates the runs, but holds them as "approval required". Pick one:
+The plan job opens the PR with the default `GITHUB_TOKEN`. Since June 2026, GitHub does not start `checks` for such a PR on its own: it creates the run but holds it as "approval required" until someone with write access releases it. Pick one:
 - Click **Approve workflows to run** in the PR merge box.
 - Push an empty commit to the branch from your own login:
   ```
@@ -65,7 +66,7 @@ You do not need this. If the click gets tiresome:
 The cost: the plan job now holds a secret. It only runs code from `main`, so that is acceptable, but it is why the default is `GITHUB_TOKEN`. A GitHub App token is the stricter option.
 
 ## The 60-day rule
-On a public repo, GitHub switches off scheduled workflows after 60 days with no repository activity. It emails a warning first. Weekly merged plan PRs count as activity, but a quiet repo can still hit it.
+On a public repo, GitHub switches off scheduled workflows after 60 days with no repository activity. Weekly merged plan PRs count as activity, but a quiet repo can still hit it.
 
 To check and turn it back on:
 ```
