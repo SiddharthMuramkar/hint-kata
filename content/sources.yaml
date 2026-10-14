@@ -604,3 +604,14 @@ sources:
   attribution: 'Adapted from GitHub Docs, Secure use reference (https://docs.github.com/en/actions/reference/security/secure-use), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
   sha256: 937230d6904e5d1f25b598bd6c774b318c708203ca696d7cec736c36fbb246d2
   fetched_at: '2026-10-14T14:40:22Z'
+- id: github-pull-requests-troubleshooting-required-status-checks
+  track: github
+  title: Troubleshooting required status checks
+  url: https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Troubleshooting required status checks (https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: cbde7b770b851cdee29ab193ce00b1b9fbec09f8da06ce733f00f0128f0dc448
+  fetched_at: '2026-10-14T14:35:54Z'
