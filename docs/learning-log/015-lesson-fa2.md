@@ -1,0 +1,5 @@
+This change adds the second FastAPI lesson, "Testing FastAPI apps". It teaches why TestClient needs no server, how to write a first test and test 404 and 422 errors, how to swap dependencies with app.dependency_overrides (and clear them), and when lifespan and async tests need extra care. The lesson comes with two warm-up questions, five quiz items (three single-choice, one ordering, one fill-in-the-blank) and two think-deeper questions with rubrics. The hands-on task is different from the others: you write the tests, not the app. You get a correct app and a buggy app with the same routes, and your test_items.py must pass on the first and fail on the second. That teaches the real purpose of a test, which is to catch bugs. Every API in the lesson was checked against FastAPI 0.143.0 and httpx 0.28.1. Read content/fastapi/fa2-testing/lesson.md first, then task/README.md and task/tests/test_learner_tests.py to see how the checker works.
+
+Closes #15
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

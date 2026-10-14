@@ -1,0 +1,109 @@
+items:
+  - id: q1
+    type: single
+    concept: testclient-no-server
+    source_section: why-testclient-needs-no-server
+    prompt: >-
+      A test calls `client.get("/fruit/1")` on a `TestClient(app)`. What does the client do with
+      that call?
+    options:
+      - text: It calls the ASGI app object directly, inside the test process.
+        correct: true
+        feedback: >-
+          Right. No server, no port and no network are involved. Your real routing, validation and
+          dependencies still run.
+      - text: It starts uvicorn on a free port and sends a real HTTP request to it.
+        misconception: Thinks TestClient starts uvicorn.
+        feedback: >-
+          This is tempting because the code looks like a normal HTTP call. But TestClient never
+          starts a server. It hands the request straight to the app object.
+      - text: It needs your server running first, for example on port 8000.
+        misconception: Thinks tests need a running server.
+        feedback: >-
+          If that were true, tests would be slow and could clash with other programs on your
+          machine. TestClient skips the network completely, so nothing has to be running.
+      - text: It skips your route code and returns a stub response.
+        misconception: Thinks TestClient mocks the route.
+        feedback: >-
+          It does not mock anything. The route function really runs. Only the transport is
+          different.
+  - id: q2
+    type: single
+    concept: dependency-overrides-cleanup
+    source_section: overriding-dependencies
+    prompt: >-
+      Test A sets `app.dependency_overrides[get_db] = fake_db` and never clears it. Test B runs
+      next in the same pytest session and calls a route that uses `get_db`. What happens in test
+      B?
+    options:
+      - text: It still gets `fake_db`, because the override dict lives on the shared app object.
+        correct: true
+        feedback: >-
+          Right. The overrides belong to the app, and all tests import the same app. That is why
+          you clear them in a `finally` block or a fixture.
+      - text: It gets the real `get_db`, because overrides reset after each test function.
+        misconception: Thinks overrides reset automatically per test.
+        feedback: >-
+          pytest does not know about `dependency_overrides`, so nothing resets it. A leaked
+          override is a classic cause of tests that pass alone and fail together.
+      - text: It gets the real `get_db`, because the override only applies to the client made in test A.
+        misconception: Thinks an override belongs to a client, not the app.
+        feedback: >-
+          The dict is an attribute of `app`, not of any `TestClient`. A new client for the same
+          app sees the same overrides.
+      - text: FastAPI raises an error because the override is still set.
+        misconception: Thinks FastAPI guards against stale overrides.
+        feedback: >-
+          FastAPI does not warn you. It quietly keeps using the replacement, which makes the bug
+          hard to spot.
+  - id: q3
+    type: single
+    concept: async-tests-when
+    source_section: lifespan-and-async-tests
+    prompt: >-
+      When do you need `httpx.AsyncClient` with `ASGITransport` instead of `TestClient`?
+    options:
+      - text: When the test itself must `await` other async code, such as an async database read.
+        correct: true
+        feedback: >-
+          Right. An `async def` test cannot use `TestClient`, so you send the request with
+          `AsyncClient` and can `await` other calls in the same test.
+      - text: Whenever any route in the app is declared with `async def`.
+        misconception: Thinks async routes require async tests.
+        feedback: >-
+          TestClient handles both `def` and `async def` routes from a normal `def` test. The
+          route's style does not decide this. The test's own needs do.
+      - text: When you want the app's startup and shutdown code to run.
+        misconception: Thinks AsyncClient runs lifespan events.
+        feedback: >-
+          It is the other way round. `with TestClient(app)` runs lifespan. `AsyncClient` does not,
+          so you need an extra helper for that.
+      - text: When you want faster tests, because async is always quicker.
+        misconception: Thinks async tests are faster.
+        feedback: >-
+          Both clients call the app in-process, so speed is about the same. Use async only when
+          you must await something.
+  - id: q4
+    type: order
+    concept: arrange-act-assert-overrides
+    source_section: overriding-dependencies
+    prompt: >-
+      Put the steps of a test that uses a fake dependency in a safe order.
+    steps:
+      - Set app.dependency_overrides[get_db] = fake_db
+      - Create the TestClient for the app
+      - Send the request with client.post(...)
+      - Assert on the status code and the JSON body
+      - Clear app.dependency_overrides in a finally block
+    explanation: >-
+      Arrange first (override and client), then act (send the request), then assert. Cleanup comes
+      last and sits in a `finally` block, so it runs even if an assert fails.
+  - id: q5
+    type: blank
+    concept: dependency-overrides-dict
+    source_section: overriding-dependencies
+    prompt: "app.____[get_db] = fake_db   # swap the dependency for this test"
+    answer: dependency_overrides
+    explanation: >-
+      `app.dependency_overrides` is a plain dict. The key is the original dependency function and
+      the value is the replacement.
