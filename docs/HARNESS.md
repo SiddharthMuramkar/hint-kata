@@ -46,6 +46,10 @@ Known caveat: Fable may bill to usage credits on some plans and its consent prom
   exit 2. Python with `from __future__ import annotations` so it also runs on macOS's `/usr/bin/python3` 3.9.
 - Why no PreToolUse hooks of our own: hookify (below) covers the pattern blocks; `permissions.deny` covers reads.
 - Tested once by piping sample JSON (`echo '{"tool_name":"Edit","tool_input":{"file_path":"x.py"}}' | python3 .claude/hooks/ruff_after_edit.py; echo $?`); results pasted in the M1 PR.
+- **SessionEnd hook (phase 2, not yet enabled).** `.claude/hooks/session_end.py` copies the session transcript to `~/hint-kata-inbox/<session-id>.jsonl` (outside the repo; never overwrites; always exits 0).
+  To enable it, the owner adds this to `.claude/settings.json` under `hooks`:
+  `"SessionEnd": [{"hooks": [{"type": "command", "command": "python3", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/session_end.py"], "timeout": 5}]}]`
+  Why: Claude Code deletes transcripts after `cleanupPeriodDays` (30). See `docs/runbooks/session-traces.md`.
 
 ## 4. Hookify rules — `.claude/hookify.<name>.local.md` (M1, committed on purpose)
 Hookify can only warn or block; it reads rules from `.claude/` relative to the working directory, so the files are
