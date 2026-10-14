@@ -1,0 +1,7 @@
+{% if lesson.quiz %}
+<section id="quiz" class="card" data-lesson="{{ lesson_id }}">
+  <h2>Quiz</h2>
+  <div id="quiz-box" aria-live="polite"></div>
+</section>
+<script src="/static/js/quiz.js" defer></script>
+{% endif %}
