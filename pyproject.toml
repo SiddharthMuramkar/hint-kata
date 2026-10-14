@@ -5,6 +5,7 @@ description = "Interactive lessons for Pydantic AI, FastAPI and GitHub flow in t
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "fastapi==0.143.0",
+    "fastapi-cli==0.0.32",
     "uvicorn[standard]==0.54.0",
     "jinja2==3.1.6",
     "python-multipart==0.0.32",
@@ -19,6 +20,7 @@ dependencies = [
     "logfire[fastapi]==5.2.0",
     "psycopg[binary]==3.3.6",
     "pgvector==0.5.1",
+    "tiktoken==0.14.0",
 ]
 
 [dependency-groups]
