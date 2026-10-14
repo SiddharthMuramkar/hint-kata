@@ -1,0 +1,70 @@
+questions:
+  - id: d1
+    prompt: >-
+      You are the only person on a repository. Design a ruleset for main that still protects
+      you from yourself. What do you require, and what do you deliberately leave out?
+    rubric:
+      - name: requires-a-pr
+        explanation: Requires that changes reach main through a pull request.
+        pass_anchor: "Require a pull request before merging, so every change has a PR, a diff and a checks run."
+        fail_anchor: "Only says 'be careful' or 'protect main' without naming a pull request rule."
+      - name: zero-approvals
+        explanation: Leaves out required approvals and gives the reason (authors cannot approve their own PR).
+        pass_anchor: "Sets approvals to 0 because I cannot approve my own PR, so one required approval would lock me out."
+        fail_anchor: "Requires one or more approvals on a repo with a single person."
+      - name: checks-and-force-push
+        explanation: Names at least two further protections, such as required status checks, blocking force pushes or blocking deletion.
+        pass_anchor: "Requires the test check to pass and blocks force pushes so history cannot be rewritten."
+        fail_anchor: "Mentions none of required checks, force-push blocking or deletion blocking."
+      - name: reasoned-omission
+        explanation: Explains what is left out or kept loose, and why it fits a solo developer (for example strict up-to-date checks, or an admin bypass only through a PR).
+        pass_anchor: "I leave out strict up-to-date checks because nobody else is moving main."
+        fail_anchor: "Lists rules but gives no reason for any choice."
+    model_answer: >-
+      I would require a pull request for every change to main. That gives me a diff to read
+      and a place for CI to run, even though nobody else reviews it. I would set the number of
+      approvals to zero. I cannot approve my own PR, so a rule that needed one approval would lock
+      me out of my own repo. I would require the test check to pass, because it is the only
+      reviewer I have. I would block force pushes and deletion of main, so that a slip with git
+      cannot rewrite or erase history. I would leave out strict "up to date" checks, because
+      nobody else moves main, so the extra builds buy nothing. I would also consider squash-only
+      merges to keep the history tidy. Last, I would keep an admin bypass that works only
+      through a pull request, for real emergencies. The aim is to stop mistakes, not to build
+      ceremony for a team that does not exist.
+    hints:
+      - Who could review your PR? What does that do to a rule that needs approvals?
+      - Think about what a slip could do to main, and which rule stops each slip.
+  - id: d2
+    prompt: >-
+      A teammate's PR is green but touches the payment code. What would you check before
+      merging, and why?
+    rubric:
+      - name: green-is-not-enough
+        explanation: States that passing checks do not prove the change is correct or safe.
+        pass_anchor: "Green only means the existing tests passed. It does not show the new payment logic is right."
+        fail_anchor: "Says it is safe to merge because the checks are green."
+      - name: human-review
+        explanation: Wants a real review of the diff by a person, ideally someone who knows that area.
+        pass_anchor: "I read the diff line by line and ask for approval from a person who knows the payment code."
+        fail_anchor: "Does not mention a human review."
+      - name: tests-for-the-change
+        explanation: Checks whether the PR adds or changes tests for the new behaviour, and that the right checks actually ran.
+        pass_anchor: "I check that the PR has tests for the changed payment paths and that the required check ran on the latest commit."
+        fail_anchor: "Never looks at whether the new behaviour is tested."
+      - name: other-signals
+        explanation: Names at least one other signal, such as open threads, a current branch, a code owner rule for sensitive files, or secrets in the diff.
+        pass_anchor: "I make sure no review thread is open and consider a code owner review for the payment folder."
+        fail_anchor: "Names no signal beyond the check result."
+    model_answer: >-
+      Green checks only tell me that the tests we already have still pass. They say nothing
+      about whether the new payment logic is correct. So I would read the diff myself, and I
+      would want an approval from someone who knows the payment code. I would check that the PR
+      changes or adds tests for the paths it touches, and that the required check really ran on
+      the latest commit. I would look for open review threads and unanswered questions. I would
+      scan the diff for secrets or for deleted tests. If this area is sensitive, I would suggest
+      a code owner rule, so that a change to the payment folder always needs its owner's approval.
+      Money is expensive to get wrong, so I would slow down here. A merge is easy to do and
+      hard to undo.
+    hints:
+      - What does a passing check prove, and what does it leave unproven?
+      - Think about who should look at a change to a sensitive area, and what they should look for.

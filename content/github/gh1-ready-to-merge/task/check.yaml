@@ -1,0 +1,13 @@
+checks:
+  - name: A pull request exists from a branch that is not main
+    args: ["pr", "list", "-R", "{repo}", "--state", "all", "--json", "headRefName", "--jq", "[.[]|select(.headRefName!=\"main\")]|length"]
+    expect: "re:[1-9][0-9]*"
+  - name: The repo has at least one ruleset
+    args: ["api", "repos/{repo}/rulesets", "--jq", "[.[]|.id]|length"]
+    expect: "re:[1-9][0-9]*"
+  - name: The rules on main include a pull request rule
+    args: ["api", "repos/{repo}/rules/branches/main", "--jq", "any(.[]; .type==\"pull_request\")"]
+    expect: "true"
+  - name: The rules on main block force pushes
+    args: ["api", "repos/{repo}/rules/branches/main", "--jq", "any(.[]; .type==\"non_fast_forward\")"]
+    expect: "true"

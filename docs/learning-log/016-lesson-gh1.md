@@ -1,0 +1,5 @@
+This PR adds the first GitHub-track lesson, "Is this PR ready to merge?". It teaches the flow from branch to merge, what a pull request is, reviews (and why you cannot approve your own), required status checks, merge methods, and rulesets. It ends with a six-signal checklist for deciding when a PR is ready. The lesson comes with a warm-up, a six-item quiz (two scenario cards, a merge-methods question, a flow ordering, a `gh ruleset check` blank and a rulesets question), two think-deeper questions, and a hands-on task. In the task you make a public practice repo, open a PR, add a ruleset to `main`, and see a direct push get refused. The "Watch it run" trace is a real PR from this repo, number 23, built with `traces/scripts/pr_timeline.py`; I only reworded that script's annotations so they explain neutral checks and PRs with no review. Four read-only `gh` checks in `task/check.yaml` verify the practice repo, and I ran them against this repo to confirm their output. Read `content/github/gh1-ready-to-merge/lesson.md` first.
+
+Closes #16
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
