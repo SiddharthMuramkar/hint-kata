@@ -1,0 +1,103 @@
+questions:
+  - id: d1
+    prompt: >-
+      One workflow has to do three things: run the tests, post a comment on the pull request with
+      the result, and deploy to production with an API key. How would you set `permissions:`,
+      where would you keep the API key, and what would you refuse to do?
+    rubric:
+      - name: small-default
+        explanation: The answer starts every job with as little access as possible.
+        pass_anchor: >-
+          Puts a small block such as `permissions: contents: read` (or `{}`) at the top level of the
+          workflow so every job starts with minimal access.
+        fail_anchor: >-
+          Leaves `permissions:` out, uses `write-all`, or gives every job the same wide access.
+      - name: write-only-where-needed
+        explanation: >-
+          The answer gives extra access only to the job that needs it. Knowing that a job-level
+          block replaces the top-level one is a bonus, not required.
+        pass_anchor: >-
+          Adds a write permission such as `pull-requests: write` inside the one job that posts the
+          comment, and not at the top level.
+        fail_anchor: >-
+          Puts write permissions at the top level, so the test job and the deploy job get them too.
+      - name: key-behind-environment
+        explanation: The answer puts a gate in front of the powerful secret.
+        pass_anchor: >-
+          Stores the key as a secret of a `production` environment, adds protection rules such as
+          required reviewers or a branch limit, and names the environment only in the deploy job.
+        fail_anchor: >-
+          Puts the key in the YAML file, or in a repository secret that every job can use, with no
+          gate in front of it.
+      - name: narrow-exposure
+        explanation: The answer limits which steps and which code can see the key.
+        pass_anchor: >-
+          Passes the key with `env:` on the one deploy step, or otherwise keeps it out of the test
+          job and out of steps that do not need it.
+        fail_anchor: >-
+          Sets the key as a workflow-wide `env:` value, or prints it to check that it works.
+    model_answer: >-
+      I would put `permissions: contents: read` at the top of the workflow, so every job starts with
+      a small token. The test job needs nothing more. Only the job that comments gets its own
+      `permissions` block with `pull-requests: write`, because a job-level block replaces the
+      top-level one and I would add `contents: read` back if that job needed to read the code. The
+      deploy job needs no write access to the repo at all. For the API key, I would create an
+      environment called `production` and store the key as an environment secret there. I would add
+      required reviewers and limit the environment to the `main` branch. Only the deploy job names
+      `environment: production`, and it passes the key through `env:` on the single step that needs
+      it. The test job never sees the key. I would pin actions by commit SHA, because an action runs
+      inside the job with the token and any secret it holds. I would refuse to put the key in the
+      file, to make it a workflow-wide variable, or to print it while debugging.
+    hints:
+      - Which of the three jobs needs write access to pull requests, and which do not?
+      - Where could the key live so that a person has to say yes before a job can read it?
+
+  - id: d2
+    prompt: >-
+      A teammate says: "GitHub hides secrets in logs, so it is fine to print them while we debug."
+      Do you agree? Explain why, say who could read a printed secret, say what you would do
+      instead, and say what you do if a secret does leak.
+    rubric:
+      - name: redaction-is-exact-match
+        explanation: The answer says why log hiding is not a guarantee.
+        pass_anchor: >-
+          Says the runner hides only the exact text of a secret it knows, so a reversed, split,
+          encoded or derived value shows up in the log.
+        fail_anchor: >-
+          Says hiding always works, or says logs are safe by default, or only says "it is risky"
+          with no reason.
+      - name: who-can-see
+        explanation: The answer names who can read a leaked value.
+        pass_anchor: >-
+          Says logs of a public repo can be read by anyone, or that anyone with write access can
+          write a workflow that reads the secrets (one of the two is enough).
+        fail_anchor: >-
+          Says only the owner can see the logs, or does not say who might read it.
+      - name: safer-debugging
+        explanation: The answer offers a way to debug without printing the value.
+        pass_anchor: >-
+          Suggests printing facts about the secret, such as its length or whether it is empty, or
+          using `::add-mask::` for derived values, instead of printing the value.
+        fail_anchor: >-
+          Suggests printing it once and deleting the log later, or printing it in pieces.
+      - name: rotate-first
+        explanation: The answer says what to do after a leak, in a safe order.
+        pass_anchor: >-
+          Says to revoke or rotate the secret first, then put the new value in GitHub and delete the
+          logs. Deleting the log alone is not enough.
+        fail_anchor: >-
+          Says to delete the log or the commit and carry on, with no rotation.
+    model_answer: >-
+      I do not agree. GitHub only hides a secret when the log contains its exact text. If a step
+      reverses it, splits it, encodes it or builds a new value from it, the runner does not recognise
+      it, and it shows in the log. A step or an action can also send it to a web server, and redaction
+      does not watch the network. In a public repo anyone can read the log, and anyone with write
+      access can write a workflow that reads every secret. So printing a secret is a real risk. I
+      would debug by printing facts instead, such as the length of the value or whether it is empty,
+      like `${#NAME}` in bash. If I make a new sensitive value from a secret, I would register it with
+      `::add-mask::`. If a secret does leak, I would revoke or rotate it first, so the old value
+      stops working, then store the new value in the GitHub secret, and delete the run's logs. Deleting
+      the log alone is not enough, because someone may already have copied the value.
+    hints:
+      - What exactly does the runner look for in the log before it hides something?
+      - After a leak, which step makes the old value useless, and which step only hides it?
