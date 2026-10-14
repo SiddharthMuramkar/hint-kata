@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -33,6 +34,20 @@ TRACKS = {
 }
 
 
+def configure_logging() -> None:
+    """Show the app's own INFO logs (uvicorn only sets up its own), and send them to Logfire when
+    a token is set. The tutor logs how many docs chunks each turn used."""
+    app_log = logging.getLogger("app")
+    app_log.setLevel(logging.INFO)
+    app_log.propagate = False  # our handlers print; a root handler would print every line twice
+    if not app_log.handlers:
+        console = logging.StreamHandler()
+        console.setFormatter(logging.Formatter("%(levelname)s:     %(name)s: %(message)s"))
+        app_log.addHandler(console)
+        if settings.logfire_token:
+            app_log.addHandler(logfire.LogfireLoggingHandler())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     if settings.logfire_token:
@@ -40,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             token=settings.logfire_token, send_to_logfire="if-token-present", console=False
         )
         logfire.instrument_fastapi(app)
+    configure_logging()
     root = Path(settings.content_root)
     app.state.lessons = load_lessons(root)
     app.state.sources = load_sources(root / "sources.yaml")

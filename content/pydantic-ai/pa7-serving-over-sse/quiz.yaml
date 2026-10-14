@@ -1,0 +1,152 @@
+items:
+  - id: q1
+    type: single
+    concept: sse-route-setup
+    source_section: sending-events-with-fastapi
+    prompt: >-
+      You want a POST /chat route that sends each yielded ServerSentEvent to the browser as
+      Server-Sent Events. Which route does that in FastAPI 0.143.0?
+    options:
+      - text: '@app.post("/chat", response_class=EventSourceResponse) on an async def that yields ServerSentEvent objects'
+        correct: true
+        feedback: >-
+          Right. The response class makes FastAPI send text/event-stream, and the yield turns the
+          function into a stream of events. POST is fine, because SSE works with any method.
+      - text: '@app.post("/chat") on an async def that yields ServerSentEvent objects'
+        misconception: Thinks a route that yields is already an SSE route.
+        feedback: >-
+          Tempting, because the generator does stream. But without the response class FastAPI sends
+          JSON Lines (we saw Content-Type application/jsonl) and dumps each event as a JSON object.
+          Nothing fails, so the bug is easy to miss.
+      - text: '@app.get("/chat", response_class=EventSourceResponse), because SSE only works with GET'
+        misconception: Thinks SSE is limited to GET requests.
+        feedback: >-
+          That limit belongs to the browser's EventSource, not to SSE. EventSourceResponse works
+          with any HTTP method, and the FastAPI docs show an example with POST.
+      - text: '@app.post("/chat") on an async def that returns one string holding all the events, with the header Content-Type text/event-stream'
+        misconception: Thinks the header alone makes a response stream.
+        feedback: >-
+          The header only names the format. A return sends the whole body when the function ends, so
+          nothing arrives early. To send events over time, the function must yield them.
+  - id: q2
+    type: single
+    concept: sse-token-delta
+    source_section: running-the-agent-inside-the-generator
+    prompt: |-
+      This route streams an agent's reply. The page appends every token event to the reply box, and the reply shows repeated text such as "Tea Tea costs Tea costs 2.75". Which change fixes the bug and keeps the text live?
+
+      ```python
+      async with agent.run_stream(body.message) as result:
+          async for text in result.stream_text(debounce_by=None):
+              yield ServerSentEvent(event="token", data=text)
+      ```
+    options:
+      - text: Pass delta=True to stream_text, so each item is only the new text.
+        correct: true
+        feedback: >-
+          Right. Without delta=True each item is the whole text so far. The page appends it, so the
+          start of the reply is shown again and again. With delta=True every event adds only new
+          text.
+      - text: Send raw_data=text instead of data=text.
+        misconception: Thinks the repeats come from the JSON encoding of data.
+        feedback: >-
+          JSON encoding only adds quotes. The repeats are in the items themselves, because each one
+          holds the text so far. raw_data would send the same repeated text.
+      - text: Remove debounce_by=None, so the chunks are grouped.
+        misconception: Thinks grouping chunks removes the repeats.
+        feedback: >-
+          debounce_by only decides how many chunks go into one item. You would get fewer items, but
+          each would still be the text so far.
+      - text: Move the yield below the async with block, so it runs once with the full text.
+        misconception: Thinks one yield at the end is the same fix.
+        feedback: >-
+          The repeats would stop, but the reply would show up in one piece at the end. That is not
+          live text, which is why you stream in the first place.
+  - id: q3
+    type: single
+    concept: fetch-for-post-sse
+    source_section: reading-the-stream-in-the-browser
+    prompt: >-
+      The tutor page sends the learner's message as a JSON body and shows the reply as it streams.
+      Why does tutor.js use fetch with getReader() and not EventSource?
+    options:
+      - text: EventSource takes a URL and sends a GET with no body, so it cannot send the message. fetch can POST a body and give the response body as a stream.
+        correct: true
+        feedback: >-
+          Right. The server could stream to either one. The limit is on the request side, and it is
+          why this page reads the stream by hand.
+      - text: EventSource cannot read the text/event-stream format, so the page must read the bytes itself.
+        misconception: Thinks EventSource does not support the SSE format.
+        feedback: >-
+          EventSource was made for exactly this format, and it even reconnects by itself. What it
+          cannot do is send a POST body.
+      - text: FastAPI's EventSourceResponse can only be read with fetch.
+        misconception: Thinks the server class ties the client to one API.
+        feedback: >-
+          The response is plain text over HTTP. Any client that can read a body can read it. httpx
+          does it in tests, and EventSource does it for GET routes.
+      - text: fetch is the only browser API that can read a response before it has ended.
+        misconception: Thinks only fetch can read a response as it arrives.
+        feedback: >-
+          EventSource also hands you each event as it arrives. The reason to choose fetch here is
+          the request, not the streaming.
+  - id: q4
+    type: single
+    concept: testclient-buffers
+    source_section: testing-a-stream
+    prompt: >-
+      A test posts to an SSE route with FastAPI's TestClient. The fake model waits one second before
+      each of four chunks. What does the test see?
+    options:
+      - text: The call returns after the whole stream has finished, and then all the lines are there at once. The test can check names and data, not timing.
+        correct: true
+        feedback: >-
+          Right. We saw this with a 0.4 second gap. The stream opened after about 1.6 seconds, and
+          every line arrived at the same moment. For real timing, use a live server and httpx.stream.
+      - text: One event per second, as the model produces them.
+        misconception: Thinks TestClient streams live.
+        feedback: >-
+          TestClient runs the whole app before it hands anything back, so the events cannot show
+          their timing. A live server is needed for that.
+      - text: Only the first event, because TestClient stops reading after the first chunk.
+        misconception: Thinks TestClient cuts a stream short.
+        feedback: >-
+          It reads to the end of the response. Every event is there once the call returns.
+      - text: An error, because TestClient cannot read text/event-stream.
+        misconception: Thinks TestClient cannot handle streaming responses.
+        feedback: >-
+          It reads the stream as plain text lines without trouble. You can group them into events
+          and check them.
+  - id: q5
+    type: order
+    concept: sse-request-lifecycle
+    source_section: running-the-agent-inside-the-generator
+    prompt: >-
+      Put the life of one streamed chat request in order, from the first step to the last.
+    steps:
+      - "The browser sends POST /chat with the message as JSON"
+      - "The server answers 200 with Content-Type text/event-stream"
+      - "The route sends a token event for each text delta"
+      - "The route sends a done event with the full text"
+      - "The route ends, the server closes the response, and reader.read() returns done: true"
+    explanation: >-
+      The request comes first, and the status and headers go out before any body. The token events
+      follow while the agent writes. The done event is our own last message, with the full text,
+      and it comes after the last token. Only when the generator ends does the server close the
+      response, and that is what makes the browser's reader report done.
+  - id: q6
+    type: blank
+    concept: tutor-token-gating
+    source_section: how-the-tutor-route-does-it
+    prompt: |-
+      The tutor route sends token events only from one hint rung upward. Fill in the number of that rung:
+
+      async for delta in result.stream_text(delta=True):
+          parts.append(delta)
+          if ceiling >= ____:
+              yield ServerSentEvent(event="token", data=delta)
+    answer: 're:L?4'
+    explanation: >-
+      4. Below rung L4 the server removes code blocks from the finished reply, and it can only do
+      that once it has the whole reply. A live token could show code that the final reply must not
+      contain, so at lower rungs the learner sees only the final html event.
