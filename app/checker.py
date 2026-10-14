@@ -16,6 +16,7 @@ from app.store import Store
 
 PYTEST_TIMEOUT = 120
 GH_TIMEOUT = 30
+LESSON_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
 
 @dataclass
@@ -26,20 +27,38 @@ class CheckResult:
 
 
 def valid_lesson_id(lesson_id: str) -> bool:
-    return re.fullmatch(r"[a-z0-9-]+", lesson_id) is not None
+    return LESSON_ID_RE.fullmatch(lesson_id) is not None
+
+
+def validate_lesson_id(lesson_id: str) -> str:
+    if not valid_lesson_id(lesson_id):
+        raise ValueError(f"Invalid lesson id: {lesson_id!r}")
+    return lesson_id
+
+
+def _inside(path: Path, root: Path) -> Path:
+    """Resolve `path` and refuse it unless it stays under `root`."""
+    base = os.path.realpath(root)
+    full = os.path.realpath(path)
+    if not full.startswith(base + os.sep):
+        raise ValueError(f"{path} is outside {root}")
+    return Path(full)
 
 
 def find_task_dir(lesson_id: str, content_root: Path = Path("content")) -> Path | None:
-    return next(iter(sorted(content_root.glob(f"*/{lesson_id}/task"))), None)
+    validate_lesson_id(lesson_id)
+    task_dir = next(iter(sorted(content_root.glob(f"*/{lesson_id}/task"))), None)
+    return None if task_dir is None else _inside(task_dir, content_root)
 
 
 def prepare_workspace(
     lesson_id: str, task_dir: Path, workspace_root: Path = Path("workspace")
 ) -> Path:
     """Copy starter/ once; never overwrite the learner's work."""
-    workspace = workspace_root / lesson_id
+    validate_lesson_id(lesson_id)
+    workspace = _inside(workspace_root / lesson_id, workspace_root)
     if not workspace.exists():
-        shutil.copytree(task_dir / "starter", workspace)
+        shutil.copytree(_inside(task_dir / "starter", task_dir), workspace)
     return workspace
 
 
@@ -56,7 +75,7 @@ def run_pytest_check(task_dir: Path, workspace: Path) -> CheckResult:
     }
     env["PYTHONPATH"] = str(workspace.resolve())
     cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
-    cmd.append(str((task_dir / "tests").resolve()))
+    cmd.append(str(_inside(task_dir / "tests", task_dir)))
     try:
         proc = subprocess.run(
             cmd, cwd=workspace, env=env, capture_output=True, text=True, timeout=PYTEST_TIMEOUT
@@ -94,11 +113,7 @@ def run_gh_checks(task_dir: Path, repo: str) -> CheckResult:
 
 
 def run_check(lesson_id: str, settings: Settings, store: Store, user_id: int) -> CheckResult:
-    task_dir = (
-        find_task_dir(lesson_id, Path(settings.content_root))
-        if valid_lesson_id(lesson_id)
-        else None
-    )
+    task_dir = find_task_dir(lesson_id, Path(settings.content_root))  # raises on a bad id
     if task_dir and (task_dir / "tests").is_dir():
         result = run_pytest_check(task_dir, prepare_workspace(lesson_id, task_dir))
     elif task_dir and (task_dir / "check.yaml").is_file():
