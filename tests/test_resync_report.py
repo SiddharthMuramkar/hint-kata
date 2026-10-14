@@ -55,6 +55,15 @@ def test_failed_ids_reads_only_failed_lines() -> None:
     assert rr.failed_ids("") == []
 
 
+def test_link_only_entries_are_never_changed_or_failed() -> None:
+    """A `kind: link` entry has no sha256 ever, and fetch_docs prints it as `link`, not `FAILED`."""
+    link = {"id": "l", "kind": "link", "title": "T"}
+    page = {"id": "p", "title": "P", "sha256": "1" * 64}
+    assert rr.changed_ids({"sources": [page]}, {"sources": [link, page]}) == []
+    log = "link    l                       not fetched (link only)\nFAILED  p   OSError: x\n"
+    assert rr.failed_ids(log) == ["p"]
+
+
 def test_lesson_sources_and_stale_lessons(tmp_path: Path) -> None:
     _lesson(tmp_path, "fastapi", "fa1", ["a", "b"])
     _lesson(tmp_path, "github", "gh1", ["c"])

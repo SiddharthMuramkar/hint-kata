@@ -615,3 +615,595 @@ sources:
   attribution: 'Adapted from GitHub Docs, Troubleshooting required status checks (https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
   sha256: cbde7b770b851cdee29ab193ce00b1b9fbec09f8da06ce733f00f0128f0dc448
   fetched_at: '2026-10-14T14:35:54Z'
+- id: fastapi-tutorial
+  track: fastapi
+  title: Tutorial - User Guide
+  url: https://fastapi.tiangolo.com/tutorial/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/index.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: c594d8d6f354e9644828ecbe747e21ecb07efdd75faac30c1dc5d569b8b1a1d5
+  fetched_at: '2026-10-14T15:16:20Z'
+- id: fastapi-fastapi-cli
+  track: fastapi
+  title: FastAPI CLI
+  url: https://fastapi.tiangolo.com/fastapi-cli/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/fastapi-cli.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/fastapi-cli/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: be5a4bb78a5219db72096f05f2069caef8cade5630511d38451e0e720c7fefe4
+  fetched_at: '2026-10-14T15:16:20Z'
+- id: fastapi-tutorial-first-steps
+  track: fastapi
+  title: First Steps
+  url: https://fastapi.tiangolo.com/tutorial/first-steps/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/first-steps.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/first-steps/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 107eab12fbdc82ce4faa2d5b04b617600eee7d0ddbdba8a8859b2e0b041cb2ac
+  fetched_at: '2026-10-14T15:16:20Z'
+- id: fastapi-deployment-versions
+  track: fastapi
+  title: About FastAPI versions
+  url: https://fastapi.tiangolo.com/deployment/versions/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/deployment/versions.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/deployment/versions/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: f5dc2843b5374ff0986f5ff05e5764ddb554963067e44ea2f20f31487499fe2f
+  fetched_at: '2026-10-14T15:16:21Z'
+- id: fastapi-async
+  track: fastapi
+  title: Concurrency and async / await
+  url: https://fastapi.tiangolo.com/async/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/async.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/async/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: a1abac9f971cdb3387f94d889e7918232b8d5f17791a3be329a6af7aa737af5d
+  fetched_at: '2026-10-14T15:16:21Z'
+- id: fastapi-advanced-advanced-dependencies
+  track: fastapi
+  title: Advanced Dependencies
+  url: https://fastapi.tiangolo.com/advanced/advanced-dependencies/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/advanced/advanced-dependencies.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/advanced/advanced-dependencies/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 94c3140a4c89409577a9203c2b9501ae0140741fa3f300c4816672f8a21ec733
+  fetched_at: '2026-10-14T15:16:21Z'
+- id: fastapi-advanced-events
+  track: fastapi
+  title: Lifespan Events
+  url: https://fastapi.tiangolo.com/advanced/events/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/advanced/events.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/advanced/events/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 7c25252b48b596a8ae6f2c0c7c1ff8373e70d768c6a5f971c130140edda42777
+  fetched_at: '2026-10-14T15:16:21Z'
+- id: fastapi-environment-variables
+  track: fastapi
+  title: Environment Variables
+  url: https://fastapi.tiangolo.com/environment-variables/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/environment-variables.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/environment-variables/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 66d6946a058eb0bceeec995136ccab7cd491329b4bb6543b34e367e231de0164
+  fetched_at: '2026-10-14T15:16:22Z'
+- id: fastapi-advanced-settings
+  track: fastapi
+  title: Settings and Environment Variables
+  url: https://fastapi.tiangolo.com/advanced/settings/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/advanced/settings.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/advanced/settings/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 2007c52ee0b4b97793cdcac929a65b8682774a0667d64e9c6fe23a2948eb872a
+  fetched_at: '2026-10-14T15:16:22Z'
+- id: fastapi-tutorial-sql-databases
+  track: fastapi
+  title: SQL (Relational) Databases
+  url: https://fastapi.tiangolo.com/tutorial/sql-databases/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/sql-databases.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/sql-databases/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 340c102f8cdbc17faa8567e902c93a0d9df83a1612dd3bd645249f4380f441e5
+  fetched_at: '2026-10-14T15:16:22Z'
+- id: fastapi-tutorial-bigger-applications
+  track: fastapi
+  title: Bigger Applications - Multiple Files
+  url: https://fastapi.tiangolo.com/tutorial/bigger-applications/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/bigger-applications.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/bigger-applications/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: aaef7ff335b9561a513fe3ddc45fb38fcc444eb0128b71fabebfe7d9349c0daf
+  fetched_at: '2026-10-14T15:16:23Z'
+- id: fastapi-tutorial-path-operation-configuration
+  track: fastapi
+  title: Path Operation Configuration
+  url: https://fastapi.tiangolo.com/tutorial/path-operation-configuration/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/path-operation-configuration.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/path-operation-configuration/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 7720e23e05043cb658af9a2585baac5e9d8eb09439ffb0c7ebc24cb0e0acf410
+  fetched_at: '2026-10-14T15:16:23Z'
+- id: fastapi-tutorial-metadata
+  track: fastapi
+  title: Metadata and Docs URLs
+  url: https://fastapi.tiangolo.com/tutorial/metadata/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/metadata.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/metadata/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: c6e0726ab7345e23a2d382953049a2f086c76dcbd26e7e392ef569e2e00a9ab0
+  fetched_at: '2026-10-14T15:16:24Z'
+- id: fastapi-tutorial-server-sent-events
+  track: fastapi
+  title: Server-Sent Events (SSE)
+  url: https://fastapi.tiangolo.com/tutorial/server-sent-events/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/server-sent-events.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/server-sent-events/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: d7cd8b2a7a33a80a76c29100be742428ca91b71f061cc09fdad0165485240531
+  fetched_at: '2026-10-14T15:16:24Z'
+- id: fastapi-tutorial-stream-json-lines
+  track: fastapi
+  title: Stream JSON Lines
+  url: https://fastapi.tiangolo.com/tutorial/stream-json-lines/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/tutorial/stream-json-lines.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/tutorial/stream-json-lines/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 9f68cae95d28ee5dbf040aca475c59ae0cbc833ce1df34ea24661e4e7a8b416c
+  fetched_at: '2026-10-14T15:16:24Z'
+- id: fastapi-deployment-concepts
+  track: fastapi
+  title: Deployments Concepts
+  url: https://fastapi.tiangolo.com/deployment/concepts/
+  fetch_url: https://raw.githubusercontent.com/fastapi/fastapi/0.143.0/docs/en/docs/deployment/concepts.md
+  kind: fastapi_raw
+  version: 0.143.0
+  license: MIT
+  attribution: Adapted from the FastAPI documentation (https://fastapi.tiangolo.com/deployment/concepts/), © 2018 Sebastián Ramírez, MIT License.
+  sha256: 1a121c5735de6e5e6377473f07cc7f801a261b8b34fe8abfdd394690b7abf969
+  fetched_at: '2026-10-14T15:16:25Z'
+- id: pydantic-ai-integrations-ui-overview
+  track: pydantic-ai
+  title: UI Event Streams
+  url: https://pydantic.dev/docs/ai/integrations/ui/overview/
+  fetch_url: https://pydantic.dev/docs/ai/integrations/ui/overview/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/integrations/ui/overview/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 243b592f53bbcef340e714ae01e811fe56efe1c60e83455b761cfa94dd2b064e
+  fetched_at: '2026-10-14T15:16:25Z'
+- id: pydantic-ai-guides-embeddings
+  track: pydantic-ai
+  title: Embeddings
+  url: https://pydantic.dev/docs/ai/guides/embeddings/
+  fetch_url: https://pydantic.dev/docs/ai/guides/embeddings/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/guides/embeddings/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: b9bdaec6ffb4a250cb17ef5f3232e7a20784fcd77bf64f9165c35094ff176b4e
+  fetched_at: '2026-10-14T15:16:25Z'
+- id: pydantic-ai-examples-data-analytics-rag
+  track: pydantic-ai
+  title: RAG example
+  url: https://pydantic.dev/docs/ai/examples/data-analytics/rag/
+  fetch_url: https://pydantic.dev/docs/ai/examples/data-analytics/rag/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/examples/data-analytics/rag/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 1bb962d5baa186c4bf736f33502138b527a354e5280dd0e1517d0e92f788fbf9
+  fetched_at: '2026-10-14T15:16:25Z'
+- id: pydantic-ai-evals-evals
+  track: pydantic-ai
+  title: Pydantic Evals
+  url: https://pydantic.dev/docs/ai/evals/evals/
+  fetch_url: https://pydantic.dev/docs/ai/evals/evals/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/evals/evals/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 682ea7685d7e1dab486570b5344b09eeb34353bd30acfe2692b5db21fe135aca
+  fetched_at: '2026-10-14T15:16:26Z'
+- id: pydantic-ai-evals-getting-started-quick-start
+  track: pydantic-ai
+  title: Pydantic Evals quickstart
+  url: https://pydantic.dev/docs/ai/evals/getting-started/quick-start/
+  fetch_url: https://pydantic.dev/docs/ai/evals/getting-started/quick-start/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/evals/getting-started/quick-start/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: c5286b3f3593dc48a51b3da2eae5d0ab355c6bf4557db96d1ccc007c5d71b2c8
+  fetched_at: '2026-10-14T15:16:26Z'
+- id: pydantic-ai-evals-evaluators-llm-judge
+  track: pydantic-ai
+  title: LLM Judge Deep Dive
+  url: https://pydantic.dev/docs/ai/evals/evaluators/llm-judge/
+  fetch_url: https://pydantic.dev/docs/ai/evals/evaluators/llm-judge/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/evals/evaluators/llm-judge/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 6c684c794f1330d46180bfdcf7a2d7aa352d08076f1dc63ab733eeba7ce3386b
+  fetched_at: '2026-10-14T15:16:26Z'
+- id: pydantic-ai-evals-evaluators-standard-quality-metrics
+  track: pydantic-ai
+  title: Standard Quality Metrics
+  url: https://pydantic.dev/docs/ai/evals/evaluators/standard-quality-metrics/
+  fetch_url: https://pydantic.dev/docs/ai/evals/evaluators/standard-quality-metrics/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/evals/evaluators/standard-quality-metrics/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 0714ebac5bb17a30169ddf87fb9992591077ff3dd4087a28afee4836003c292c
+  fetched_at: '2026-10-14T15:16:26Z'
+- id: pydantic-ai-integrations-logfire
+  track: pydantic-ai
+  title: Pydantic Logfire Debugging and Monitoring
+  url: https://pydantic.dev/docs/ai/integrations/logfire/
+  fetch_url: https://pydantic.dev/docs/ai/integrations/logfire/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/integrations/logfire/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 796f93138d841c658fd169b32f9dd3f23c5a89eb2fc9e65070382c06292f673a
+  fetched_at: '2026-10-14T15:16:27Z'
+- id: pydantic-ai-core-concepts-retries
+  track: pydantic-ai
+  title: Retries
+  url: https://pydantic.dev/docs/ai/core-concepts/retries/
+  fetch_url: https://pydantic.dev/docs/ai/core-concepts/retries/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/core-concepts/retries/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 83bf624c6c6e838d5e5b7ddecaa56614cef22ab2f2eec9bd4f06d9e1783ae8cb
+  fetched_at: '2026-10-14T15:16:27Z'
+- id: pydantic-ai-project-version-policy
+  track: pydantic-ai
+  title: Version Policy
+  url: https://pydantic.dev/docs/ai/project/version-policy/
+  fetch_url: https://pydantic.dev/docs/ai/project/version-policy/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/project/version-policy/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 904428e6bee051ac8c3031e18bc3658cbca48fe1e5cb1560f44d05c3f532bca9
+  fetched_at: '2026-10-14T15:16:27Z'
+- id: pydantic-ai-guides-multi-agent-applications
+  track: pydantic-ai
+  title: Multi-agent Applications
+  url: https://pydantic.dev/docs/ai/guides/multi-agent-applications/
+  fetch_url: https://pydantic.dev/docs/ai/guides/multi-agent-applications/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/guides/multi-agent-applications/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 3bf47e51d767bd5c1fc9a8b8e47cd5f58853d6c16a56e5e5988881dd8148d09d
+  fetched_at: '2026-10-14T15:16:27Z'
+- id: pydantic-ai-mcp-client
+  track: pydantic-ai
+  title: MCP Client
+  url: https://pydantic.dev/docs/ai/mcp/client/
+  fetch_url: https://pydantic.dev/docs/ai/mcp/client/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/mcp/client/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 2c73eed100935962bdcb6aaf4f881f80cf1c5f5f2bbff61451aaf7716ee0eedd
+  fetched_at: '2026-10-14T15:16:27Z'
+- id: pydantic-ai-capabilities-overview
+  track: pydantic-ai
+  title: Capabilities
+  url: https://pydantic.dev/docs/ai/capabilities/overview/
+  fetch_url: https://pydantic.dev/docs/ai/capabilities/overview/index.md
+  kind: pydantic_ai_md
+  version: 2.56.0
+  license: MIT
+  attribution: Adapted from the Pydantic AI documentation (https://pydantic.dev/docs/ai/capabilities/overview/), © Pydantic Services Inc. 2024 to present, MIT License.
+  sha256: 8ebfbf8e9aefe18edf6b636a695795a749de8c681863365ad72f9bb7fc563159
+  fetched_at: '2026-10-14T15:16:28Z'
+- id: github-pull-requests-reference-branches
+  track: github
+  title: Branches
+  url: https://docs.github.com/en/pull-requests/reference/branches
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/reference/branches
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Branches (https://docs.github.com/en/pull-requests/reference/branches), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: 4ff7edd9f77505dadee39cf3254aa4a49a136b0b0bb67d3096c7bf0d64e180d7
+  fetched_at: '2026-10-14T15:16:29Z'
+- id: github-pull-requests-how-tos-commit-changes-managing-branches-within-your-repository
+  track: github
+  title: Managing branches within your repository
+  url: https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Managing branches within your repository (https://docs.github.com/en/pull-requests/how-tos/commit-changes/managing-branches-within-your-repository), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: d6b5189c41fa0bfd19bf32e289ec3067314d243196326f30610990d3bf1878de
+  fetched_at: '2026-10-14T15:16:30Z'
+- id: github-get-started-git-basics-about-remote-repositories
+  track: github
+  title: About remote repositories
+  url: https://docs.github.com/en/get-started/git-basics/about-remote-repositories
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/get-started/git-basics/about-remote-repositories
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, About remote repositories (https://docs.github.com/en/get-started/git-basics/about-remote-repositories), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: 5aae38db8d5968415b5145cc1c57e48cdf3c24c37c3b031327899b095a4cd70b
+  fetched_at: '2026-10-14T15:16:32Z'
+- id: github-pull-requests-how-tos-merge-and-close-pull-requests-automatically-merging-a-pull-request
+  track: github
+  title: Automatically merging a pull request
+  url: https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Automatically merging a pull request (https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: 2fd86dcfd0c9bb67f9ba25d1e5537540d6f574c3f55de47f172d369447dc62ba
+  fetched_at: '2026-10-14T15:16:33Z'
+- id: github-repositories-configuring-branches-and-merges-in-your-repository-managing-protected-branches-about-protected-branches
+  track: github
+  title: About protected branches
+  url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, About protected branches (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: 5042eaee442c5d30dae356d950f93c24c81c3911b932af9a31252e21d433cdbc
+  fetched_at: '2026-10-14T15:16:35Z'
+- id: github-repositories-configuring-branches-and-merges-in-your-repository-managing-rulesets-creating-rulesets-for-a-repository
+  track: github
+  title: Creating rulesets for a repository
+  url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Creating rulesets for a repository (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: f955346ead8a47c4e142a8a32acb59b619ea9541f66c66e2277158a474ec4b0b
+  fetched_at: '2026-10-14T15:16:36Z'
+- id: github-repositories-managing-your-repositorys-settings-and-features-customizing-your-repository-about-code-owners
+  track: github
+  title: About code owners
+  url: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, About code owners (https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: b8c62bfe45059bbcfa7d0db0341149fae6dca7740a8fe9e2675db00855a2ed84
+  fetched_at: '2026-10-14T15:16:38Z'
+- id: github-actions-how-tos-write-workflows-choose-when-workflows-run-trigger-a-workflow
+  track: github
+  title: Triggering a workflow
+  url: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Triggering a workflow (https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: a271409ed1fedccd4fff8bce310dc243b5d9b18fd62f1c8cca889a28a42cd772
+  fetched_at: '2026-10-14T15:16:39Z'
+- id: github-actions-how-tos-write-workflows-choose-when-workflows-run-control-workflow-concurrency
+  track: github
+  title: Control the concurrency of workflows and jobs
+  url: https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Control the concurrency of workflows and jobs (https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: 5eb0b1c080df829229be423ec1a22406051d474c1d97e71442e98a899417fbd8
+  fetched_at: '2026-10-14T15:16:40Z'
+- id: github-repositories-configuring-branches-and-merges-in-your-repository-configuring-pull-request-merges-managing-a-merge-queue
+  track: github
+  title: Managing a merge queue
+  url: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue
+  fetch_url: https://docs.github.com/api/article/body?pathname=/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue
+  kind: github_article
+  version: live
+  license: CC-BY-4.0
+  attribution: 'Adapted from GitHub Docs, Managing a merge queue (https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-a-merge-queue), © GitHub, CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: summarized and adapted.'
+  sha256: 6f47c70278429e89159ca2a67b799762e16cafb75d594a1d1f329c7d6ff6ca6f
+  fetched_at: '2026-10-14T15:16:41Z'
+- id: mcp-docs-intro
+  track: github
+  title: What is the Model Context Protocol (MCP)?
+  url: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro
+  fetch_url: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro.md
+  kind: raw
+  version: '2026-07-28'
+  license: CC-BY-4.0
+  attribution: 'Adapted from the Model Context Protocol documentation, What is the Model Context Protocol (MCP)? (https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), modified: summarized and adapted.'
+  sha256: a2314e74bbae7765b14a727f4bf9456895b58b6d2c2ad7cd2996fb5bfd830f6c
+  fetched_at: '2026-10-14T15:16:42Z'
+- id: mcp-docs-architecture
+  track: github
+  title: Architecture overview
+  url: https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture
+  fetch_url: https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture.md
+  kind: raw
+  version: '2026-07-28'
+  license: CC-BY-4.0
+  attribution: 'Adapted from the Model Context Protocol documentation, Architecture overview (https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), modified: summarized and adapted.'
+  sha256: c35ae31222f730ce87adf9344172f8406c51021a34e8c248269fa50fe5e34ae1
+  fetched_at: '2026-10-14T15:16:43Z'
+- id: mcp-docs-security-best-practices
+  track: github
+  title: Security Best Practices
+  url: https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices
+  fetch_url: https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices.md
+  kind: raw
+  version: '2026-07-28'
+  license: CC-BY-4.0
+  attribution: 'Adapted from the Model Context Protocol documentation, Security Best Practices (https://modelcontextprotocol.io/docs/2026-07-28/tutorials/security/security_best_practices), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), modified: summarized and adapted.'
+  sha256: d0fc0dc7ac40df6fce85ef036b3ac5d9a1b8ae87b25a674e0a2ec866217745fe
+  fetched_at: '2026-10-14T15:16:44Z'
+- id: claude-code-action-readme
+  track: github
+  title: Claude Code Action README
+  url: https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/README.md
+  fetch_url: https://raw.githubusercontent.com/anthropics/claude-code-action/34968b5981d5d170904281aa3df6f3c0d4a28855/README.md
+  kind: raw
+  version: 34968b5
+  license: MIT
+  attribution: Adapted from anthropics/claude-code-action (https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/README.md), © 2025 Anthropic, PBC, MIT License.
+  sha256: a381c47399445c97480d025a406f485644fdd5f4f7ffd880be0567ac2f7b4640
+  fetched_at: '2026-10-14T15:16:44Z'
+- id: claude-code-action-setup
+  track: github
+  title: 'Claude Code Action: Setup Guide'
+  url: https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/setup.md
+  fetch_url: https://raw.githubusercontent.com/anthropics/claude-code-action/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/setup.md
+  kind: raw
+  version: 34968b5
+  license: MIT
+  attribution: Adapted from anthropics/claude-code-action (https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/setup.md), © 2025 Anthropic, PBC, MIT License.
+  sha256: 7425c2b89b59bc48f9f5449b5e214f4a57538da91845d6c3a7abac9bb2c4ba4d
+  fetched_at: '2026-10-14T15:16:44Z'
+- id: claude-code-action-security
+  track: github
+  title: 'Claude Code Action: Security'
+  url: https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/security.md
+  fetch_url: https://raw.githubusercontent.com/anthropics/claude-code-action/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/security.md
+  kind: raw
+  version: 34968b5
+  license: MIT
+  attribution: Adapted from anthropics/claude-code-action (https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/security.md), © 2025 Anthropic, PBC, MIT License.
+  sha256: 2dd090ea8027eda1b4148bc46d00767c1bb5fdd78203a5c53525580e8e9cfc5c
+  fetched_at: '2026-10-14T15:16:44Z'
+- id: claude-code-action-examples-claude
+  track: github
+  title: Claude Code Action example workflow (claude.yml)
+  url: https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/examples/claude.yml
+  fetch_url: https://raw.githubusercontent.com/anthropics/claude-code-action/34968b5981d5d170904281aa3df6f3c0d4a28855/examples/claude.yml
+  kind: raw
+  version: 34968b5
+  license: MIT
+  attribution: Adapted from anthropics/claude-code-action (https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/examples/claude.yml), © 2025 Anthropic, PBC, MIT License.
+  sha256: c07988ce3818b68efa6d57439cac4560566535f0903f164c226a503b21207943
+  fetched_at: '2026-10-14T15:16:45Z'
+- id: github-mcp-server-install-claude
+  track: github
+  title: Install GitHub MCP Server in Claude Applications
+  url: https://github.com/github/github-mcp-server/blob/c59e8c199efbf14467211861de44afaeeb6873e3/docs/installation-guides/install-claude.md
+  fetch_url: https://raw.githubusercontent.com/github/github-mcp-server/c59e8c199efbf14467211861de44afaeeb6873e3/docs/installation-guides/install-claude.md
+  kind: raw
+  version: c59e8c1
+  license: MIT
+  attribution: Adapted from github/github-mcp-server (https://github.com/github/github-mcp-server/blob/c59e8c199efbf14467211861de44afaeeb6873e3/docs/installation-guides/install-claude.md), © 2025 GitHub, MIT License.
+  sha256: 49f3c66ee2f2a29833d223204cf52ce150c843ca03b8716357130e04c189e8a7
+  fetched_at: '2026-10-14T15:16:45Z'
+- id: github-mcp-server-remote-server
+  track: github
+  title: Remote GitHub MCP Server
+  url: https://github.com/github/github-mcp-server/blob/c59e8c199efbf14467211861de44afaeeb6873e3/docs/remote-server.md
+  fetch_url: https://raw.githubusercontent.com/github/github-mcp-server/c59e8c199efbf14467211861de44afaeeb6873e3/docs/remote-server.md
+  kind: raw
+  version: c59e8c1
+  license: MIT
+  attribution: Adapted from github/github-mcp-server (https://github.com/github/github-mcp-server/blob/c59e8c199efbf14467211861de44afaeeb6873e3/docs/remote-server.md), © 2025 GitHub, MIT License.
+  sha256: 871acf118eb662bbaf7a8e3306d2a3bbe2716343b0c8965695ba376e85247f80
+  fetched_at: '2026-10-14T15:16:45Z'
+- id: claude-code-docs-memory
+  track: github
+  title: How Claude remembers your project
+  url: https://code.claude.com/docs/en/memory
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, How Claude remembers your project (https://code.claude.com/docs/en/memory). Summaries on this site are written in our own words.'
+- id: claude-code-docs-worktrees
+  track: github
+  title: Run parallel sessions with worktrees
+  url: https://code.claude.com/docs/en/worktrees
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Run parallel sessions with worktrees (https://code.claude.com/docs/en/worktrees). Summaries on this site are written in our own words.'
+- id: claude-code-docs-common-workflows
+  track: github
+  title: Common workflows
+  url: https://code.claude.com/docs/en/common-workflows
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Common workflows (https://code.claude.com/docs/en/common-workflows). Summaries on this site are written in our own words.'
+- id: claude-code-docs-permissions
+  track: github
+  title: Configure permissions
+  url: https://code.claude.com/docs/en/permissions
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Configure permissions (https://code.claude.com/docs/en/permissions). Summaries on this site are written in our own words.'
+- id: claude-code-docs-best-practices
+  track: github
+  title: Best practices for Claude Code
+  url: https://code.claude.com/docs/en/best-practices
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Best practices for Claude Code (https://code.claude.com/docs/en/best-practices). Summaries on this site are written in our own words.'
+- id: claude-code-docs-github-actions
+  track: github
+  title: Claude Code GitHub Actions
+  url: https://code.claude.com/docs/en/github-actions
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Claude Code GitHub Actions (https://code.claude.com/docs/en/github-actions). Summaries on this site are written in our own words.'
+- id: claude-code-docs-code-review
+  track: github
+  title: Code Review
+  url: https://code.claude.com/docs/en/code-review
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Code Review (https://code.claude.com/docs/en/code-review). Summaries on this site are written in our own words.'
+- id: claude-code-docs-mcp
+  track: github
+  title: Connect Claude Code to tools via MCP
+  url: https://code.claude.com/docs/en/mcp
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Connect Claude Code to tools via MCP (https://code.claude.com/docs/en/mcp). Summaries on this site are written in our own words.'
