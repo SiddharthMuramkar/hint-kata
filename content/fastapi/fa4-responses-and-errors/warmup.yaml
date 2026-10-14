@@ -1,0 +1,16 @@
+items:
+  - id: w1
+    prompt: >-
+      A signup route takes a model with `name`, `email` and `password`, saves the user, and returns
+      the very same model. What does the client see in the response, and why might that be a problem?
+    note: >-
+      The client sees the password again. If other routes return the same model, every client of
+      those routes would get passwords too. The reading shows how to keep two models, one for input
+      and one for output.
+  - id: w2
+    prompt: >-
+      A client asks for `/users/999` and no such user exists. Which HTTP status code should come
+      back, and would you `return` it or `raise` it? Make a guess.
+    note: >-
+      The code is 404, "not found". In FastAPI you raise an `HTTPException`, so the function
+      stops right there. The reading explains why raising beats returning.
