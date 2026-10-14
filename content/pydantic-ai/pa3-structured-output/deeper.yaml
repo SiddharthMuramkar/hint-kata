@@ -1,0 +1,81 @@
+questions:
+  - id: d1
+    prompt: >-
+      You are building an agent that reads a support email and must return a ticket. It sometimes
+      has to ask a question instead, and your model's API supports a JSON schema response format.
+      How would you set up output_type, and how would you choose between tool, native and prompted
+      output?
+    hints:
+      - Think about what happens when the answer can be one of two shapes. What do you pass as output_type?
+      - Compare the three modes by reliability and by how many models support them. Which one is the default and why?
+    rubric:
+      - name: union-or-list
+        explanation: The answer lets the agent return either type by passing a union or list, for example Ticket and Question.
+        pass_anchor: "I set output_type=[Ticket, Question], and I check which one came back with isinstance."
+        fail_anchor: "I add a field called kind to one big model and leave the rest optional."
+      - name: default-tool
+        explanation: The answer names tool output as the default and says it works with almost every model.
+        pass_anchor: "Tool output is the default and works with nearly all models, so I would start there."
+        fail_anchor: "Prompted output is the default because it is simplest."
+      - name: native-when-supported
+        explanation: The answer says native output fits when the model supports it, and that the API then enforces the schema.
+        pass_anchor: "Since the API supports JSON schema, I can wrap the types in NativeOutput so the API enforces the shape."
+        fail_anchor: "Native output works with every model, so I use it everywhere."
+      - name: prompted-last-resort
+        explanation: The answer says prompted output is the least reliable and is for models with no better option.
+        pass_anchor: "Prompted output only asks in the instructions, so I would keep it for models without tools or native support."
+        fail_anchor: "Prompted output is the most reliable because the model reads the schema."
+    model_answer: >-
+      I would pass a list, output_type=[Ticket, Question], or the union Ticket | Question. Each
+      type becomes its own output tool, so the model chooses a shape by calling a tool, and my
+      code checks the result with isinstance. For the mode, I would start with the default, tool
+      output, because nearly every model supports tool calling and it has worked well in practice.
+      Because this model's API supports a JSON schema response format, I could wrap the types in
+      NativeOutput so the API itself holds the reply to the schema, but I would test it first,
+      since support varies and some providers limit it, for example when function tools are also
+      used. Prompted output only writes the schema into the instructions and relies on the model
+      to follow it, so it is the least reliable. I would use it for a model that supports neither
+      tools nor native output. In every mode Pydantic validates the result and asks the model to
+      try again if it is wrong.
+  - id: d2
+    prompt: >-
+      A Ticket has priority: int, and a valid priority is 1 to 5. The model sometimes returns 9.
+      Explain how an output validator with ModelRetry deals with that, what limits the retries,
+      and how you would test the behaviour without an API key.
+    hints:
+      - What does the model receive when the validator raises ModelRetry, and what should that message say?
+      - A test needs to play the model. What can you use for that, and where in the run result would you look for proof that a retry happened?
+    rubric:
+      - name: validator-retry
+        explanation: The answer says the validator checks the value and raises ModelRetry, so the message goes to the model as a retry prompt and it answers again.
+        pass_anchor: "The validator raises ModelRetry('priority must be 1 to 5') and the model is asked again with that message."
+        fail_anchor: "The validator raises ValueError and the run carries on with the next answer."
+      - name: actionable-message
+        explanation: The answer says the message should tell the model what to change.
+        pass_anchor: "The message states the allowed range so the model can fix the number."
+        fail_anchor: "The message just says invalid."
+      - name: retry-budget
+        explanation: The answer says retries are limited by an output retry budget, default 1, and that the run raises UnexpectedModelBehavior when it is used up.
+        pass_anchor: "The output retry budget defaults to 1, can be raised with retries={'output': N}, and the run raises UnexpectedModelBehavior when it runs out."
+        fail_anchor: "The agent retries until the model is right."
+      - name: scripted-test
+        explanation: The answer uses a scripted FunctionModel that returns a bad output then a good one, with real requests blocked.
+        pass_anchor: "I use a FunctionModel that returns priority 9 first and priority 3 second, and set ALLOW_MODEL_REQUESTS to False."
+        fail_anchor: "I call the real model many times until it returns 9."
+      - name: retry-evidence
+        explanation: The answer checks the message history for a RetryPromptPart and checks the final output is valid.
+        pass_anchor: "I look in result.all_messages() for a RetryPromptPart and assert the final priority is between 1 and 5."
+        fail_anchor: "I only check that the run did not crash."
+    model_answer: >-
+      I register an output validator with @agent.output_validator. It receives the Ticket after
+      Pydantic accepted its shape, and if the priority is outside 1 to 5 it raises ModelRetry with
+      a message such as "priority must be a whole number from 1 to 5". That message goes back to
+      the model as a retry prompt, so it can fix the number and answer again. The retries are
+      limited by the output retry budget, which defaults to 1 in this version. I can raise it with
+      Agent(..., retries={"output": 3}). When the budget is used up, the run raises
+      UnexpectedModelBehavior, so I should handle that case and not assume success. To test
+      without a key, I script a FunctionModel that returns priority 9 on the first request and
+      priority 3 on the second, and I set models.ALLOW_MODEL_REQUESTS to False so a real call
+      would fail loudly. After the run I look through result.all_messages() for a RetryPromptPart,
+      which proves the validator triggered a retry, and I assert that the final output is a valid
+      Ticket with a priority in range.
