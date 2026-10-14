@@ -1,0 +1,71 @@
+questions:
+  - id: d1
+    prompt: >-
+      A weather tool needs an HTTP client and the current user's id. How would you pass those in
+      without globals, and how would you test the tool without the network?
+    hints:
+      - Where does a tool get anything that is not in its own arguments? Think about the first parameter of an @agent.tool function.
+      - Two different things are swapped in a test. One is the model and one is the data the tool reads.
+    rubric:
+      - name: deps-container
+        explanation: The answer puts the client and the user id into one dependencies object, such as a dataclass.
+        pass_anchor: "Make a Deps dataclass with http_client and user_id, and set deps_type=Deps on the agent."
+        fail_anchor: "Store the client and the user id in module-level variables that the tool imports."
+      - name: ctx-access
+        explanation: The answer says the tool reads the values through the run context, and that the instance is passed with deps= at run time.
+        pass_anchor: "The tool takes ctx: RunContext[Deps] and reads ctx.deps.http_client; I pass deps=Deps(...) when I run."
+        fail_anchor: "The tool takes the client as an argument that the model fills in."
+      - name: fake-deps
+        explanation: The answer replaces the real client with a fake object or a different Deps instance in the test.
+        pass_anchor: "In the test I pass a Deps whose client is a fake that returns fixed data, or use agent.override(deps=...)."
+        fail_anchor: "I call the real weather service in the test and hope it is up."
+      - name: fake-model
+        explanation: The answer replaces the real model with TestModel or FunctionModel, and ideally blocks real requests.
+        pass_anchor: "I use FunctionModel to script the tool call, and set ALLOW_MODEL_REQUESTS to False."
+        fail_anchor: "I run the agent with the real model and a test API key."
+    model_answer: >-
+      I would put everything the tool needs into a dataclass, for example Deps with an http_client
+      and a user_id. I tell the agent about it with deps_type=Deps. The tool is registered with
+      @agent.tool and takes ctx: RunContext[Deps] as its first parameter. Inside it reads
+      ctx.deps.http_client and ctx.deps.user_id, so there are no globals and each run can use
+      different values. The model only sees the other parameters, such as the city. In production I
+      build the real Deps and pass it with deps= when I run the agent. In a test I build a Deps with
+      a fake client that returns fixed data, or I use agent.override(deps=...) if the agent is called
+      deep in my app. I also replace the model with a FunctionModel that calls the tool with chosen
+      arguments, or with TestModel, and set models.ALLOW_MODEL_REQUESTS to False. Then the test needs
+      no network and no API key, and it gives the same result every time.
+  - id: d2
+    prompt: >-
+      Your tool finds that the model gave it an unknown item name. When should the tool raise
+      ModelRetry, and when should it return an error string or raise a normal exception?
+    hints:
+      - Ask who can fix the problem. Can the model fix it by changing the arguments, or only you?
+      - What happens to the run in each case? Think about whether the model gets another request.
+    rubric:
+      - name: model-fixable
+        explanation: The answer says ModelRetry is for mistakes the model can fix by calling the tool again with different arguments.
+        pass_anchor: "Raise ModelRetry for a wrong item name, because the model can try another name."
+        fail_anchor: "Raise ModelRetry for every error, including a database outage."
+      - name: useful-hint
+        explanation: The answer says the message should tell the model what to do next, for example by listing valid options.
+        pass_anchor: "The message lists valid items so the model can pick one."
+        fail_anchor: "The message just says Error."
+      - name: normal-exception
+        explanation: The answer says that failures the model cannot fix, such as a broken connection or a bug, should raise a normal exception.
+        pass_anchor: "If the database is down, a normal exception should stop the run, because the model cannot repair that."
+        fail_anchor: "Ask the model to retry until the database comes back."
+      - name: retry-limit
+        explanation: The answer shows awareness that retries are limited and that the run fails when the model keeps failing.
+        pass_anchor: "A tool has a retry limit, one by default, and the run raises an error when it is exceeded."
+        fail_anchor: "The model will keep retrying forever until it succeeds."
+    model_answer: >-
+      I raise ModelRetry when the mistake is in the arguments and the model can fix it by calling the
+      tool again. An unknown item name is the classic case, and so is a city spelled "SF" when the
+      data uses "San Francisco". The message becomes a retry prompt in the history, so it should say
+      what to do next, for example "Unknown item, try one of: coffee, tea". A bare "Error" gives the
+      model nothing to act on. I do not use ModelRetry for failures the model cannot repair, such as
+      a lost database connection or a bug in my code. Those should raise a normal exception so the
+      run stops and I see the real error. Returning an error string is possible too, but then the
+      model treats it as a normal result and may pass it on to the user as if it were an answer.
+      Retries are also limited. A tool gets one retry by default, and if the model keeps failing, the
+      run ends with an error instead of looping forever.
