@@ -3,6 +3,8 @@
   const root = document.getElementById("deeper");
   if (!root) return;
   const base = "/api/deeper/" + encodeURIComponent(root.dataset.lesson) + "/";
+  const UNCERTAIN_NOTE =
+    "The grader's three readings disagreed; your answer may be borderline.";
   const el = (tag, text, cls) => {
     const e = document.createElement(tag);
     e.textContent = text;
@@ -14,8 +16,11 @@
     out.replaceChildren(el("p", "Attempt " + r.attempt_no + ": " + r.feedback));
     const ul = document.createElement("ul");
     for (const c of r.criteria) {
-      const mark = c.met ? "✓" : c.uncertain ? "?" : "✗";
-      const li = el("li", mark + " " + c.name + (c.uncertain ? " (not sure)" : ""));
+      const li = el("li", (c.met ? "✓" : "✗") + " " + c.name);
+      if (c.uncertain) {
+        li.append(" ", el("span", "uncertain", "badge"));
+        li.append(el("div", UNCERTAIN_NOTE, "muted"));
+      }
       if (c.evidence) li.append(el("div", "“" + c.evidence + "”", "muted"));
       if (c.hint) li.append(el("div", "Hint: " + c.hint));
       ul.append(li);
