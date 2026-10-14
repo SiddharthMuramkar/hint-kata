@@ -165,7 +165,7 @@ Open `.github/workflows/docs-resync.yml` and `docs/runbooks/docs-resync.md`. Tog
 
 **The `embed` job: on merge.** When the plan pull request is merged, the merge is a push to `main` that touches `content/sources.yaml`. That starts `embed`. A small `gate` job first checks whether the two repository secrets exist, and prints only `true` or `false`. If they are missing, `embed` is skipped and the run stays green. Then `embed` compares the manifest before and after the push to find the source ids that changed.
 
-**The one-id-per-call loop.** The scripts take one source id at a time: the `--only` option accepts a single id. So the workflow loops in the shell, one call per changed id, for both the fetch and the embed:
+**The one-id-per-call loop.** The fetch script's `--only` option accepts a single id. So the workflow loops in the shell and makes one call per changed id, for the fetch and again for the embed. The fetch loop looks like this:
 
 ```bash
 read -ra ids <<< "$IDS"
