@@ -1,0 +1,177 @@
+items:
+  - id: q1
+    type: single
+    concept: blocking-in-async
+    source_section: async-def-runs-on-the-loop
+    prompt: >-
+      A route is `async def` and its body calls `time.sleep(2)`. One client calls it. While that
+      call is running, a second client calls a different, quick route in the same app. What does
+      the second client see?
+    options:
+      - text: >-
+          It waits until the sleep is over, because the sleep blocks the event loop that serves
+          every request.
+        correct: true
+        feedback: >-
+          Right. An `async def` route runs on the loop itself. A call that blocks, like
+          `time.sleep`, holds the loop, so nothing else runs until it returns. Nobody gets an
+          error. Everyone is just slow.
+      - text: >-
+          It gets its answer at once, because `async def` routes are served concurrently.
+        misconception: Thinks `async def` makes every call inside it concurrent.
+        feedback: >-
+          `async def` only lets a function step aside at an `await`. `time.sleep` is not an
+          `await`, so the function never steps aside. We measured this on a real server: a quick
+          request sent 0.2 s into a 1 s block waited about 0.8 s.
+      - text: >-
+          It gets its answer at once, because FastAPI moves a blocking call into a worker thread.
+        misconception: Thinks FastAPI sends blocking calls to threads for every kind of route.
+        feedback: >-
+          FastAPI moves the whole function to a thread only when the route is a plain `def`. For
+          an `async def` route it does not look inside the body. You can send one call to a thread
+          yourself with `run_in_threadpool`.
+      - text: >-
+          It gets an error, because FastAPI refuses a blocking call inside an `async def` route.
+        misconception: Thinks FastAPI detects blocking calls and rejects them.
+        feedback: >-
+          FastAPI does not inspect the body. In our run the route answered with status 200, no
+          error and no warning. That is why this bug is easy to miss.
+  - id: q2
+    type: single
+    concept: def-runs-in-threadpool
+    source_section: a-plain-def-runs-in-a-threadpool
+    prompt: >-
+      A route is a plain `def` and its body calls `time.sleep(0.5)`. Two clients call it at the
+      same moment. About how long until both have their answer?
+    options:
+      - text: >-
+          About 0.5 s. FastAPI runs the function in a worker thread, so the two sleeps overlap.
+        correct: true
+        feedback: >-
+          Right. Each call gets its own worker thread from the pool, and the event loop stays free.
+          We measured 0.505 s for two requests at once.
+      - text: >-
+          About 1.0 s. A plain `def` runs on the event loop, so the two calls take turns.
+        misconception: Thinks a plain `def` route runs on the event loop, one call after another.
+        feedback: >-
+          It is the `async def` route that runs on the loop. A plain `def` is handed to a worker
+          thread, so a blocking call in it only holds that thread.
+      - text: >-
+          About 1.0 s. FastAPI has one worker thread, so the second call waits for the first.
+        misconception: Thinks the threadpool has only one thread.
+        feedback: >-
+          The pool is shared and has many threads. We read the default size and got 40. Forty
+          requests at once took 0.52 s. The 41st would have to wait for a free thread.
+      - text: >-
+          An error. `time.sleep` is not allowed in a `def` route, only in an `async def` one.
+        misconception: Thinks blocking calls belong only in `async def` routes.
+        feedback: >-
+          It is the other way round. A blocking call is safe in a `def` route, because the
+          function runs in a worker thread. It is the `async def` route that must not block.
+  - id: q3
+    type: single
+    concept: await-does-not-unblock
+    source_section: await-and-async-libraries
+    prompt: |-
+      Find the bug. What is wrong with this route, and what is the fix?
+
+      ```python
+      @app.get("/weather")
+      async def weather(city: str):
+          reply = await httpx.get(f"https://example.test/{city}")
+          return reply.json()
+      ```
+    options:
+      - text: >-
+          `httpx.get` is the sync, blocking call. Its result cannot be awaited, so Python raises a
+          `TypeError`. Use `httpx.AsyncClient` and await its `get`, or make the route a plain `def`
+          and drop the `await`.
+        correct: true
+        feedback: >-
+          Right. `await` only works on something awaitable, and it cannot make a blocking call
+          friendly. The call has already blocked the loop by the time the error is raised. The
+          fix is an async client with `await`, or a `def` route with the sync client.
+      - text: >-
+          Nothing is wrong. `await` turns any call into a non-blocking one.
+        misconception: Thinks `await` makes a blocking call non-blocking.
+        feedback: >-
+          `await` hands the loop back only when the thing you await was written to do that.
+          `httpx.get` blocks until it has the reply, and then its result is not awaitable, so the
+          route raises a `TypeError`.
+      - text: >-
+          Change `async def` to `def` and keep the `await`.
+        misconception: Thinks `await` is allowed in any function.
+        feedback: >-
+          `await` is only allowed inside `async def`. In a plain `def` it is a `SyntaxError`, and
+          the file would not even load.
+      - text: >-
+          Wrap the call as `asyncio.run(httpx.get(...))` so that it runs outside the loop.
+        misconception: Thinks `asyncio.run` can push a blocking call off the running loop.
+        feedback: >-
+          `asyncio.run` starts a new loop and needs an awaitable. Inside a route a loop is
+          already running, so Python raises a `RuntimeError`. To move a blocking call off the
+          loop, use `run_in_threadpool`.
+  - id: q4
+    type: single
+    concept: mixed-dependency
+    source_section: mixing-def-and-async-def
+    prompt: >-
+      A route is `async def`. It uses a dependency that is a plain `def` and calls
+      `time.sleep(0.5)`. Two clients call the route at the same moment. About how long until both
+      have their answer?
+    options:
+      - text: >-
+          About 0.5 s. A `def` dependency runs in a worker thread, even when the route itself is
+          `async def`.
+        correct: true
+        feedback: >-
+          Right. FastAPI applies the rule to each function it calls for you, the route and every
+          dependency, on its own. The sleep blocks a worker thread, not the loop. We measured
+          0.507 s for two requests at once.
+      - text: >-
+          About 1.0 s. The route is `async def`, so everything it uses runs on the loop.
+        misconception: Thinks the kind of the route decides where its dependencies run.
+        feedback: >-
+          Each dependency follows its own kind. A `def` dependency goes to a worker thread, and an
+          `async def` dependency runs on the loop, whatever the route is.
+      - text: >-
+          An error at start-up. FastAPI does not let a `def` dependency sit under an `async def`
+          route.
+        misconception: Thinks `def` and `async def` cannot be mixed in one request.
+        feedback: >-
+          The two kinds mix freely. The dependencies page says you may use `def` dependencies in
+          `async def` routes and the other way round.
+      - text: >-
+          About 0.5 s, but only if you wrap the dependency in `run_in_threadpool` yourself.
+        misconception: Thinks FastAPI never moves dependencies to threads by itself.
+        feedback: >-
+          FastAPI does it for you for a plain `def` dependency. `run_in_threadpool` is for your own
+          helper calls inside an `async def` function, which FastAPI does not wrap.
+  - id: q5
+    type: order
+    concept: def-route-flow
+    source_section: a-plain-def-runs-in-a-threadpool
+    prompt: >-
+      A request arrives for a route written as a plain `def` that blocks for a while. Put what
+      happens in the order it happens.
+    steps:
+      - The event loop receives the request and finds the matching route
+      - FastAPI sees that the route is a plain `def` and hands it to a worker thread
+      - The route runs in the worker thread, while the loop goes on serving other requests
+      - The worker thread finishes, and the loop sends the response
+    explanation: >-
+      The loop is always the first to touch the request. A plain `def` is moved to a worker thread
+      before it runs, so its blocking calls hold only that thread. The loop takes the result back
+      and sends the response.
+  - id: q6
+    type: blank
+    concept: run-in-threadpool
+    source_section: run_in_threadpool-and-asyncify
+    prompt: >-
+      Fill in the blank. Inside an `async def` route, run the blocking function `slow_lookup` in a
+      worker thread, with the helper from `fastapi.concurrency`:
+      `found = await ____(slow_lookup)`
+    answer: re:(fastapi\.concurrency\.|starlette\.concurrency\.)?run_in_threadpool
+    explanation: >-
+      `run_in_threadpool` takes the function and its arguments, runs the call in a worker thread,
+      and gives the result back to your `await`. The loop stays free in the meantime.

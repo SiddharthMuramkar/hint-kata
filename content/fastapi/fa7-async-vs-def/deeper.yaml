@@ -1,0 +1,105 @@
+questions:
+  - id: d1
+    prompt: >-
+      A route is `async def` and its body calls a blocking function `slow_lookup()` that takes
+      0.3 s. Three clients call the route at the same moment. Say how long the three calls take
+      in total and why. Say what happens to other routes on the same server during that time.
+      Explain why `async def` does not save you here. Then give one fix.
+    rubric:
+      - name: calls-run-one-after-another
+        explanation: >-
+          The answer says the three calls do not overlap. They run one after another, so the
+          total is about 0.9 s, not 0.3 s.
+        pass_anchor: >-
+          "The three calls take about 0.9 s in total, because each one takes 0.3 s and they run one after another."
+        fail_anchor: >-
+          "They take about 0.3 s, because `async def` routes run together", or "Two of them fail with an error."
+      - name: other-routes-wait-too
+        explanation: >-
+          The answer says the blocked event loop serves every request, so other routes, even
+          quick ones, are held up as well.
+        pass_anchor: >-
+          "A quick route like `/ping` would wait too, because the event loop is busy and it serves all requests."
+        fail_anchor: >-
+          "Only these three requests are slow and the other routes are not affected."
+      - name: await-is-the-only-way-out
+        explanation: >-
+          The answer says an `async def` function gives the loop back only at an `await`, and a
+          plain blocking call has none.
+        pass_anchor: >-
+          "The function only steps aside at an `await`. `slow_lookup()` has no await, so it keeps the loop until it returns."
+        fail_anchor: >-
+          "`async def` runs the function in its own thread, so it should not block", or "the call is slow because Python is slow."
+      - name: fix-moves-the-call-off-the-loop
+        explanation: >-
+          The answer names one working fix and says it moves the blocking call onto a worker
+          thread. The fix is a plain `def` route, or `await run_in_threadpool(slow_lookup)`.
+        pass_anchor: >-
+          "Make the route a plain `def`, so FastAPI runs it in a worker thread", or "keep `async def` and write `await run_in_threadpool(slow_lookup)`."
+        fail_anchor: >-
+          "Write `await slow_lookup()`", or "make `slow_lookup` faster", or "start more server processes" with no mention of moving the call off the loop.
+    model_answer: >-
+      The three calls take about 0.9 s in total, not 0.3 s. Each call blocks for 0.3 s, and they
+      run one after another. The reason is that the route runs on the event loop itself. An
+      `async def` function only hands the loop back at an `await`, and `slow_lookup()` has none,
+      so it keeps the loop until it returns. While it holds the loop, nothing else can run. A
+      quick route such as `/ping` would wait too, because the loop serves every request on the
+      server. So `async def` does not save me. It only helps with calls that I can `await`. To
+      fix it, I would make the route a plain `def`. FastAPI then runs it in a worker thread, so
+      the blocking call holds only that thread and the loop stays free. I could also keep
+      `async def` and write `await run_in_threadpool(slow_lookup)`, which moves just that call
+      to a worker thread.
+    hints:
+      - Where does an `async def` route run, and what is the only thing that makes it let go of that place?
+      - What would a second client, calling a different route, have to wait for? And which two ways of moving the call somewhere else does the lesson show?
+  - id: d2
+    prompt: >-
+      You are adding two routes. Route A calls an async HTTP client that you have to `await`.
+      Route B calls a sync database driver that blocks while it waits for the database. Say
+      how you would declare each route, and why. A third route calls a library you know nothing
+      about. Say what you would pick for it, and why that choice is the safer one when you are
+      unsure.
+    rubric:
+      - name: route-a-is-async-def
+        explanation: >-
+          The answer declares route A as `async def`, because the client must be awaited and
+          `await` only works inside `async def`.
+        pass_anchor: >-
+          "Route A is `async def`, because I have to `await` the client and `await` only works in an `async def` function."
+        fail_anchor: >-
+          "Route A is a plain `def` and I call the client without `await`", or "Route A can be either, it makes no difference."
+      - name: route-b-is-def
+        explanation: >-
+          The answer declares route B as a plain `def`, because FastAPI runs it in a worker
+          thread, so the blocking driver does not stall the event loop.
+        pass_anchor: >-
+          "Route B is a plain `def`. FastAPI runs it in a worker thread, so the blocking driver call does not hold up the loop."
+        fail_anchor: >-
+          "Route B is `async def` and I just call the driver", or "Route B is `async def` because everything should be async."
+      - name: unsure-means-def
+        explanation: >-
+          The answer picks a plain `def` for the unknown library.
+        pass_anchor: >-
+          "For the third route I would use a plain `def`."
+        fail_anchor: >-
+          "I would use `async def`, because it is the modern way", or "I would test every library before I decide."
+      - name: cost-of-the-wrong-choice
+        explanation: >-
+          The answer compares the two worst cases. A blocking call in `def` costs one thread from
+          a pool. A blocking call in `async def` stalls every request on the server.
+        pass_anchor: >-
+          "If the library blocks, in a `def` it only holds one worker thread. In an `async def` it would hold the whole event loop and stall every request."
+        fail_anchor: >-
+          "Plain `def` is always faster", or "`def` is safer because it cannot block."
+    model_answer: >-
+      Route A is `async def`. The client has to be awaited, and `await` only works inside an
+      `async def` function. While the route waits for the reply, the event loop can serve other
+      requests. Route B is a plain `def`. The driver blocks, and FastAPI runs a `def` route in a
+      worker thread, so the blocking call holds only that thread and not the event loop. For the
+      third route, where I do not know what the library does, I would use a plain `def`. It is
+      the safer guess because the two mistakes cost different amounts. If the library does block
+      and I wrote `def`, it costs me one thread from the pool. If the library blocks and I wrote
+      `async def`, it holds the whole event loop and stalls every request on the server.
+    hints:
+      - Which keyword does `await` need, and what do you do with a library that has no `await`?
+      - Suppose you guess wrong. Which guess costs one worker thread, and which one costs every request?
