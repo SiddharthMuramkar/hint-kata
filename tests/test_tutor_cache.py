@@ -45,19 +45,17 @@ async def wire(*turns: TutorDeps) -> list[dict[str, Any]]:
         bodies.append(json.loads(request.content))
         return httpx2.Response(200, headers={"content-type": "text/event-stream"}, content=STREAM)
 
-    model = OpenRouterModel(
-        "anthropic/claude-haiku-5.5",
-        provider=OpenRouterProvider(
-            api_key="fake",
-            http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(answer)),
-        ),
-    )
-    tutor = make_tutor("openrouter:anthropic/claude-haiku-5.5")
-    # Only for this block: the transport is the mock above, so no request can leave the machine.
-    with override_allow_model_requests(True), tutor.override(model=model):
-        for d in turns:
-            async with tutor.run_stream("hi", deps=d) as result:
-                await result.get_output()
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(answer)) as client:
+        model = OpenRouterModel(
+            "anthropic/claude-haiku-5.5",
+            provider=OpenRouterProvider(api_key="fake", http_client=client),
+        )
+        tutor = make_tutor("openrouter:anthropic/claude-haiku-5.5")
+        # Only for this block: the transport is the mock above, so no request leaves the machine.
+        with override_allow_model_requests(True), tutor.override(model=model):
+            for d in turns:
+                async with tutor.run_stream("hi", deps=d) as result:
+                    await result.get_output()
     return bodies
 
 
@@ -71,7 +69,7 @@ async def test_only_the_static_instructions_carry_the_cache_marker() -> None:
     assert isinstance(static["content"], list), "no marker: the instructions were all dynamic"
     (block,) = static["content"]  # a list of one block: the marker needs a block to sit on
     assert block["text"] == STATIC_INSTRUCTIONS
-    assert block["cache_control"]["type"] == "ephemeral"
+    assert block["cache_control"] == {"type": "ephemeral", "ttl": "5m"}
     assert isinstance(dynamic["content"], str)  # the per-turn part stays a plain string
     assert "Demo" in dynamic["content"] and "L2" in dynamic["content"]
     assert json.dumps(body).count("cache_control") == 1  # not on the per-turn part or the user turn
