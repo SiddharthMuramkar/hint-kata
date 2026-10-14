@@ -1,0 +1,102 @@
+questions:
+  - id: d1
+    prompt: >-
+      This repo merges every pull request with "Squash and merge". Explain what that does to
+      history, what it costs, and when you might choose one of the other two methods instead.
+    rubric:
+      - name: describes-squash-shape
+        explanation: The answer says what squash does to the commits.
+        pass_anchor: >-
+          Says all commits of the PR become one new commit on main, in a straight line, usually
+          with the PR title as its message.
+        fail_anchor: >-
+          Says squash "deletes" commits or "merges the branch", or does not say that the result is
+          one commit.
+      - name: gives-benefit
+        explanation: The answer names at least one real benefit.
+        pass_anchor: >-
+          Names a clear log (one PR, one commit), no work-in-progress noise on main, or an easy
+          revert because the whole PR is one commit.
+        fail_anchor: >-
+          Gives no benefit, or says only that squash is "cleaner" or "better" with no reason.
+      - name: names-cost
+        explanation: The answer is honest about what squash gives up.
+        pass_anchor: >-
+          Says individual commits and their authors and dates are lost from main, or that reusing
+          the same branch after a squash causes old commits and repeated conflicts.
+        fail_anchor: >-
+          Says squash has no downsides.
+      - name: knows-alternatives
+        explanation: The answer links the other methods to a situation where they fit.
+        pass_anchor: >-
+          Picks merge commit when each commit tells its own story and the branch structure should
+          be kept, or rebase and merge when the commits are already tidy and a straight line is
+          wanted. May also mention that require linear history rules out merge commits.
+        fail_anchor: >-
+          Does not mention the other methods, or says they are the same as squash.
+    model_answer: >-
+      Squash and merge folds all the commits of a PR into one new commit on `main`, in a straight
+      line, and the PR title is the message. That gives a clear log where one PR is one commit, the
+      "fix typo" commits stay in the PR, and undoing a whole PR later is a single revert. The cost
+      is that the small commits, and who made each one, are not on `main`, and the original SHAs
+      are gone. If I keep working on the same branch after a squash, git does not know the old
+      commits are merged, so the next PR lists them again and can conflict again. So I delete the
+      branch after merging. I would pick a merge commit when the individual commits matter and I
+      want to keep the shape of the branch, for example a big feature with a carefully written
+      history. I would pick rebase and merge when the commits are already tidy and I want a
+      straight line without squashing them. If the ruleset requires linear history, merge commits
+      are not allowed at all.
+    hints:
+      - What is on main after a squash merge, and what stays only in the PR?
+      - What goes wrong if you keep using the same branch after a squash?
+
+  - id: d2
+    prompt: >-
+      You merged a PR on Monday. By Wednesday three more PRs have been merged and you find that
+      Monday's change is wrong. How do you undo only Monday's change, and why is that better than
+      resetting `main` to Monday's commit?
+    rubric:
+      - name: uses-revert
+        explanation: The answer undoes the change with a new commit, not by deleting history.
+        pass_anchor: >-
+          Says to revert the PR, with the Revert button or `git revert`, which adds a new commit
+          and goes through a new pull request.
+        fail_anchor: >-
+          Says to delete the commit, reset `main`, or force push.
+      - name: keeps-other-work
+        explanation: The answer sees that a reset would also remove later work.
+        pass_anchor: >-
+          Says that resetting to Monday would also throw away the three PRs merged since, while a
+          revert undoes only the one bad change.
+        fail_anchor: >-
+          Does not mention the later PRs, or thinks a reset affects only one change.
+      - name: history-and-rules
+        explanation: The answer explains why rewriting a shared branch is unsafe.
+        pass_anchor: >-
+          Says other people have already pulled `main`, rewriting history would break their copies,
+          and a ruleset normally blocks force pushes anyway.
+        fail_anchor: >-
+          Gives no reason, or suggests turning off the ruleset to force push.
+      - name: squash-detail
+        explanation: >-
+          The answer knows how the merge method changes the work needed, or what to do if the
+          revert conflicts.
+        pass_anchor: >-
+          Says a squash-merged PR is one commit and so is its revert, or says a merge-commit PR
+          needs `-m 1`, or says that if the revert conflicts (because later PRs touched the same
+          lines) you resolve it like any conflict or revert by commit.
+        fail_anchor: >-
+          Assumes a revert can never conflict, or does not say anything about the merge method.
+    model_answer: >-
+      I would revert it. On GitHub I open Monday's merged PR and click Revert. That creates a new PR
+      with a new commit that does the opposite of Monday's change, and I merge it through the normal
+      rules. I would not reset `main` to Monday's commit. That would also remove the three PRs that
+      were merged since, and it means rewriting a shared branch. Other people have already pulled
+      `main`, so their copies would no longer match, and a ruleset normally blocks force pushes
+      anyway. A revert keeps all the history and only adds one entry. Because the repo squashes,
+      Monday's PR is one commit, so the revert is also one commit. If it had been a merge-commit
+      PR I would use `git revert -m 1 <sha>`. If a later PR changed the same lines, the revert can
+      conflict, and then I resolve it like any other conflict.
+    hints:
+      - What else would be lost if you moved `main` back to Monday?
+      - Why is it risky to rewrite a branch that other people already have?

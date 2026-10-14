@@ -1,0 +1,140 @@
+items:
+  - id: q1
+    type: single
+    concept: default-output-mode
+    source_section: output-modes
+    prompt: >-
+      You write Agent(model, output_type=Ticket) and change nothing else. How does Pydantic AI get
+      a Ticket out of the model?
+    options:
+      - text: It shows the Ticket schema to the model as the parameters of an output tool, and the model answers by calling that tool.
+        correct: true
+        feedback: >-
+          Right. This is tool output, the default. Pydantic validates the tool arguments and the
+          validated value becomes result.output.
+      - text: It adds the JSON schema to the instructions and parses whatever text the model writes.
+        misconception: Mixes up the default mode with prompted output.
+        feedback: >-
+          That describes prompted output, which you only get with PromptedOutput. It works with
+          every model but is often the least reliable, so it is not the default.
+      - text: It turns on the model API's JSON schema response format so the API enforces the shape.
+        misconception: Mixes up the default mode with native output.
+        feedback: >-
+          That is native output. It needs NativeOutput, and not every model supports it, so it is
+          not the default.
+      - text: It lets the model write free text and then searches the text for field names with a regex.
+        misconception: Thinks structured output is text parsing.
+        feedback: >-
+          Pydantic AI never guesses at free text. The model is made to produce arguments for a
+          schema, and Pydantic validates them.
+  - id: q2
+    type: single
+    concept: native-output-marker
+    source_section: output-modes
+    prompt: >-
+      Your model's API can force its reply to match a JSON schema. Which marker class asks
+      Pydantic AI to use that feature?
+    options:
+      - text: NativeOutput
+        correct: true
+        feedback: >-
+          Right. NativeOutput uses the model's own structured output feature. Check that your
+          model and provider support it, because not all do.
+      - text: ToolOutput
+        misconception: Thinks ToolOutput is the JSON schema feature.
+        feedback: >-
+          ToolOutput is the default mode. It uses a tool call to carry the answer. You wrap a type
+          in it to rename the tool or add a description.
+      - text: PromptedOutput
+        misconception: Thinks a prompt can make the API enforce the schema.
+        feedback: >-
+          PromptedOutput only writes the schema into the instructions. The API does not enforce
+          it, so the model may ignore it.
+      - text: TextOutput
+        misconception: Thinks TextOutput means text that matches a schema.
+        feedback: >-
+          TextOutput wraps a function that turns the model's plain text into the final value.
+          It does not use a schema at all.
+  - id: q3
+    type: single
+    concept: union-output-tools
+    source_section: unions-and-output-functions
+    prompt: >-
+      You set output_type=[Ticket, Question]. How does the model say which of the two it is returning?
+    options:
+      - text: Each type becomes its own output tool, and the model picks one by calling it.
+        correct: true
+        feedback: >-
+          Right. Smaller separate schemas make it easier for the model to answer correctly. Your
+          code can then check which type came back with isinstance.
+      - text: Pydantic AI merges the two schemas into one big object with optional fields.
+        misconception: Thinks a union becomes one merged schema.
+        feedback: >-
+          The types stay separate. The docs say separate output tools keep each schema simple and
+          raise the chance of a correct answer.
+      - text: The model writes the type name as text before the JSON.
+        misconception: Thinks the model labels the type in text.
+        feedback: >-
+          No text label is needed. Calling the tool for Ticket or for Question is the signal.
+      - text: The first type in the list is always used, and the others are fallbacks for retries.
+        misconception: Thinks the list order sets a priority.
+        feedback: >-
+          The order does not rank the types. The model can choose any of them on any attempt.
+  - id: q4
+    type: single
+    concept: output-retry-budget
+    source_section: output-validators-and-modelretry
+    prompt: >-
+      An output validator raises ModelRetry. The agent uses the default settings of Pydantic AI
+      2.56.0, and the model's second answer is also rejected. What happens?
+    options:
+      - text: The run stops with UnexpectedModelBehavior, because the output retry budget of 1 is used up.
+        correct: true
+        feedback: >-
+          Right. Each ModelRetry from the validator uses one unit of the budget, and the default
+          is 1. Raise it with Agent(..., retries={"output": N}) if more attempts are sensible.
+          With a union, each output tool has its own counter, and this budget is its default.
+      - text: The agent keeps retrying until the model gets it right.
+        misconception: Thinks retries are unlimited.
+        feedback: >-
+          Retries are limited so a model that cannot meet your rule does not loop forever and
+          burn money.
+      - text: The agent returns the last answer anyway, and result.output holds the invalid value.
+        misconception: Thinks an invalid output is passed through.
+        feedback: >-
+          An output the validator rejected is never returned as result.output. The run fails
+          instead.
+      - text: The ModelRetry is ignored after the first time and the second answer is accepted.
+        misconception: Thinks ModelRetry only counts once.
+        feedback: >-
+          Nothing is silently accepted. When the budget is gone the run raises an error.
+  - id: q5
+    type: order
+    concept: validator-retry-flow
+    source_section: output-validators-and-modelretry
+    prompt: >-
+      Put these steps in order for a run whose validator rejects the first answer and accepts the second.
+    steps:
+      - "model_request: the agent sends the prompt and the output tool schema to the model"
+      - "tool_call: the model calls the output tool with priority 9"
+      - "validator: Pydantic accepts the shape, the output validator raises ModelRetry"
+      - "retry_prompt: the ModelRetry message goes into the history and the model is called again"
+      - "tool_call: the model calls the output tool again with priority 3"
+      - "final_output: the validator accepts it and the run ends with a Ticket"
+    explanation: >-
+      The model's first answer never becomes the output. The retry prompt is added to the message
+      history, which is where a test can find a RetryPromptPart. The run ends only when an answer
+      passes.
+  - id: q6
+    type: blank
+    concept: output-validator-decorator
+    source_section: output-validators-and-modelretry
+    prompt: |-
+      Fill in the decorator that registers a function to check an agent's output:
+
+      @agent.____
+      def check_ticket(ticket: Ticket) -> Ticket: ...
+    answer: 're:(@?agent\.)?output_validator'
+    explanation: >-
+      @agent.output_validator registers a function that gets the output after Pydantic has
+      accepted its shape. It returns the output, or raises ModelRetry to ask the model again.
