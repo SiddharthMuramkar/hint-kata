@@ -106,7 +106,8 @@ class SqliteStore:
 
     def _all(self, sql: str, params: tuple[Any, ...]) -> list[dict[str, Any]]:
         rows = self.conn.execute(sql, params).fetchall()
-        self.conn.rollback()  # end the implicit read transaction
+        # release the read snapshot; sqlite3 reopens a deferred transaction at once
+        self.conn.rollback()
         return [dict(r) for r in rows]
 
     def _one(self, sql: str, params: tuple[Any, ...]) -> dict[str, Any] | None:

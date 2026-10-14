@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from app.store import SqliteStore, open_store
+from app.store import SqliteStore, Store, open_store
 
 
 @pytest.fixture
@@ -143,3 +143,8 @@ def test_usable_from_another_thread(store: SqliteStore, uid: int) -> None:
     t.start()
     t.join()
     assert not errors and result
+
+
+def test_sqlite_store_is_a_store(store: SqliteStore) -> None:
+    s: Store = store  # ty verifies the Protocol is satisfied
+    assert s is store
