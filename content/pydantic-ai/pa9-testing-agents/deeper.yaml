@@ -1,0 +1,82 @@
+questions:
+  - id: d1
+    prompt: >-
+      A teammate adds a new agent that is created with a model name as a string, such as
+      Agent("openai:gpt-5.2"). Describe how you set up the tests so that (1) no test can reach a
+      real model, even on a laptop that has an API key, (2) the test file can import the agent on a
+      machine with no API key, and (3) each test runs the agent with a fake model. Name the setting
+      or call you use for each point and say what it does. Also say what happens, on a laptop
+      with an API key, to a test that forgets the fake model.
+    hints:
+      - "Three different things protect you here: something that is set once for the whole test run, something you put on the Agent, and something you wrap around each run. Which one does each job?"
+      - Think about the order of events on a laptop with a key. What does the agent do when a test forgets to swap the model, and what stops it from spending money?
+    rubric:
+      - name: global-block
+        explanation: The answer sets models.ALLOW_MODEL_REQUESTS = False once for the whole test run, for example in conftest.py, and says it blocks real model requests.
+        pass_anchor: "I put models.ALLOW_MODEL_REQUESTS = False in conftest.py, so it is set before any test runs and real models refuse to send requests."
+        fail_anchor: "I add a line at the top of the tests I remember, or I just trust the team to use fake models."
+      - name: defer-check
+        explanation: The answer adds defer_model_check=True to the Agent, so the model, and with it the API key, is only looked up at the first run and the file can be imported with no key.
+        pass_anchor: "I create the agent with defer_model_check=True. Then creating it does not look for an API key, and the key is only needed when it runs."
+        fail_anchor: "I set a fake API key in every test file so that the import works."
+      - name: override-context
+        explanation: The answer wraps each run in agent.override(model=...) used as a context manager, with TestModel or FunctionModel as the fake.
+        pass_anchor: "In each test I write with agent.override(model=TestModel()): and run the agent inside it, or I use FunctionModel when I need a script."
+        fail_anchor: "I change agent.model by hand before the test and never change it back."
+      - name: forgotten-override
+        explanation: The answer says that a test without the override reaches the real model object, which refuses because of the flag, so the test fails with a RuntimeError and no money is spent.
+        pass_anchor: "A test that forgets the override fails with RuntimeError, 'Model requests are not allowed', because the flag blocks the real model."
+        fail_anchor: "A test that forgets the override quietly uses TestModel, because that is the default."
+    model_answer: >-
+      I would do three things. First, I set models.ALLOW_MODEL_REQUESTS = False in conftest.py.
+      pytest loads that file before any test, so the flag is on for the whole run, and real models
+      refuse to send a request while it is off. Second, I create the agent with
+      defer_model_check=True. With a model name as a string, Pydantic AI would otherwise build the
+      model, and look for the API key, when the Agent is created. That breaks the import on a
+      machine with no key. With the argument, the check waits until the first run. Third, I wrap
+      each run in agent.override(model=...) used as a context manager. I use TestModel for a quick
+      smoke test and FunctionModel when I need a script. A test that forgets the override gets the
+      real model, but the flag stops it. On a laptop with a key the run fails with a RuntimeError
+      that says model requests are not allowed, so no request is sent and no money is spent. The
+      test fails loudly, and that tells the author to add the override.
+  - id: d2
+    prompt: >-
+      A refund agent has two tools, lookup_order and refund. The rule is that it must look up an
+      order before it refunds it, and refund raises ModelRetry if the order was not looked up.
+      Describe how you test (1) the order of the tool calls and their arguments, (2) the path where
+      the model asks for a refund too early, and (3) how many turns the run took. For each, say
+      which fake model you use and what exactly you assert, and where in the run you read it.
+    hints:
+      - "A run's messages list requests and responses. Which kind of message holds what the model asked for, and which part inside it names the tool? Which kind of message holds the retry text?"
+      - "For the early refund you need the model to do something a fake model will not do by itself. Which fake model lets you choose each call, and which field of the result counts turns?"
+    rubric:
+      - name: read-tool-calls
+        explanation: The answer runs inside capture_run_messages() and reads the tool names and arguments from the ToolCallPart objects in the ModelResponse messages, instead of only checking the final output.
+        pass_anchor: "I wrap the run in capture_run_messages(), take the ToolCallPart parts from the ModelResponse messages, and assert the names and args are lookup_order then refund."
+        fail_anchor: "I only assert the final output, because if it is right the calls must have been right."
+      - name: script-early-refund
+        explanation: The answer uses a FunctionModel script that calls refund first, because TestModel cannot be told which calls to make.
+        pass_anchor: "I use a FunctionModel that returns a refund call first, then the lookup, then the refund again."
+        fail_anchor: "I use TestModel and hope it refunds too early."
+      - name: assert-retry-prompt
+        explanation: The answer asserts that a RetryPromptPart appears in a ModelRequest and that its content is the text given to ModelRetry.
+        pass_anchor: "I find the RetryPromptPart in a ModelRequest and check its tool_name is refund and its content is the ModelRetry message."
+        fail_anchor: "I assert that the run raises an exception, because ModelRetry always ends the run."
+      - name: usage-fields
+        explanation: The answer reads result.usage as a property and asserts requests and tool_calls, not the token counts.
+        pass_anchor: "I assert result.usage.requests and result.usage.tool_calls, and I leave out the token counts because the fake model makes them up."
+        fail_anchor: "I assert that result.usage.total_tokens equals the exact number I saw once."
+    model_answer: >-
+      For the order of the calls, I wrap the run in capture_run_messages() and run the agent inside
+      agent.override(model=...). TestModel is enough here, because it calls the tools in the order
+      they are registered. Afterwards I walk the ModelResponse messages, take the ToolCallPart
+      parts, and skip the one called final_result. I assert that the names and args are lookup_order
+      first and refund second. I do not stop at the final output, because it can be right even when
+      the agent took the wrong steps. For the early refund I need to choose the calls, so I use a
+      FunctionModel with a script: it calls refund first, then lookup_order, then refund again, then
+      gives the answer. The tool raises ModelRetry, so the messages hold a RetryPromptPart inside a
+      ModelRequest. I assert that its tool_name is refund and that its content is the text the tool
+      gave to ModelRetry. I also check that the order was refunded only once. For the turns, I read
+      result.usage. It is a property, so I write it without parentheses. I assert result.usage.requests
+      and result.usage.tool_calls. I leave out the token counts, because with a fake model they are
+      made up and say little.
