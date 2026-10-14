@@ -1,0 +1,70 @@
+questions:
+  - id: d1
+    prompt: >-
+      A teammate wrote `def create_order(data: dict)` and checks the keys by hand in the function.
+      Explain why you would replace `dict` with Pydantic models, and what you would model.
+    rubric:
+      - name: validation-moves-out
+        explanation: The answer says the model validates and converts the data before the function runs, so manual checks go away.
+        pass_anchor: "Says bad data gets a 422 before the route runs, and the function only sees valid objects."
+        fail_anchor: "Only says models are 'cleaner' or 'more Pythonic' without naming what is checked."
+      - name: docs-and-editor
+        explanation: The answer names a second benefit, either the OpenAPI/docs schema or editor completion.
+        pass_anchor: "Mentions the JSON Schema in /docs (a dict shows an empty object) or attribute completion in the editor."
+        fail_anchor: "Names no benefit beyond validation."
+      - name: models-the-shape
+        explanation: The answer says what to model, including nested parts and constraints.
+        pass_anchor: "Proposes a model with a nested model or list (for example customer and items) and a rule such as quantity greater than zero."
+        fail_anchor: "Says 'make a model' but gives no fields, nesting or rules."
+      - name: names-the-error-shape
+        explanation: The answer knows how the client learns what was wrong.
+        pass_anchor: "Mentions the 422 response whose detail entries have a loc, so the client can see which field failed."
+        fail_anchor: "Says errors are 'handled' without saying what the client receives."
+    model_answer: >-
+      With `dict`, any JSON object gets in. `{"quantity": "lots"}` would reach my code, so I would
+      have to test every key and every type myself, and I would forget a case. If I declare models,
+      FastAPI checks the body before my function runs. Bad data gets a `422` and the function never
+      sees it. The function receives an `Order` object, so my editor can complete the attributes and
+      warn about typos. The model also becomes a JSON Schema, so `/docs` shows the real shape instead
+      of an empty object. For an order I would write an `Address` model for the customer and a
+      `LineItem` model for each item, with `items: list[LineItem]` and `quantity: int = Field(gt=0)`.
+      The client then gets a clear `422` with a `loc` such as `["body", "items", 0, "quantity"]`, so
+      it can tell which field is wrong.
+    hints:
+      - What reaches your function when the type is `dict`, and who has to check it?
+      - What does the client see in the docs and in the error when you use a model instead?
+  - id: d2
+    prompt: >-
+      A client developer says "your API returns 422 and I do not know why". They send you the
+      request they made. Describe how you would find the cause and what you would tell them.
+    rubric:
+      - name: reads-the-detail
+        explanation: The answer starts from the 422 response body, not from guessing.
+        pass_anchor: "Asks for the full response body and reads the detail entries (type, loc, msg)."
+        fail_anchor: "Guesses at a cause, or only looks at the status code."
+      - name: reads-loc-prefix
+        explanation: The answer uses the start of loc to tell where the problem is.
+        pass_anchor: "Says loc starting with body, query or path shows where the bad value was, and a loc of just [body] points to the whole body (form data, missing Content-Type or wrong shape)."
+        fail_anchor: "Treats loc as a free-text message, or ignores it."
+      - name: checks-request-shape
+        explanation: "The answer checks the request itself (header, JSON, embed, nesting)."
+        pass_anchor: "Checks the Content-Type is application/json, the JSON is valid, and whether the route embeds the body or expects fields directly."
+        fail_anchor: "Only checks field values and never the shape of the request."
+      - name: reproduces-and-fixes
+        explanation: The answer reproduces the failure and gives the client a concrete fix.
+        pass_anchor: "Replays the request with TestClient or /docs, then tells the client which field or header to change, and maybe adds a test."
+        fail_anchor: "Tells the client to 'try again' or 'check the docs' with no specific change."
+    model_answer: >-
+      I would ask for the whole response body, because a `422` always says what was wrong. Each entry
+      in `detail` has a `type`, a `loc` and a `msg`. I read `loc` first. If it starts with `body` and
+      then names fields, like `["body", "items", 0, "quantity"]`, one value is wrong and I can name
+      it. If it is only `["body"]`, the whole body was the wrong kind of thing, so I check three
+      points: is the `Content-Type` header `application/json`, is it form data instead of JSON, and
+      does the route expect the fields inside a key because of `embed=True`. If it starts with
+      `query` or `path`, the mistake is in the URL. I would replay the request with `TestClient` or
+      in the `/docs` page to see the same error. Then I would tell the client exactly what to
+      change, for example "send quantity as a number above zero" or "add the JSON content type
+      header". I would add a test for that case, so the error shape stays the same.
+    hints:
+      - Which part of the 422 response tells you where the problem is, before you read any field values?
+      - If loc is only `["body"]`, what could be wrong with the request as a whole?
