@@ -157,6 +157,14 @@ def load_sources(path: Path) -> dict[str, Source]:
     return {s["id"]: Source(**s) for s in data.get("sources", [])}
 
 
+def _compiles(pattern: str) -> bool:
+    try:
+        re.compile(pattern)
+    except re.error:
+        return False
+    return True
+
+
 def validate(lessons: dict[str, Lesson], sources: dict[str, Source]) -> list[str]:
     problems: list[str] = []
     for lesson in lessons.values():
@@ -178,6 +186,11 @@ def validate(lessons: dict[str, Lesson], sources: dict[str, Source]) -> list[str
                 )
             if item.type == "order" and len(item.steps) < 2:
                 problems.append(f"{where}/{item.id}: order item needs at least 2 steps")
+            if item.type == "blank":
+                if not item.answer:
+                    problems.append(f"{where}/{item.id}: blank item has an empty answer")
+                elif item.answer.startswith("re:") and not _compiles(item.answer[3:]):
+                    problems.append(f"{where}/{item.id}: answer regex does not compile")
         for q in lesson.deeper:
             if len(q.rubric) < 3:
                 problems.append(f"{where}/{q.id}: deeper question needs at least 3 criteria")
