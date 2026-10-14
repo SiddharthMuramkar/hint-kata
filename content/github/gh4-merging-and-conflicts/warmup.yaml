@@ -1,0 +1,19 @@
+items:
+  - id: w1
+    prompt: >-
+      Two people both change line 7 of the same file, each in their own branch, and both open a
+      pull request. The first PR is merged. What do you think the second PR shows now, and why can
+      git not just pick one version for you?
+    note: >-
+      The second PR shows "This branch has conflicts that must be resolved", and its merge button
+      is disabled. Git only compares text. Both sides changed the same lines in different ways, and
+      git cannot know which one is right, or whether the answer is a mix. It leaves that decision
+      to a person.
+  - id: w2
+    prompt: >-
+      A squash-merged PR from yesterday broke the site. Force pushes to `main` are blocked, so you
+      cannot delete the commit. How would you undo the change? Guess before you read.
+    note: >-
+      You add a new commit that does the opposite, which is called a revert. History is not
+      rewritten, so it is safe for a shared branch. Because the PR was squashed, it is one commit,
+      and so is its revert.
