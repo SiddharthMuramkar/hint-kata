@@ -1,0 +1,9 @@
+{% if task_kind %}
+<section id="task" data-lesson="{{ lesson_id }}">
+  <h2>Hands-on task</h2>
+  <div class="markdown-body">{{ task_readme_html | safe }}</div>
+  <p><button id="check-btn" type="button">Check my work</button></p>
+  <pre id="check-output" aria-live="polite"></pre>
+</section>
+<script src="/static/js/check.js" defer></script>
+{% endif %}
