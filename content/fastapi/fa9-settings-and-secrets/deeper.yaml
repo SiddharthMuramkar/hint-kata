@@ -1,0 +1,118 @@
+questions:
+  - id: d1
+    prompt: >-
+      An app has `Settings(BaseSettings)` with `env_file=".env"`, a cached
+      `@lru_cache def get_settings()`, and a route `/info` that uses `Depends(get_settings)`.
+      You want two tests. Test one checks what `/info` returns for settings you choose. Test two
+      checks that `get_settings()` really reads `MAX_ITEMS` from the environment. For each test,
+      say how you would write it, how you keep your real env file out of the test, and say
+      what the cache can do to the second test and how you stop it.
+    rubric:
+      - name: override-the-dependency
+        explanation: >-
+          The answer tests `/info` by replacing the dependency: it puts a function that returns
+          a hand-built `Settings` into `app.dependency_overrides`, with `get_settings` as the
+          key.
+        pass_anchor: >-
+          "Set `app.dependency_overrides[get_settings] = fake_settings`, where `fake_settings` returns a `Settings` I build with the values I want, then call `/info` with the test client."
+        fail_anchor: >-
+          "Edit the real env file before the test", or "call `/info` and hope the environment has the right values."
+      - name: real-file-kept-out
+        explanation: >-
+          The answer names a way to keep the real env file out of a test: `_env_file=None` on a
+          hand-built `Settings`, or changing to an empty folder with `monkeypatch.chdir`, or
+          setting the `env_file` option to `None`.
+        pass_anchor: >-
+          "Build the fake with `Settings(..., _env_file=None)`", or "use `monkeypatch.chdir(tmp_path)` so the relative `.env` path finds nothing."
+        fail_anchor: >-
+          "Use my normal local env file, it has the right values", or no mention of the file at all.
+      - name: environment-set-with-monkeypatch
+        explanation: >-
+          The answer sets the variable for test two with `monkeypatch.setenv`, using text
+          values, so the change is undone after the test.
+        pass_anchor: >-
+          "Call `monkeypatch.setenv("MAX_ITEMS", "25")`, then check `get_settings().max_items == 25`."
+        fail_anchor: >-
+          "Export the variable in the terminal before running the tests", or "write to the env file from the test."
+      - name: cache-needs-clearing
+        explanation: >-
+          The answer says `@lru_cache` keeps the first object, so a variable changed after an
+          earlier call is not seen, and the fix is `get_settings.cache_clear()` before the test
+          (and after it).
+        pass_anchor: >-
+          "The cache hands back the object from an earlier test, so `MAX_ITEMS` is never read again. Call `get_settings.cache_clear()` before and after."
+        fail_anchor: >-
+          "The cache makes no difference to tests", or "monkeypatch resets the cache by itself."
+    model_answer: >-
+      For test one I replace the dependency. I write a function `fake_settings` that returns
+      `Settings(app_name="Test", max_items=3, api_key="test-key", _env_file=None)`, and I set
+      `app.dependency_overrides[get_settings] = fake_settings`. Then I call `/info` with the
+      test client and check the body, and I clear the overrides afterwards. The `_env_file=None`
+      keeps my real env file out of it, and the real `get_settings` never runs. For test two I
+      call the real `get_settings()`. I use `monkeypatch.chdir(tmp_path)`, so the relative
+      `.env` path points into an empty folder and no real file is read. Then I call
+      `monkeypatch.setenv("MAX_ITEMS", "25")` with text values, and monkeypatch puts everything
+      back after the test. The danger is the cache. `@lru_cache` keeps the first `Settings`
+      object, so if an earlier test already called `get_settings()`, my new variable is never
+      read. I call `get_settings.cache_clear()` before the test and again after it, so the next
+      test does not inherit my object.
+    hints:
+      - Which function would you replace, and where does FastAPI look for replacements? What do you call to keep the Settings object from reading any file?
+      - What does `lru_cache` remember between two calls, and what does that do to a variable you change afterwards?
+  - id: d2
+    prompt: >-
+      Your `Settings` has `api_key: str`. A teammate suggests two things. First, commit the
+      env file so that everyone has the same setup. Second, add `logger.info(settings)` at
+      startup to help debugging. Answer both: say what you would do instead of each. Then say
+      what you must do if a real key was already committed, and why. Finally say how you would
+      declare the field so that a logged or returned settings object does not show the key.
+    rubric:
+      - name: ignore-file-commit-example
+        explanation: >-
+          The answer keeps the env file out of git with a `.gitignore` entry, and commits a
+          names-only example file (`.env.example`) instead.
+        pass_anchor: >-
+          "Put `.env` in `.gitignore` and commit `.env.example` with the variable names and empty values, so people copy it and fill in their own."
+        fail_anchor: >-
+          "Commit it, but in a private repo", or "commit it and delete the key before the push."
+      - name: committed-means-leaked
+        explanation: >-
+          The answer says a key that was committed stays in the git history even if the file is
+          deleted or ignored later, so the key must be treated as leaked and replaced
+          (revoked and recreated at the provider).
+        pass_anchor: >-
+          "The old commit still holds the key, so deleting the file does not help. Make a new key and revoke the old one."
+        fail_anchor: >-
+          "Add it to `.gitignore` and the problem is gone", or "delete the file in a new commit."
+      - name: logging-settings-leaks
+        explanation: >-
+          The answer says logging (or printing) the settings object writes the plain key into
+          the log, because the object's text form includes the field values.
+        pass_anchor: >-
+          "`logger.info(settings)` would write `api_key='...'` into the log, so the key ends up in log files."
+        fail_anchor: >-
+          "Logging is safe because logs are private", or "Pydantic hides secrets in the log by default."
+      - name: secretstr-field
+        explanation: >-
+          The answer declares the field as `SecretStr`, so the printed or JSON form shows
+          `**********`, and reads the real text with `get_secret_value()` only where needed.
+        pass_anchor: >-
+          "Declare `api_key: SecretStr`. Then it prints as `**********`, and I call `settings.api_key.get_secret_value()` only where the client needs the real key."
+        fail_anchor: >-
+          "Keep `api_key: str` and trust nobody to print it", or "name the field `secret_key` so it is hidden."
+    model_answer: >-
+      I would not commit the env file. I would add `.env` to `.gitignore` and commit a
+      `.env.example` that lists the variable names with empty values and a comment each. A new
+      person copies it to `.env` and types in their own values. For debugging I would not log
+      the settings object. Its text form includes every field, so `logger.info(settings)` would
+      write `api_key='...'` into the log file. I would log only safe fields, or say that the key
+      is set or not set. If a real key was ever committed, I must treat it as leaked. The old
+      commit still holds the key even if I delete the file or add it to `.gitignore` later, and
+      the repo history can be read by anyone with access. So I create a new key at the provider
+      and revoke the old one. To protect against accidents, I would declare the field as
+      `api_key: SecretStr`. Printed or returned as JSON, it shows `**********`, and I call
+      `settings.api_key.get_secret_value()` only in the one place that needs the real text,
+      such as when I build the client for the other service.
+    hints:
+      - What does git keep after a file is deleted or ignored, and what does that say about the key?
+      - Which Pydantic type masks a value when the object is printed, and how do you get the real value out when you truly need it?

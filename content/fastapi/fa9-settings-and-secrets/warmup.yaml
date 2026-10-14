@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      A class `Settings(BaseSettings)` has the field `max_items: int = 10`. The environment
+      variable `MAX_ITEMS` is set to the text `lots`. What do you expect to happen when the code
+      runs `Settings()`? Does it use the default 10? Take a guess before you read.
+    note: >-
+      It raises a `ValidationError`, and you get no `Settings` object. The error has `type`
+      `int_parsing` and `loc` `('max_items',)`, and it prints the bad text `lots`. The default
+      is for a missing value. It is not a safety net for a bad one.
+  - id: w2
+    prompt: >-
+      `get_settings()` has `@lru_cache` and returns `Settings()`. You call it once, then you
+      change the environment variable `MAX_ITEMS` from `25` to `99`, then you call it again.
+      What is `max_items` on the second result? Take a guess before you read.
+    note: >-
+      Still `25`. The cache hands back the first object, so the new value is never read. Call
+      `get_settings.cache_clear()` to build a new one, or restart the server.

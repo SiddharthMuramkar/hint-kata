@@ -1,0 +1,177 @@
+items:
+  - id: q1
+    type: single
+    concept: ignore-after-commit
+    source_section: keeping-secrets-out-of-git-and-logs
+    prompt: >-
+      Last week you committed your env file by mistake. It held a real API key. Today you add
+      `.env` to `.gitignore` and push. What is the situation now?
+    options:
+      - text: >-
+          The file was already committed, so git still tracks it, and the old commit still
+          holds the key. You should treat the key as leaked and replace it.
+        correct: true
+        feedback: >-
+          Right. `.gitignore` only affects files git is not tracking yet. `git rm --cached`
+          stops tracking from the next commit on, but the history keeps the key. In a public
+          repo, make a new key and revoke the old one.
+      - text: >-
+          The leak is closed, because `.gitignore` applies to the whole history of the repo.
+        misconception: Thinks `.gitignore` reaches back and hides earlier commits.
+        feedback: >-
+          `.gitignore` looks forward. We committed a file, ignored it, and git still tracked
+          it and still listed the old commit in `git log`.
+      - text: >-
+          Git deletes the file from the repo on the next commit, because it is now ignored.
+        misconception: Thinks ignoring a file removes it from the repo.
+        feedback: >-
+          Ignoring does not delete or untrack anything. A tracked file stays tracked, and
+          later edits to it still show up as changes.
+      - text: >-
+          The next commit that deletes the line with the key removes the key from the repo.
+        misconception: Thinks a new commit erases the old one.
+        feedback: >-
+          A new commit adds to the history. The commit that held the key is still there, and
+          anyone can read it. The only safe step is to replace the key.
+  - id: q2
+    type: single
+    concept: cache-and-tests
+    source_section: overriding-settings-in-tests
+    prompt: >-
+      Spot the bug. An app uses a cached `get_settings()` through `Depends`. In `test_a`,
+      `monkeypatch.setenv("MAX_ITEMS", "10")` runs and `/info` answers with `max_items` 10. In
+      `test_b`, `monkeypatch.setenv("MAX_ITEMS", "3")` runs and the test expects `/info` to
+      answer 3. `test_b` passes when run alone, but fails when it runs after `test_a`, and it
+      sees 10. Why?
+    options:
+      - text: >-
+          `monkeypatch.setenv` must be given an `int` for an `int` field, so the text `"3"` is
+          ignored.
+        misconception: Thinks environment values can be typed, so the test must pass an int.
+        feedback: >-
+          Environment variables are always text. `setenv` takes a `str`. If you give it an int,
+          pytest warns and turns it into text. The text `"3"` is what `Settings` converts to 3.
+      - text: >-
+          The names must be lower case to match the field `max_items`, so `MAX_ITEMS` only
+          works some of the time.
+        misconception: Thinks variable names must match the field name's case exactly.
+        feedback: >-
+          Names are not case sensitive by default, so `MAX_ITEMS` fills `max_items` in every
+          test. That is not why one test sees an old value.
+      - text: >-
+          `test_a` already built and cached the `Settings` object, and the cache hands the
+          same object to `test_b`, so the new variable is never read. Call
+          `get_settings.cache_clear()` or override the dependency.
+        correct: true
+        feedback: >-
+          Right. `@lru_cache` keeps the first object for the life of the process. Clear the
+          cache before and after tests that change the environment, or replace the dependency
+          with `app.dependency_overrides`.
+      - text: >-
+          `TestClient` runs the app in another process, which cannot see variables set inside
+          the test.
+        misconception: Thinks the test client talks to a separate server process.
+        feedback: >-
+          `TestClient` calls your app in the same process, as FA2 showed. It sees the same
+          environment as the test. Run alone, `test_b` does see its variable.
+  - id: q3
+    type: single
+    concept: secret-in-response
+    source_section: keeping-secrets-out-of-git-and-logs
+    prompt: >-
+      `Settings` has `api_key: str`, read from the environment. A debug route is written as
+      `def debug(settings: SettingsDep): return settings`. What does the client get?
+    options:
+      - text: >-
+          A 200 whose JSON shows `api_key` as `**********`, because every settings class masks
+          its values.
+        misconception: Thinks `BaseSettings` hides its values by default.
+        feedback: >-
+          Only a `SecretStr` field is masked. A plain `str` field is shown as it is, even on a
+          settings class.
+      - text: >-
+          A 200 whose JSON includes the `api_key` text in plain view.
+        correct: true
+        feedback: >-
+          Right. We ran this and the body was `{"api_key":"fake-key-123"}`. Return only the
+          fields you pick, or declare the field as `SecretStr`.
+      - text: >-
+          A 200 whose JSON leaves `api_key` out, because FastAPI hides fields with secret-like
+          names.
+        misconception: Thinks FastAPI or Pydantic guesses which fields are secret by name.
+        feedback: >-
+          Nothing looks at names. A field is hidden only if you pick which fields to return,
+          or give it the type `SecretStr`.
+      - text: >-
+          A 500, because a settings object cannot be turned into JSON.
+        misconception: Thinks `BaseSettings` is not a normal Pydantic model.
+        feedback: >-
+          `BaseSettings` is a Pydantic model, so FastAPI turns it into JSON like any other. That
+          is why the leak is easy to make.
+  - id: q4
+    type: single
+    concept: when-settings-fail
+    source_section: when-a-value-is-bad
+    prompt: >-
+      An app gets its settings from a cached `get_settings()` used with `Depends`, and it has
+      no lifespan function. You start the server with `MAX_ITEMS=lots`. What happens?
+    options:
+      - text: >-
+          The server refuses to start, because Pydantic checks the class when the module is
+          imported.
+        misconception: Thinks settings values are checked when the class is defined or imported.
+        feedback: >-
+          The values are checked when `Settings()` runs, not when the class is defined. With a
+          lazy `get_settings()`, nothing runs until a request needs it. A bare
+          `settings = Settings()` at module level would fail at import.
+      - text: >-
+          The first request that uses the settings gets a 422 with `loc` `["query", "max_items"]`.
+        misconception: Thinks a settings error becomes a request validation error.
+        feedback: >-
+          The 422 is for a bad request. A bad setting is a fault of the server, and the
+          `ValidationError` is not turned into a 422. The client sees a 500.
+      - text: >-
+          The first request fails with a 500, and later requests work because the cache keeps
+          the default of 10.
+        misconception: Thinks the cache stores a fallback after a failed call.
+        feedback: >-
+          `lru_cache` stores only results that return. A call that raises is not stored, so the
+          next request runs `Settings()` again and fails the same way.
+      - text: >-
+          The server starts. Each request that needs the settings gets a 500, and the
+          `ValidationError` is in the server log.
+        correct: true
+        feedback: >-
+          Right. We ran this with `fastapi run`. To fail at start instead, call
+          `get_settings()` once inside a lifespan function.
+  - id: q5
+    type: order
+    concept: settings-build-flow
+    source_section: one-cached-settings-dependency
+    prompt: >-
+      A route uses `Depends(get_settings)`, and `get_settings()` has `@lru_cache`. The very
+      first request arrives. Put the steps in the order they happen.
+    steps:
+      - "FastAPI sees `Depends(get_settings)` on the route and calls `get_settings()`"
+      - "`get_settings()` runs `Settings()`, which reads the environment variables and the env file"
+      - "Pydantic converts each text value to its field type and checks it"
+      - "`lru_cache` stores the finished `Settings` object"
+      - "The route function runs and receives that object"
+    explanation: >-
+      The dependency is called before the route. Building the object reads the text and then
+      checks it, and a failure there stops everything after it. The cache stores the object once
+      `get_settings()` returns, so the second request skips the first four steps and gets the
+      same object.
+  - id: q6
+    type: blank
+    concept: ignore-empty
+    source_section: the-env-file-and-empty-values
+    prompt: >-
+      An env file line reads `MAX_ITEMS=` with nothing after the sign. Fill in the blank so an
+      empty value counts as not set and the default is used:
+      `SettingsConfigDict(env_file=".env", ____=True)`
+    answer: env_ignore_empty
+    explanation: >-
+      `env_ignore_empty=True` makes an empty string count as "not set". Without it, `MAX_ITEMS=`
+      is the empty text, and an `int` field fails with `int_parsing`. A required field that is
+      empty still fails with `missing`.
