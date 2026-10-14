@@ -1,0 +1,83 @@
+questions:
+  - id: d1
+    prompt: >-
+      You build a POST /chat route that streams an agent's reply to a web page. Describe the route.
+      Say what makes it an SSE route in FastAPI. Say which events it yields while the agent runs and
+      which stream_text options you use. Say what the route does if the model fails halfway, and
+      why. Last, say why the page reads the reply with fetch and getReader() and not with EventSource.
+    hints:
+      - "Start with the decorator and the function: what must the decorator say, and what must the function do instead of return? Then look at what each yielded item needs to hold if the page appends it."
+      - "Think about the status code. When the model fails after ten pieces were sent, what has the client already received? What are your options for telling it, and what happens if you do nothing?"
+    rubric:
+      - name: sse-route-setup
+        explanation: The answer says the route uses response_class=EventSourceResponse and is a generator that yields ServerSentEvent objects, with an event name and data.
+        pass_anchor: "The decorator has response_class=EventSourceResponse and the function yields ServerSentEvent(event=..., data=...) objects."
+        fail_anchor: "I return a list of events from a normal route and FastAPI sends them one by one."
+      - name: delta-token-events
+        explanation: The answer runs the agent with run_stream, loops over stream_text(delta=True), and yields one token event per piece, so the page can append each one.
+        pass_anchor: "Inside async with agent.run_stream(...), I loop over stream_text(delta=True) and yield a token event for each new piece."
+        fail_anchor: "I use the default stream_text and send each item, and the page appends it."
+      - name: error-event
+        explanation: The answer wraps the run in try and except and yields an error event, because the 200 status has already been sent and cannot become a 500. Without it the connection is cut.
+        pass_anchor: "I catch the exception around the run and yield an error event. The status is already 200, so the body is the only way to tell the client."
+        fail_anchor: "I let the exception go and FastAPI sends a 500 error page."
+      - name: fetch-not-eventsource
+        explanation: The answer says EventSource can only send a GET without a body, so the page uses fetch with POST and reads the response body with getReader().
+        pass_anchor: "EventSource is GET only with no body, but the message goes in a POST body, so the page uses fetch and getReader()."
+        fail_anchor: "EventSource cannot read streams, so we use fetch instead."
+    model_answer: >-
+      The route is an async generator. The decorator is @app.post("/chat", response_class=EventSourceResponse),
+      and the function is annotated as returning AsyncIterable[ServerSentEvent]. It does not return
+      anything. It yields ServerSentEvent objects, each with an event name and a data payload.
+      Inside async with agent.run_stream(body.message) as result, I loop over
+      result.stream_text(delta=True) and yield a token event for each piece. With delta=True each
+      item is only the new text, so the page can append it. The default would give the text so far
+      and the page would show repeats. I keep the pieces in a list, and after the loop I can yield a
+      last event with the full text. I wrap the run in try and except. If the model fails halfway,
+      the status 200 has already gone out with the headers, so the route cannot change it to a 500.
+      It logs the error on the server and yields an error event with a short message. If I did
+      nothing, the connection would be cut and the page could not tell that from a finished
+      reply, because the stream just ends. The page uses
+      fetch and getReader() because EventSource takes a URL and sends a GET with no body, and the
+      message has to go in a POST body.
+  - id: d2
+    prompt: >-
+      A teammate says: "My TestClient test proves that our SSE route sends the tokens one at a time."
+      Say whether that is true and why. Say how you would check the timing of the events. Then
+      explain the tutor route in this site. Why does it send no token events when the hint ceiling is
+      below L4, and what does the learner see instead? When does the route save the turn, and what
+      happens to the save if the client leaves or the run fails?
+    hints:
+      - "Think about when TestClient hands the response to your test. Does it wait for the app to finish? Then think about which tool could read the bytes while a real server is still sending them."
+      - "What must the server hold in hand before it can decide which parts of a reply the learner may see? Then find the save in the route. What happens to a line that comes after the last yield if the client leaves, or if the run raises?"
+    rubric:
+      - name: testclient-buffers
+        explanation: The answer says TestClient runs the whole app before it returns, so all events are there at once. The test shows what arrived, not when.
+        pass_anchor: "TestClient waits until the whole stream is finished, so the test sees all the events at once. It proves the names and data, not the timing."
+        fail_anchor: "TestClient gets each event as soon as the model makes it, so the test shows the timing."
+      - name: real-server-timing
+        explanation: The answer says to run a real server, such as uvicorn, and read it with httpx.stream or iter_lines while noting when each line arrives.
+        pass_anchor: "I would start the app with uvicorn and use httpx.stream, printing the time at each line."
+        fail_anchor: "I would add more asserts to the TestClient test."
+      - name: ceiling-gating
+        explanation: The answer says that below L4 the server removes code blocks from the finished reply, which needs the whole reply, so no token events are sent and the learner sees only the final html event.
+        pass_anchor: "Below L4 the code blocks are removed from the finished reply. That needs the whole reply, so there are no token events and the learner sees the html event at the end."
+        fail_anchor: "The model is slow at low levels, so there are no tokens."
+      - name: save-after-stream
+        explanation: The answer says the route saves the turn after the last yield, so a client that leaves or a run that fails means nothing is saved.
+        pass_anchor: "The save sits after the last yield. If the client leaves or the run raises, that line does not run and the turn is not saved."
+        fail_anchor: "The route saves each token to the database as it is sent."
+    model_answer: >-
+      That is not true. TestClient runs the whole app before it hands the response back, so the
+      test sees every event at once, after the stream has ended. We saw this with a fake model that
+      waited between chunks. The test can check the event names, the data and the order, but it
+      cannot show when each event arrived. To check the timing I would run the app on a real server
+      such as uvicorn, and read it with httpx.stream, printing the time at each line. In the tutor
+      route, the hint ceiling is the highest rung of the hint ladder for this turn. Below L4 the
+      server removes code blocks from the finished reply. It can only do that once it has the whole
+      reply, so a live token could show code that the final reply must not have. So below L4 the
+      route sends no token events. The learner sees nothing until the html event comes with the
+      filtered, rendered reply. After the ceiling, html and citations events, the route saves the
+      learner's message and the reply. That code is after the last yield. If the client leaves
+      early, or the run raises and the route yields an error event and returns, that code does not
+      run, so the turn is not saved.
