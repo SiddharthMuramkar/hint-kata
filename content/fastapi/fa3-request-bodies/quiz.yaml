@@ -1,0 +1,121 @@
+items:
+  - id: q1
+    type: single
+    concept: param-source-rules
+    source_section: several-body-parameters
+    prompt: >-
+      A route is `PUT /books/{book_id}` with the signature
+      `def replace(book_id: int, book: Book, dry_run: bool = False)`. Where does FastAPI read each
+      parameter from?
+    options:
+      - text: "`book_id` from the path, `book` from the JSON body, `dry_run` from the query string."
+        correct: true
+        feedback: >-
+          Right. A name in the path is a path parameter. A model is a body parameter. A simple type
+          that is neither is a query parameter.
+      - text: "All three from the JSON body, because the route is a PUT."
+        misconception: Thinks the HTTP method moves every parameter into the body.
+        feedback: >-
+          The method does not decide this. The type does. Only the model (and values you wrap
+          with `Body`) come from the body.
+      - text: "`book_id` and `dry_run` from the query string, and `book` from the body."
+        misconception: Forgets that a name in the path is a path parameter.
+        feedback: >-
+          `book_id` appears in `/books/{book_id}`, so it comes from the path. Only `dry_run` is a
+          plain value that is not in the path, so only it is a query parameter.
+      - text: "`dry_run` from the body, because `bool` values are too small for a query string."
+        misconception: Thinks only strings can live in the query string, so other simple types go in the body.
+        feedback: >-
+          Any simple type (`int`, `str`, `bool`, `float`) is read from the query string by
+          default. To move one into the body you must wrap it with `Body`.
+  - id: q2
+    type: single
+    concept: 422-loc-shape
+    source_section: nested-models-and-lists
+    prompt: >-
+      The model has `reviews: list[Review]` and `Review.stars` is `Field(ge=1, le=5)`. A client
+      sends three reviews, and the second one has `"stars": 9`. What `loc` does the 422 error
+      show for it?
+    options:
+      - text: '`["body", "reviews", 1, "stars"]`'
+        correct: true
+        feedback: >-
+          Right. `loc` starts with where the value was found (`"body"`), then follows the field
+          names, and list positions are numbers that start at 0. The second review is position 1.
+      - text: '`["body", "reviews", 2, "stars"]`'
+        misconception: Counts list positions from 1.
+        feedback: >-
+          Python lists start at 0, and so does `loc`. The second review is at position 1.
+          Position 2 would be the third review.
+      - text: '`["reviews", 1, "stars"]`'
+        misconception: Forgets that loc starts with the place of the input.
+        feedback: >-
+          Every `loc` begins with the kind of input: `"body"`, `"query"` or `"path"`. That tells
+          you at once whether the mistake is in the body or in the URL.
+      - text: '`["body", "stars"]`'
+        misconception: Thinks loc names only the failing field.
+        feedback: >-
+          The `loc` is the full path to the bad value, through the list and its position. With
+          three reviews you need the position to know which one is wrong.
+  - id: q3
+    type: single
+    concept: json-content-type
+    source_section: common-mistakes
+    prompt: >-
+      A script posts a perfectly valid JSON string as the raw request content to
+      `POST /books/`, but it sets no Content-Type header. The route takes `book: Book`. What
+      does FastAPI 0.143.0 answer?
+    options:
+      - text: "`422`, with `loc` `[\"body\"]`. The body is not read as JSON, so it is not an object."
+        correct: true
+        feedback: >-
+          Right. Without a JSON content type, the body is treated as plain text. A string is not
+          an object, so validation fails at `["body"]`, before any field is looked at.
+      - text: "`200`, because FastAPI guesses that the text is JSON."
+        misconception: Thinks FastAPI sniffs the body to find the format.
+        feedback: >-
+          This is tempting because the text really is valid JSON. But FastAPI trusts the header,
+          not the content. Use `json=` in `httpx`, which sets the header for you.
+      - text: "`422`, with the type `json_invalid`, because the JSON could not be decoded."
+        misconception: Mixes up a missing header with broken JSON.
+        feedback: >-
+          `json_invalid` appears when the header says JSON but the text is broken. Here the
+          header is missing, so FastAPI never tries to decode it.
+      - text: "`201`, because the route has `status_code=201` and the data is valid."
+        misconception: Thinks the status code is chosen by whether the data looks valid.
+        feedback: >-
+          The success code only applies when the function runs. Validation fails first, so the
+          function never runs.
+  - id: q4
+    type: order
+    concept: body-handling-steps
+    source_section: declaring-a-body-parameter
+    prompt: >-
+      A client sends a valid JSON body to a route with `book: Book`. Put what FastAPI does in the
+      right order.
+    steps:
+      - Read the request body as JSON
+      - Check each field against Book and convert types
+      - Call the route function with a Book object
+      - Send the return value back with the route's status code
+    explanation: >-
+      FastAPI reads first, validates second, and only then calls your function. If validation fails,
+      it answers 422 and skips the last two steps.
+  - id: q5
+    type: blank
+    concept: field-import
+    source_section: field-constraints-and-examples
+    prompt: "pages: int = ____(gt=0)   # a rule on a model attribute (imported from pydantic)"
+    answer: Field
+    explanation: >-
+      `Field` comes from `pydantic`, not from `fastapi`. It takes the same kind of arguments as
+      `Query`, `Path` and `Body`, such as `gt`, `ge` and `max_length`.
+  - id: q6
+    type: blank
+    concept: embed-single-body
+    source_section: several-body-parameters
+    prompt: "book: Annotated[Book, ____(embed=True)]   # client must send {\"book\": {...}}"
+    answer: Body
+    explanation: >-
+      `Body(embed=True)` makes FastAPI expect the model inside a key named after the parameter,
+      the same way it does when a route has several body parameters.

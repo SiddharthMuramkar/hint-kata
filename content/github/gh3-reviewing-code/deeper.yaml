@@ -1,0 +1,104 @@
+questions:
+  - id: d1
+    prompt: >-
+      A colleague asks you to review a 600-line pull request. The title is "Update stuff" and the
+      description is empty. Describe how you would review it, and how you would word your feedback.
+    rubric:
+      - name: starts-with-context
+        explanation: The answer says to find out the goal of the change before judging the code.
+        pass_anchor: >-
+          Reads the description and linked issue, or asks the author what the goal is and
+          perhaps asks for a better description or a split, before reading line by line.
+        fail_anchor: >-
+          Starts commenting on lines at once, or approves because the tests are green, with no
+          step to learn the purpose.
+      - name: structured-reading
+        explanation: The answer uses the tools of the Files changed tab to read in a planned way.
+        pass_anchor: >-
+          Goes through the files one by one, marks them Viewed to track progress, and looks at
+          risky files (tests, workflows, dependencies) first or with extra care.
+        fail_anchor: >-
+          Scrolls the whole diff once from top to bottom with no plan, or only skims the largest file.
+      - name: specific-comments
+        explanation: The answer describes comments that are specific, reasoned and kind.
+        pass_anchor: >-
+          Comments on exact lines, gives the reason, says what is wanted, separates blockers from
+          preferences, and uses a suggestion block for a small fix.
+        fail_anchor: >-
+          Plans vague comments ("clean this up"), comments about the person, or only lists faults.
+      - name: decision-fits
+        explanation: The answer ends the review with a decision that matches what was found.
+        pass_anchor: >-
+          Submits the comments together as one review and picks Comment, Approve or Request
+          changes to match how serious the findings are.
+        fail_anchor: >-
+          Leaves many separate loose comments with no final decision, or always picks the same
+          decision whatever it found.
+    model_answer: >-
+      First I would find out what the PR is for. With "Update stuff" and no description, I would
+      ask the author for the goal, and I would ask whether it can be split into smaller PRs, since
+      600 lines is a lot to hold in your head. Once I know the goal, I would open the Files changed
+      tab and go one file at a time, ticking Viewed so the progress bar shows how far I got. I
+      would read the risky files first: deleted tests, workflow files, dependency changes and
+      anything near secrets. I would start a review instead of posting single comments, so that
+      the author gets one complete message. Each comment would point at a line, give the reason
+      and say what I want. For a small fix I would write a suggestion block, so the author can
+      apply it with one click. I would say which comments are blockers and which are only
+      preferences, and I would mention what is good. At the end I would submit the review with a
+      short summary and the decision that fits: Request changes if something must be fixed,
+      Comment if I only have questions, Approve if it is ready.
+    hints:
+      - What do you need to know about the change before the first line of the diff makes sense?
+      - How can the Files changed tab help you keep track of a big diff?
+
+  - id: d2
+    prompt: >-
+      You are the only developer on a project, so nobody else can review your pull requests. What
+      do you lose, and what would you do so that your PRs are still reviewed as well as they can be?
+    rubric:
+      - name: names-the-loss
+        explanation: The answer says what a solo developer misses without a second reviewer.
+        pass_anchor: >-
+          Says you lose a different point of view, a person who catches what you cannot see
+          after writing the code, and the knowledge sharing that a review gives.
+        fail_anchor: >-
+          Says nothing is lost because the tests pass, or names only a minor inconvenience.
+      - name: self-review-first
+        explanation: The answer includes reading your own diff before merging.
+        pass_anchor: >-
+          Reads the whole diff in the Files changed tab as if someone else wrote it, looking for
+          stray files, debug lines, missing tests and secrets, perhaps leaving notes as comments
+          on the PR.
+        fail_anchor: >-
+          Merges straight from the editor, or says a quick look at the commit list is enough.
+      - name: keeps-prs-reviewable
+        explanation: The answer keeps the habits that make any review easy.
+        pass_anchor: >-
+          Keeps each PR small and about one purpose, and writes a title and description that say
+          what changed and why.
+        fail_anchor: >-
+          Bundles several changes into one big PR because "nobody else will read it".
+      - name: other-checks-and-limits
+        explanation: >-
+          The answer names another safety net and says it is not a human approval.
+        pass_anchor: >-
+          Names another safety net (required checks, a ruleset that needs a PR, or an automated
+          or agent review) and says that its result is input to a decision, not a human approval.
+        fail_anchor: >-
+          Says an agent or CI replaces a human reviewer completely, or says the author can approve
+          their own PR to get past the rule.
+    model_answer: >-
+      Without a second reviewer I lose a fresh point of view. I have just written the code, so I
+      see what I meant and not what is there. I also lose the knowledge sharing, because nobody
+      else learns how the change works. To make up for it, I read my own diff in the Files changed
+      tab before I merge, as if someone else wrote it. I look for stray files, debug lines, deleted
+      tests and secrets, and I can leave myself notes as comments, because as the author I can
+      still comment on my own PR even though I cannot approve it. I keep each PR small and about
+      one purpose and I write a clear description, so that the diff is easy to read, even months
+      later. I use a ruleset that requires a pull request and green checks, with zero approvals,
+      because a rule that needs one approval would lock me out. I can also ask an agent to review
+      the diff, as this project does with its diff-reviewer. Its findings help me decide, but they
+      are not an approval, and I still choose what to apply.
+    hints:
+      - What can a second person see that the author often cannot?
+      - Which parts of a good review can you still do alone?
