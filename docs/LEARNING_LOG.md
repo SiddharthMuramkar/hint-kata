@@ -45,6 +45,9 @@ This page is the index, in merge order. Read the files top to bottom to re-learn
 | #101 | [051 — lesson GH5 — Secrets, GITHUB_TOKEN, permissions and environments](learning-log/051-lesson-gh5.md) |
 | #105 | [053 — heading-aware chunking, OpenRouter embeddings, incremental pgvector upsert](learning-log/053-docs-ingestion.md) |
 | #113 | [109 — pin fastapi-cli so uv run fastapi dev works](learning-log/109-fastapi-cli.md) |
+| #108 | [085 — lesson PA6 — Instructions and model settings](learning-log/085-lesson-pa6.md) |
+| #110 | [092 — lesson GH6 — Git and GitHub flow: branches, commits, remotes](learning-log/092-lesson-gh6.md) |
+| #107 | [078 — lesson FA6 — Run it right: uv, fastapi dev and entrypoints](learning-log/078-lesson-fa6.md) |
 
 ## Unmatched entries
 

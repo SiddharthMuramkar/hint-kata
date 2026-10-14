@@ -16,7 +16,7 @@ How the index is built:
 
 Also in this PR:
 
-- `docs/LEARNING_LOG.md` is regenerated: 40 rows and 1 unmatched entry.
+- `docs/LEARNING_LOG.md` is regenerated: 43 rows and 1 unmatched entry.
 - `docs/PROGRESS.md` shows the real state: phase 1 done, phase 2 merged and in flight, the open issues that come next, and an owner-only steps section.
 - `docs/RESUME.md` has one new line telling a fresh session to run the `--progress` command first.
 - `tests/test_docs_status.py` covers the script with a recorded list of merged PRs. No test calls `gh`.

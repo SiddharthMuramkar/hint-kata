@@ -2,7 +2,7 @@
 
 Keep this current between tasks (the main session updates it; task PRs add a file under `docs/learning-log/` instead).
 Live numbers: run `uv run python scripts/docs_status.py --progress` and paste what is new.
-Last checked: 2026-10-14, main at 15 lessons (5 per track).
+Last checked: 2026-10-14, main at 18 lessons (6 per track).
 
 ## Phase 1 — done (2026-10-14)
 - M0 Bootstrap: public repo, ruleset, security scanning, Dependabot, CodeQL, 21 issues.
@@ -15,7 +15,7 @@ Last checked: 2026-10-14, main at 15 lessons (5 per track).
 - Still open for the owner: #19 grader calibration (needs OPENROUTER_API_KEY; steps are on the issue).
 
 ## Phase 2 — merged
-- Lessons (nine, so 15 on main): FA3 (#71), FA4 (#74), FA5 (#100), PA3 (#72), PA4 (#102), PA5 (#75), GH3 (#73), GH4 (#70), GH5 (#101).
+- Lessons (twelve, so 18 on main): FA3 (#71), FA4 (#74), FA5 (#100), FA6 (#107), PA3 (#72), PA4 (#102), PA5 (#75), PA6 (#108), GH3 (#73), GH4 (#70), GH5 (#101), GH6 (#110).
 - Sources manifest: nine lessons (#64), the 21 remaining lessons (#103).
 - Storage and hosting: PostgresStore + pgvector schema + CI Postgres (#68), Vercel config + runbook (#65).
 - Docs for the tutor: ingestion with chunking, OpenRouter embeddings and pgvector upsert (#105), weekly re-sync Action (#99).
@@ -23,13 +23,13 @@ Last checked: 2026-10-14, main at 15 lessons (5 per track).
 - Fixes: checker paths hardened (#106), `fastapi-cli` pinned so `uv run fastapi dev` works (#113).
 
 ## Phase 2 — in flight (open PRs)
-- Lessons: FA6 (#107), PA6 (#108), GH6 (#110).
+- Lessons: PA7 (#118), GH7 (#117).
 - RAG tutor mode with hybrid search and URL+anchor citations (#115, issue #54).
 - Grader majority vote across three samples (#114, issue #112).
 - Docs index script, regenerated learning log, this page (#116).
 
 ## Next (open Phase 2 issues with no PR yet)
-- Lessons, 18 left: FA7–FA12 (#79–#84), PA7–PA12 (#86–#91), GH7–GH12 (#93–#98).
+- Lessons, 16 left: FA7–FA12 (#79–#84), PA8–PA12 (#87–#91), GH8–GH12 (#94–#98).
 - Infra: make `openrouter_cache_instructions` effective in the tutor (#111).
 - Owner steps: see the next section. #58 (custom domain) waits for an explicit OK.
 - Phase 3 (#59–#61): accounts, payments, rate limits. Outline only.
