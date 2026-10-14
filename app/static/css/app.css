@@ -47,3 +47,8 @@ pre { font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; overfl
 .quiz-msg.bad { border-color: #f85149; }
 .quiz-surprise { font-weight: 600; }
 .quiz-score { font-size: 1.25rem; font-weight: 600; }
+
+.badge { font-size: 0.8rem; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--border); }
+.badge.notstarted { color: var(--fg-muted); }
+.badge.learning { border-color: #d29922; }
+.badge.mastered { border-color: #3fb950; font-weight: 600; }

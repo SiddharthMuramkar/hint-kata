@@ -1,0 +1,5 @@
+The home page now shows, for every lesson, a badge: Not started, Learning or Mastered. A lesson is Mastered only when three things are true: you got at least 80% of the quiz right on the first try, you recalled every quiz concept correctly with no hint on two different days (a day you used "Show me" does not count), and your last hands-on check passed. Lessons without a hands-on task skip that last part. The thresholds live in config (`mastery_quiz_threshold`, `mastery_recalls_required`), and a `mastery_config` event is logged at startup whenever they change, so you can audit them later. Each time a lesson changes state the app logs a `mastery_changed` event, and a new `GET /api/progress` returns the same map plus the number of due reviews. The state is recomputed from stored answers when the home page or that endpoint loads, so there is no stale copy to keep in sync. Read `app/mastery.py` first: `compute_state` is the whole rule and `refresh` writes the changes.
+
+Closes #21
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
