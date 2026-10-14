@@ -2,7 +2,7 @@ questions:
   - id: d1
     prompt: >-
       A teammate wrote `def create_order(data: dict)` and checks the keys by hand in the function.
-      Explain why you would replace `dict` with Pydantic models, and what you would model.
+      Explain why you would replace `dict` with Pydantic models, what you would model, and what a client sees when it sends bad data.
     rubric:
       - name: validation-moves-out
         explanation: The answer says the model validates and converts the data before the function runs, so manual checks go away.

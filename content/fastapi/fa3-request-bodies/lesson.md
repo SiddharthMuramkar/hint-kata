@@ -5,7 +5,7 @@ title: "Request bodies with Pydantic models"
 minutes: 25
 pins:
   fastapi: "0.143.0"
-  pydantic: "2"
+  pydantic: "2.14.1"
 sources:
   - fastapi-tutorial-body
   - fastapi-tutorial-body-nested-models
@@ -293,6 +293,9 @@ thing. Send JSON instead (`json=` in `httpx`).
 **Forgetting the Content-Type header.** FastAPI reads the body as JSON when the request says
 `Content-Type: application/json`. In FastAPI 0.143.0, a body without that header is treated as
 plain text. Even a perfectly valid JSON string then fails with the same `422` and `loc: ["body"]`.
+This is the `strict_content_type` setting of `FastAPI(...)`, which is `True` by default. It
+guards against cross-site request tricks. `FastAPI(strict_content_type=False)` brings back the
+lenient parsing, but the strict default is the safer choice.
 With `curl`, add `-H "Content-Type: application/json"`. With `httpx` and `TestClient`, the
 `json=` argument sets the header for you. If you pass `content=` yourself, set the header
 yourself.

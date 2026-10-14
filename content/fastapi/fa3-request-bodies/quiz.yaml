@@ -24,7 +24,7 @@ items:
           `book_id` appears in `/books/{book_id}`, so it comes from the path. Only `dry_run` is a
           plain value that is not in the path, so only it is a query parameter.
       - text: "`dry_run` from the body, because `bool` values are too small for a query string."
-        misconception: Thinks simple types can only live in the query if they are strings.
+        misconception: Thinks only strings can live in the query string, so other simple types go in the body.
         feedback: >-
           Any simple type (`int`, `str`, `bool`, `float`) is read from the query string by
           default. To move one into the body you must wrap it with `Body`.
