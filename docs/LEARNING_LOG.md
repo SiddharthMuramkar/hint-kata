@@ -26,3 +26,4 @@ This page is the index, in merge order. Read the files top to bottom to re-learn
 | #62 | [018 — end-to-end acceptance suite for phase 1](learning-log/018-acceptance.md) |
 | #66 | [063 — a reveal schedules a re-test card](learning-log/063-reveal-retest.md) |
 | #69 | [069 — Tighten hookify env-file and push-to-main patterns](learning-log/069-hookify-false-positives.md) |
+| — | [020 — Docs pass: phase 1 closed, phase 2 opened](learning-log/020-docs-pass.md) |
