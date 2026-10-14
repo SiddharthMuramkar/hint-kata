@@ -126,14 +126,15 @@ def _result(grade: Grade, i: int, name: str) -> CriterionResult | None:
     return by_name or (grade.criteria[i] if i < len(grade.criteria) else None)
 
 
-def _hint(grade: Grade, i: int, name: str, question: DeeperQuestion) -> str:
-    """The grader gives one hint per unmet criterion, in rubric order; else the authored hint."""
+def _hint(grade: Grade | None, i: int, name: str, question: DeeperQuestion) -> str:
+    """The grader gives one hint per unmet criterion, in rubric order; else the authored hint
+    (by criterion position, so a question that authors fewer hints than criteria has gaps)."""
     unmet = [
         c.name
         for n, c in enumerate(question.rubric)
-        if (r := _result(grade, n, c.name)) and not r.met
+        if grade and (r := _result(grade, n, c.name)) and not r.met
     ]
-    if name in unmet and unmet.index(name) < len(grade.hints):
+    if grade and name in unmet and unmet.index(name) < len(grade.hints):
         return grade.hints[unmet.index(name)]
     return question.hints[i] if i < len(question.hints) else ""
 
@@ -179,12 +180,13 @@ async def grade_answer(
                 met=met,
                 uncertain=0 < met_votes < len(grades),
                 evidence=agree[1].evidence if agree else "",
-                hint=_hint(agree[0], i, c.name, question) if agree and not met else "",
+                hint="" if met else _hint(agree[0] if agree else None, i, c.name, question),
             )
         )
-    # The feedback line comes from the first sample closest to the majority result, so it
-    # cannot say "great job" when the vote says a criterion is unmet. The hints already
-    # come from agreeing samples, one per unmet criterion, and stay in step with `views`.
+    # The feedback line comes from the first sample closest to the majority result: the sample
+    # least likely to contradict the vote (best effort; when every sample ties, the first wins).
+    # The hints already come from agreeing samples, one per unmet criterion, and stay in step
+    # with `views`.
     closest = max(grades, key=lambda g: _agreement(g, question, views))  # first wins a tie
     return GradeOutcome(
         criteria=views,

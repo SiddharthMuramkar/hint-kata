@@ -148,6 +148,25 @@ def test_feedback_comes_from_the_sample_closest_to_the_majority() -> None:
     assert out.hints == ["hint tests"]
 
 
+def test_unmet_criterion_without_a_sample_verdict_uses_the_authored_hint() -> None:
+    """Two samples give a verdict for "reuse" only, so "tests" and "scope" are 1 of 3: not met."""
+    short = Grade(
+        criteria=[grader.CriterionResult(name="reuse", evidence="q", reasoning="r", met=True)],
+        feedback="Short.",
+        hints=[],
+    )
+    full = Grade.model_validate_json(grade_json([True, True, True]))
+    out = asyncio.run(grade_answer(QUESTION, "x", agent=scripted_agent(short, short, full)))
+    assert [(c.met, c.uncertain) for c in out.criteria] == [
+        (True, False),
+        (False, True),
+        (False, True),
+    ]
+    assert out.criteria[1].hint == QUESTION.hints[1]  # authored hint by position
+    assert out.criteria[2].hint == ""  # the fixture authors 2 hints for 3 criteria
+    assert out.hints == [QUESTION.hints[1]]
+
+
 def test_all_met() -> None:
     agent, _ = fake_agent([True, True, True])
     assert (asyncio.run(grade_answer(QUESTION, "x", agent=agent))).all_met
