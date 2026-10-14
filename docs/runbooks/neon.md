@@ -1,6 +1,6 @@
 # Neon setup
 
-1. Create a free Neon project at neon.com. Pick the us-east region and Postgres 17 or newer (pgvector is built in).
+1. Create a free Neon project at neon.com. Pick the us-east region and Postgres 17 or newer (pgvector is built in; the search wants pgvector 0.8 or newer, which Neon ships on these versions).
 2. Open the project's Connect dialog. Copy the pooled connection string (host contains `-pooler`).
 3. Put it in the local env file as `DATABASE_URL=...`. The owner types this; never paste it into chat or git.
 4. Turn off "Connection pooling" in the same dialog and copy the direct string. Put it in the local env file as `DATABASE_URL_UNPOOLED=...`.
