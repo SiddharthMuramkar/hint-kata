@@ -139,6 +139,8 @@ def test_clean_github_links_and_svg() -> None:
     assert "](https://docs.github.com/en/pull-requests)" in out
     assert "<svg" not in out and "<path" not in out
     assert "[ok](https://a.b)" in out
+    img = fd.clean_github("![x](/assets/images/a.png)")
+    assert img == "![x](https://docs.github.com/assets/images/a.png)\n"
 
 
 def _manifest(tmp_path: Path, sha: str = "") -> Path:
@@ -179,9 +181,9 @@ def test_check_detects_mismatch_and_missing(tmp_path: Path) -> None:
     assert fd.main(args) == 0
 
 
-def test_check_skips_entries_without_sha(tmp_path: Path) -> None:
+def test_check_fails_when_no_entry_has_sha(tmp_path: Path) -> None:
     manifest = _manifest(tmp_path)
-    assert fd.main(["--manifest", str(manifest), "--cache", str(tmp_path / "c"), "--check"]) == 0
+    assert fd.main(["--manifest", str(manifest), "--cache", str(tmp_path / "c"), "--check"]) == 1
 
 
 def test_fastapi_end_to_end_with_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -166,7 +166,7 @@ def clean_fastapi(text: str, read: Callable[[str], str]) -> str:
 
 def clean_github(text: str) -> str:
     text = re.sub(r"<svg\b.*?</svg>", "", text, flags=re.DOTALL)
-    text = text.replace("](/en/", "](https://docs.github.com/en/")
+    text = re.sub(r"\]\(/(?=en/|assets/)", "](https://docs.github.com/", text)
     return text.strip() + "\n"
 
 
@@ -184,7 +184,7 @@ def build(entry: dict[str, Any], cache: Path) -> str:
     if kind == "fastapi_raw":
 
         def read(path: str) -> str:
-            cached = cache / "fastapi" / "_src" / path
+            cached = cache / "fastapi" / "_src" / entry["version"] / path
             if cached.exists():
                 return cached.read_text(encoding="utf-8")
             src = fetch(f"{FASTAPI_RAW}/{entry['version']}/{path}")
@@ -228,7 +228,10 @@ def save_manifest(path: Path, data: dict[str, Any]) -> None:
 
 def check(entries: list[dict[str, Any]], cache: Path) -> int:
     """Offline: verify cached files against the recorded sha256. Returns the exit code."""
-    bad = 0
+    bad = good = 0
+    if not any(e.get("sha256") for e in entries):
+        print("FAIL: no entry has a sha256 recorded; run with --update first")
+        return 1
     for e in entries:
         if not e.get("sha256"):
             status = "no-sha"
@@ -241,7 +244,9 @@ def check(entries: list[dict[str, Any]], cache: Path) -> int:
             else:
                 status = "ok"
         bad += status in ("MISSING", "MISMATCH")
+        good += status == "ok"
         print(f"{status:<9}{e['id']}")
+    print(f"check: {good} ok, {bad} failed, {len(entries) - good - bad} without sha256")
     return 1 if bad else 0
 
 
