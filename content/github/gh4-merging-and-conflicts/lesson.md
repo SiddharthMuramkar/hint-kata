@@ -32,12 +32,12 @@ M  (merge commit)   S  (A+B+C in one)     C'
 ```
 
 - **Merge commit** (the default button). All your commits come over unchanged, and GitHub adds one extra commit, the merge commit, that has two parents. Nothing is lost, but history becomes a web of branches and merges.
-- **Squash and merge.** The three commits are squashed into one new commit that holds the sum of their changes. `main` gets a single ordinary commit, in a straight line. The PR title becomes the commit message by default.
-- **Rebase and merge.** The commits are replayed one by one on top of `main`. There is no merge commit, so history stays a straight line. But the copies are new commits: they get new SHAs, and GitHub sets itself as the committer. The originals on your branch are not the commits that landed.
+- **Squash and merge.** The three commits are squashed into one new commit that holds the sum of their changes. `main` gets a single ordinary commit, in a straight line. The message is usually the PR title, depending on the repository settings.
+- **Rebase and merge.** The commits are replayed one by one on top of `main`. There is no merge commit, so history stays a straight line. But the copies are new commits: they get new SHAs, the committer information is updated (it becomes whoever merged), and the copies are not signed. The originals on your branch are not the commits that landed.
 
 **Why this repo squashes.** Work-in-progress commits such as "fix typo" or "try again" are useful while you work and noise afterwards. With squash, one PR becomes one commit with one clear title. The log reads like a list of finished changes. It also makes undoing a change easy, as you will see in the revert section. The price is real, though. You lose the individual commits and the record of who made each one, and the original SHAs are gone, which makes some git commands harder to use.
 
-**Require linear history.** A ruleset can include a rule called "Require linear history". It forbids merge commits on the branch, so every change must be a straight line. Which button fails? **Merge commit**, because it is the only method that creates a merge commit. Squash and rebase both still work. (A merge commit *inside* your PR branch, like the one you will make when you fix a conflict, is fine for a squash merge. The squash folds it into the single new commit, and the rule only looks at what lands on `main`.)
+**Require linear history.** A ruleset can include a rule called "Require linear history". It forbids merge commits on the branch, so every change must be a straight line. Which method is ruled out? **Merge commit**, because it is the only method that creates a merge commit. Squash and rebase both still work. (A merge commit *inside* your PR branch, like the one you will make when you fix a conflict, is fine for a squash merge. The squash folds it into the single new commit, and the rule only looks at what lands on `main`.)
 
 If you use a merge queue, the queue chooses the method for you. And if the repository allows only one method, that is the only button you see.
 
@@ -46,7 +46,7 @@ If you use a merge queue, the queue chooses the method for you. And if the repos
 Git merges by comparing three versions of each file: the common ancestor (where the two branches split), your version, and their version. For each line, git asks "who changed it?"
 
 - Only one side changed the line: take that change. No problem.
-- Both sides changed *different* lines: take both. No problem.
+- Both sides changed *different parts* of the file: take both. No problem.
 - Both sides changed the *same* lines in different ways: **conflict**. Git cannot know which version is right, or whether the answer is a mix of both. It stops and asks a human.
 
 The same happens when one branch deletes a file and the other edits it. ([Resolving a merge conflict using the command line](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-using-the-command-line))
@@ -92,7 +92,7 @@ Hello from my branch and from main
 Bye.
 ```
 
-VS Code shows small buttons above each conflict (Accept Current, Accept Incoming, Accept Both, Compare) and a **Resolve in Merge Editor** button that opens a three-pane view. They are a convenient way to edit the file, and nothing more: behind them it is the same text with the same markers. This lesson shows the terminal way, because it is the same everywhere and it makes you see what git did. Whichever way you edit, you must check the result yourself.
+VS Code shows small buttons above each conflict (Accept Current Change, Accept Incoming Change, Accept Both Changes, Compare Changes) and a **Resolve in Merge Editor** button that opens a three-pane view. They are a convenient way to edit the file, and nothing more: behind them it is the same text with the same markers. This lesson shows the terminal way, because it is the same everywhere and it makes you see what git did. Whichever way you edit, you must check the result yourself.
 
 Finish the merge:
 
@@ -128,14 +128,14 @@ On GitHub it is two steps:
 
 You need write access. If the button is missing, the PR is not merged yet or you lack the permission.
 
-This is where squash pays off. A squash-merged PR is **one commit**, so its revert is also **one commit**, and one click undoes the whole feature. With the other methods it is harder:
+A squash-merged PR is **one commit**, so its revert is also **one commit**. A straight, linear history keeps undoing simple, because there is no merge commit to choose a parent for. The Revert button is one click for any merged PR. The extra work comes when you revert by hand with `git revert`, and it depends on the merge method:
 
 - A **merge-commit** PR is a merge commit with two parents. Git needs to know which parent to go back to: `git revert -m 1 <merge-sha>` (parent 1 is the `main` side).
 - A **rebase-merged** PR is several separate commits, and you have to revert each one.
 
 From the terminal you can revert one commit with `git revert <sha>`, then push it on a branch and open a PR. The GitHub page notes you may need this if reverting the whole PR gives conflicts, or if the PR was not merged on GitHub. `gh pr revert <number>` does the button's job from the CLI.
 
-One trap: after a revert, the original change is on `main` *and* so is its undo. If you later want the change back, merging the old branch again does nothing, because git thinks that work is already in. Revert the revert, or open a new PR with a fixed version.
+One trap: after a revert, the original change is on `main` *and* so is its undo. What happens if you merge the old branch again depends on the method. After a merge-commit PR and a `git revert -m 1`, git treats the old commits as already merged. A later merge only brings in commits that were not part of the reverted merge, so the change does not come back. After a squash, the old branch's commits are not ancestors of `main`, so merging that branch applies the change again, along with any conflicts. Either way, do not merge the old branch back. Open a new PR with a fixed version of the change.
 
 ## Merging from the terminal
 
@@ -160,7 +160,7 @@ gh pr merge --squash --delete-branch --auto
 
 A draft PR cannot be merged, and neither can one with a conflict. If `gh pr merge` refuses, run `gh pr view --json isDraft,mergeable,mergeStateStatus` first. It tells you why.
 
-**Sources.** GitHub Docs, all adapted and summarized, CC BY 4.0, read 2026-10-14. This site is not affiliated with GitHub. Checked with `gh` 2.102 and git 2.54.
+**Sources.** Adapted from GitHub Docs, © GitHub, CC BY 4.0. Modified: summarized and adapted. Read 2026-10-14. This site is not affiliated with GitHub. Checked with `gh` 2.102 and git 2.54.
 [About merge methods on GitHub](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/about-merge-methods-on-github) ·
 [Resolving a merge conflict using the command line](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/resolving-a-merge-conflict-using-the-command-line) ·
 [Reverting a pull request](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/reverting-a-pull-request) ·

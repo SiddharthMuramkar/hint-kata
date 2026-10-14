@@ -68,8 +68,7 @@ items:
       Your PR branch `greet-b` conflicts with `main`. Put the steps in order for fixing it on the
       command line.
     steps:
-      - "Switch to your branch: `git switch greet-b`."
-      - "Download the latest `main`: `git fetch origin`."
+      - "Switch to your branch and fetch: `git switch greet-b && git fetch origin`."
       - "Run `git merge origin/main`. Git reports CONFLICT and stops in the middle of the merge."
       - "Open the file, choose the final text, and delete all three marker lines."
       - "Mark the file as resolved: `git add greeting.txt`."
@@ -137,7 +136,7 @@ items:
       ```bash
       git ____ 4f2a9c1
       ```
-    answer: revert
+    answer: 're:(git\s+)?revert'
     explanation: >-
       `git revert <sha>` adds a new commit that does the opposite of the old one. Nothing is
       rewritten, so it is safe on a shared branch. A squash-merged PR is a single commit, so one
