@@ -1,0 +1,87 @@
+questions:
+  - id: d1
+    prompt: >-
+      You are building a persona agent. The caller picks a tone and a word limit for each call, and
+      one conversation can continue over several calls with a different tone each time. Answer all
+      four parts. (1) How do you give the agent instructions that follow the tone and the word
+      limit? (2) What does the model receive on a later call that passes message_history and a new
+      deps object, and why does that make instructions a better fit than system_prompt here? (3) What happens to the
+      instructions of the earlier calls? (4) How do you test, without an API key, that the model
+      received the right text?
+    hints:
+      - Where do the tone and the word limit live, and which kind of instructions can read them? Think about when that code runs.
+      - Compare what the model gets from instructions and from a system prompt when a history is passed in. Then think about which fake model lets you read what a request carried.
+    rubric:
+      - name: dynamic-function
+        explanation: The answer builds the text with an instructions function that reads the deps, for example @agent.instructions with a RunContext.
+        pass_anchor: "I put the tone and word limit in a deps dataclass and write an @agent.instructions function that reads ctx.deps."
+        fail_anchor: "I write the tone into the static instructions string and edit the string by hand before each call."
+      - name: rebuilt-each-run
+        explanation: The answer says the function runs again on every run, so a later call with new deps gets new text even when history is passed.
+        pass_anchor: "The function runs again on every run, so a later call with a new tone gets the new text even though the history is passed in."
+        fail_anchor: "The function runs once for the conversation and its text stays in the history."
+      - name: old-copies-not-sent
+        explanation: The answer says only the current agent's instructions are sent, and the copies kept in older requests are not sent again, while a system prompt would stay in the history.
+        pass_anchor: "Older requests keep a copy of their instructions, but only the current ones are sent. A system prompt would stay in the history and carry the old tone along."
+        fail_anchor: "All the earlier instructions are sent again, stacked one after another."
+      - name: fake-model-test
+        explanation: The answer tests with a recording FunctionModel (or similar fake) that reads what the model received, with real requests blocked.
+        pass_anchor: "I run the agent with a FunctionModel that stores info.instructions, set ALLOW_MODEL_REQUESTS to False, and assert that the tone and word limit appear."
+        fail_anchor: "I call the real model and read its reply to see if the tone sounds right."
+    model_answer: >-
+      I put the tone and the word limit in a deps dataclass. Then I write a function with
+      @agent.instructions that takes a RunContext and returns text built from ctx.deps, for
+      example "Use a formal tone. Keep replies under 50 words." It can sit next to a static
+      instructions string for the parts that never change. On a later call I pass message_history
+      and a new deps object. The dynamic function runs again for that call, so the model sees the
+      new tone. Instructions come from the agent I run now. The earlier requests in the history keep
+      a copy of the instructions they were sent with, but those copies are not sent again, so the
+      old tone does not leak into the new call. A system prompt would be different: it is a part of
+      the first request, so it stays in the history and is sent again, and a new system prompt is
+      not added to a non-empty history. That is why instructions fit a persona that changes. To test
+      it without a key, I set models.ALLOW_MODEL_REQUESTS to False and run the agent with a
+      FunctionModel that records info.instructions. I assert that the first request mentions the
+      first tone and word limit, and that the second request, run with the first run's history and
+      new deps, mentions the new ones and not the old ones.
+  - id: d2
+    prompt: >-
+      A tutor agent has a default max_tokens of 1200. For one "worked example" call you want 2000.
+      The agent also sets the reasoning effort to low, and it routes through OpenRouter to a Claude
+      5.x model. Answer all four parts. (1) Where do you set the larger limit, and which setting
+      wins when the same key is set on the model, the agent and the run? (2) The run names only
+      max_tokens. What happens to the reasoning setting the agent already has? (3) Which settings
+      class and field carry the reasoning effort for OpenRouter? (4) Would you add a temperature to
+      make the answers steadier? Explain.
+    hints:
+      - There are three places that can hold settings. Which one is the narrowest, and what does it do to the keys it does not name?
+      - Provider settings have a prefix that tells you which provider they belong to. For temperature, think about what this site's agents set and what Claude 5.x models accept.
+    rubric:
+      - name: run-level-wins
+        explanation: The answer sets the larger limit in the run's model_settings, and says the run beats the agent, which beats the model.
+        pass_anchor: "I pass model_settings with max_tokens=2000 to that one run. The order is model, then agent, then run, and the run wins."
+        fail_anchor: "I change the agent's default to 2000, or I say the agent's value wins over the run's."
+      - name: keys-merge
+        explanation: The answer says the settings merge key by key, so the reasoning setting the run does not name stays as the agent set it.
+        pass_anchor: "The settings merge key by key. The run only names max_tokens, so the agent's reasoning effort of low is still sent."
+        fail_anchor: "The run's settings replace the agent's, so the reasoning setting is lost."
+      - name: provider-field
+        explanation: The answer names OpenRouterModelSettings and the openrouter_reasoning field, with an effort value.
+        pass_anchor: "I use OpenRouterModelSettings and set openrouter_reasoning={'effort': 'low'}."
+        fail_anchor: "I put reasoning_effort in plain ModelSettings, because every provider uses the same key."
+      - name: no-temperature
+        explanation: The answer says not to set temperature on Claude 5.x models, because they take no sampling settings and the OpenRouter path does not remove the key for you, and to rely on max_tokens, rubrics and samples instead.
+        pass_anchor: "No. This site never sets temperature or top_p on Claude 5.x. The models take no sampling settings and nothing drops the key on the OpenRouter path, so I would use rubric anchors and several samples for steadiness."
+        fail_anchor: "Yes, I set temperature to 0 so the output is fully repeatable."
+    model_answer: >-
+      I pass the larger limit as model_settings on that one run, for example
+      model_settings=ModelSettings(max_tokens=2000). Settings come from three places, in this order:
+      the model, then the agent, then the run. A later place wins, so the run's 2000 beats the
+      agent's 1200, which would beat a value on the model. The places merge key by key, so a run
+      that names only max_tokens does not erase anything else. The agent's reasoning setting stays
+      and is still sent as low. For OpenRouter the provider-specific settings live in
+      OpenRouterModelSettings. Its keys start with openrouter_, so the reasoning effort is
+      openrouter_reasoning={"effort": "low"}, mixed with a shared key such as max_tokens. I would not
+      add a temperature. Claude 5.x models take no sampling settings, and on the OpenRouter path
+      Pydantic AI does not remove the key for me, so adding it could cause trouble. This site never
+      sets temperature or top_p on these models. It sets max_tokens, and it gets steadier answers
+      from clear instructions, rubrics with anchors and several samples.
