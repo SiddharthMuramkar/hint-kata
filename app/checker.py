@@ -25,6 +25,10 @@ class CheckResult:
     kind: str
 
 
+def valid_lesson_id(lesson_id: str) -> bool:
+    return re.fullmatch(r"[a-z0-9-]+", lesson_id) is not None
+
+
 def find_task_dir(lesson_id: str, content_root: Path = Path("content")) -> Path | None:
     return next(iter(sorted(content_root.glob(f"*/{lesson_id}/task"))), None)
 
@@ -43,12 +47,12 @@ def _text(data: str | bytes | None) -> str:
     return data.decode(errors="replace") if isinstance(data, bytes) else (data or "")
 
 
-def run_pytest_check(lesson_id: str, task_dir: Path, workspace: Path) -> CheckResult:
+def run_pytest_check(task_dir: Path, workspace: Path) -> CheckResult:
     # The learner's code runs on their own machine, but keep API keys out of it.
     env = {
         k: v
         for k, v in os.environ.items()
-        if not any(word in k for word in ("KEY", "TOKEN", "SECRET"))
+        if not any(word in k.upper() for word in ("KEY", "TOKEN", "SECRET"))
     }
     env["PYTHONPATH"] = str(workspace.resolve())
     cmd = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"]
@@ -69,8 +73,10 @@ def _gh_line(check: dict[str, Any], repo: str) -> tuple[bool, str]:
     expect = str(check["expect"])
     try:
         proc = subprocess.run(["gh", *args], capture_output=True, text=True, timeout=GH_TIMEOUT)
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        return False, f"✗ {name} — got: {type(e).__name__}"
+    except FileNotFoundError:
+        return False, f"✗ {name} — gh is not installed"
+    except subprocess.TimeoutExpired:
+        return False, f"✗ {name} — timed out after {GH_TIMEOUT} s"
     got = proc.stdout.strip()
     if expect.startswith("re:"):
         ok = re.fullmatch(expect[3:], got) is not None
@@ -79,7 +85,7 @@ def _gh_line(check: dict[str, Any], repo: str) -> tuple[bool, str]:
     return ok, f"{'✓' if ok else '✗'} {name} — got: {got or proc.stderr.strip()[:200]}"
 
 
-def run_gh_checks(lesson_id: str, task_dir: Path, repo: str) -> CheckResult:
+def run_gh_checks(task_dir: Path, repo: str) -> CheckResult:
     if not repo:
         return CheckResult(False, "Set PRACTICE_REPO in .env", "gh")
     checks = yaml.safe_load((task_dir / "check.yaml").read_text())["checks"]
@@ -88,11 +94,11 @@ def run_gh_checks(lesson_id: str, task_dir: Path, repo: str) -> CheckResult:
 
 
 def run_check(lesson_id: str, settings: Settings, store: Store, user_id: int) -> CheckResult:
-    task_dir = find_task_dir(lesson_id)
+    task_dir = find_task_dir(lesson_id) if valid_lesson_id(lesson_id) else None
     if task_dir and (task_dir / "tests").is_dir():
-        result = run_pytest_check(lesson_id, task_dir, prepare_workspace(lesson_id, task_dir))
+        result = run_pytest_check(task_dir, prepare_workspace(lesson_id, task_dir))
     elif task_dir and (task_dir / "check.yaml").is_file():
-        result = run_gh_checks(lesson_id, task_dir, settings.practice_repo)
+        result = run_gh_checks(task_dir, settings.practice_repo)
     else:
         return CheckResult(False, "This lesson has no hands-on task.", "none")
     store.add_check(user_id, lesson_id, result.passed, result.output)

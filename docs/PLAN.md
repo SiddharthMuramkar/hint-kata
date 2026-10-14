@@ -8,11 +8,11 @@ Phase 1 in full. Phases 2 and 3 as outlines. Spec: `docs/SPEC.md`. Harness: `doc
   `O` = Opus 5.5 (`second-opinion` subagent: read-only review of risky changes only; at most 3 calls in phase 1).
 - **One task = one GitHub issue = one worktree = one branch = one PR.** Branch `issue-<n>-<slug>`.
   The PR body is a short plain-English lesson (what changed, why, which file to read first) and ends with `Closes #<n>`.
-  The same text is appended to `docs/LEARNING_LOG.md`, and `docs/PROGRESS.md` is updated, in the same PR.
+  The same text goes into a new file `docs/learning-log/<nnn>-<slug>.md` in the same PR; the main session updates `docs/PROGRESS.md` and the `docs/LEARNING_LOG.md` index between tasks (this avoids merge conflicts).
 - **Per-task flow:** F picks the next issue → S works in its worktree → `uv run ruff check . && uv run ruff format --check . && uv run ty check && uv run pytest -q` pass locally → commit (trailer `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`), push, `gh pr create` → `diff-reviewer` (F) reviews → S fixes → F runs `gh pr merge --auto --squash` → CI merges it.
 - **Parallelism:** at most 2 worktree workers at once (24 GB Mac). Parallel pairs are marked below.
 - **Cut-off safety:** push after every finished task; `docs/PROGRESS.md` says done / in flight / next; `docs/RESUME.md` holds the prompt to continue.
-- **Definition of done (every task):** tests pass locally and in CI; ruff + ty clean; PR merged; issue closed; PROGRESS + LEARNING_LOG updated; nothing left only on the Mac.
+- **Definition of done (every task):** tests pass locally and in CI; ruff + ty clean; PR merged; issue closed; learning-log file added; nothing left only on the Mac.
 
 ## Phase 1 — local-first core
 
