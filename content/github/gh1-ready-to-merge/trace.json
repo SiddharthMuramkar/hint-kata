@@ -136,7 +136,7 @@
       "payload_excerpt": "",
       "metrics": {},
       "annotation": {
-        "why": "This check finished with a neutral result. GitHub treats neutral like a success, so it does not block the merge.",
+        "why": "This check finished with a neutral result. GitHub Actions treats neutral like a success for dependent checks, but read its details before you rely on it.",
         "concept_tags": [
           "CI",
           "status checks"

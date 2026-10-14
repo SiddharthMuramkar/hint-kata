@@ -74,6 +74,11 @@ items:
         feedback: >-
           Rebase replays each of the six commits on top of main. The line is straight, but you
           still get six commits.
+      - text: Rebase and merge, then tick "squash" in the merge box
+        misconception: thinks squash can be added on top of another merge method
+        feedback: >-
+          The merge method is one choice. Each option is a different method, so you cannot combine
+          rebase with squash. Pick "Squash and merge" itself.
       - text: Squash and merge
         correct: true
         feedback: >-
@@ -99,7 +104,7 @@ items:
     concept: gh-ruleset-check
     source_section: rulesets-and-branch-protection
     prompt: "Show every rule that applies to the main branch: gh ____ main"
-    answer: ruleset check
+    answer: 're:(gh\s+)?ruleset\s+check(\s+main)?'
     explanation: >-
       gh ruleset check <branch> lists each rule and the ruleset that sets it. gh ruleset is
       read-only, so you create a ruleset with gh api.

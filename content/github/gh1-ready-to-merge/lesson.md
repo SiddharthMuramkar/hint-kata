@@ -22,17 +22,17 @@ Every change to a shared project ends with one question: is it safe to merge? A 
 GitHub flow is a small, branch-based way to work. It has six moves. Each one has a reason. See [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow).
 
 ```text
-main ──────────────────────────────●──────▶  (the branch everyone trusts)
-       \                          /
-        └─ branch ─ commits ─ PR ─ review ─ checks ─ merge
+main ──────────────────────────────────●──────▶  (the branch everyone trusts)
+       \                              /
+        └─ branch ─ commits ─ PR ─ review and checks ─ merge ─ delete branch
 ```
 
-1. **Branch.** Make a branch with a short, clear name. It is a safe place to work. Nothing reaches `main` until you merge.
-2. **Commits.** Save your work in small steps, each with a clear message. Push them, so your work is backed up and others can see it.
-3. **Pull request (PR).** Ask for the branch to be merged into `main`. Write what changed and why.
-4. **Review.** Other people read the change, ask questions and suggest edits. You push more commits and the PR updates by itself.
-5. **Checks.** Automated jobs, such as tests, run on the PR. You see the results next to the review.
-6. **Merge.** When the work is approved and the checks pass, you merge it. Then you delete the branch.
+1. **Create a branch.** Give it a short, clear name. It is a safe place to work. Nothing reaches `main` until you merge.
+2. **Commit and push your changes.** Save your work in small steps, each with a clear message. Pushing backs up your work and lets others see it.
+3. **Open a pull request (PR).** Ask for the branch to be merged into `main`. Write what changed and why. The automated checks start now.
+4. **Respond to review and checks.** People read the change, ask questions and suggest edits. The checks, such as tests, report next to the review. You push more commits and the PR updates by itself.
+5. **Merge the PR.** When the work is approved and the checks pass, you merge it.
+6. **Delete the branch.** The work is done, and an old branch can no longer be used by mistake. The PR and its history stay.
 
 The order matters. You open the PR before the review, so that the review and the checks both see the same diff. You merge last, after the evidence is in.
 
@@ -65,7 +65,7 @@ By default, **Request changes** is only a signal. It becomes a real block when t
 Two more facts from that page:
 
 - **You cannot approve your own PR.** The author is never a valid approver.
-- Repository owners and admins can still merge a PR that has no approval.
+- Under classic branch protection, repository owners and admins can merge a PR that has no approval. A ruleset blocks them too unless they are on its bypass list. The ruleset in the task has none.
 
 What does this mean if you work alone? A rule that needs one approval would lock you out, because you are the only person who could review. So solo developers usually require a pull request but set the number of approvals to **zero**. You lose the second pair of eyes, but you keep the PR, the checks and the history. Later in this lesson you set up exactly this.
 
@@ -75,7 +75,7 @@ Comments can also be left on single lines. Some repositories can require that ev
 
 A status check tells you whether a commit meets a condition, such as "the tests pass". Most checks come from automation, for example GitHub Actions. See [Status checks](https://docs.github.com/en/pull-requests/reference/status-checks).
 
-A check has a state while it runs (queued, in progress) and a conclusion when it ends (success, failure, cancelled, timed out and a few more). Two conclusions surprise people. **Neutral** and **skipped** both count as a success.
+A check has a state while it runs (queued, in progress) and a conclusion when it ends (success, failure, cancelled, timed out and a few more). Two conclusions surprise people. A **skipped** job reports success, so it does not block a merge, even if the check is required. A **neutral** result is treated as a success for dependent checks in GitHub Actions.
 
 You can mark some checks as **required**. A required check must pass before the PR can merge. A check that is not required is only advice.
 
@@ -96,7 +96,7 @@ When you merge, you pick how the commits land on the base branch. See [Pull requ
 | Squash and merge | All commits become one commit. | The PR is one logical change, with small fix-up commits. |
 | Rebase and merge | Each commit is replayed on top of `main`, with no merge commit. | The commits are already tidy and you want a straight line. |
 
-**This repo squashes.** Each PR becomes one commit on `main`, and its title becomes the commit message. The history reads like a list of finished changes. The noisy "fix typo" commits stay in the PR, where they are still visible, but they do not clutter `main`. The price: the small commits are not kept as separate commits on `main`. Squashing also works best for short-lived branches. If you keep working on a branch after a squash merge, the next PR can show old commits again and cause repeat conflicts.
+**This repo squashes.** Each PR becomes one commit on `main`, and its title becomes the commit message. The history reads like a list of finished changes. The noisy "fix typo" commits stay in the PR, where they are still visible, but they do not clutter `main`. The price: the small commits are not kept as separate commits on `main`. Squashing suits short-lived branches. If you keep using the same branch after a squash merge, GitHub no longer sees your old commits as merged. The next PR can bring them back and cause the same conflicts again.
 
 With the CLI: `gh pr merge --squash`.
 

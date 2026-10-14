@@ -24,7 +24,7 @@ MERGE_DOC = Citation(url=DOCS + "reference/pull-request-merges", title="Pull req
 
 CHECK_WHY = {
     "success": "This check passed. A passing check is automatic evidence that the change did not break the tests or the build.",
-    "neutral": "This check finished with a neutral result. GitHub treats neutral like a success, so it does not block the merge.",
+    "neutral": "This check finished with a neutral result. GitHub Actions treats neutral like a success for dependent checks, but read its details before you rely on it.",
     "skipped": "This check was skipped. GitHub reports a skipped job as a success, so it does not block the merge.",
 }
 CHECK_WHY_DEFAULT = "This check did not succeed. Open its details before you merge: a failed, cancelled or timed-out check usually means someone must act."
