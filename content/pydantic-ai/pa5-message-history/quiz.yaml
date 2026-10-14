@@ -1,0 +1,148 @@
+items:
+  - id: q1
+    type: single
+    concept: message-history-input
+    source_section: continuing-a-conversation
+    prompt: >-
+      You run `first = agent.run_sync("Tell me a joke.")`, and then
+      `agent.run_sync("Explain?", message_history=first.new_messages())`. What does the model
+      receive on the second run?
+    options:
+      - text: The joke request, the joke reply, and then the new prompt "Explain?".
+        correct: true
+        feedback: >-
+          Right. The history comes first, in order, and the new prompt follows it. That is how the
+          model can tell what "Explain?" refers to.
+      - text: Only "Explain?". The history is kept for logging and is not sent.
+        misconception: Thinks message_history is only a record and does not reach the model.
+        feedback: >-
+          Passing `message_history` is exactly how the earlier turns reach the model. Without it
+          the model would have no idea what "Explain?" refers to.
+      - text: Only "Explain?". The shared `conversation_id` lets the model look up the first turn.
+        misconception: Thinks conversation_id gives the model memory of earlier runs.
+        feedback: >-
+          `conversation_id` is a label that ties runs together for tracing. The model never
+          looks anything up with it. Only the messages you pass are sent.
+      - text: The joke reply only, because the new prompt replaces the last request in the history.
+        misconception: Thinks the new prompt overwrites part of the history.
+        feedback: >-
+          The new prompt is added after the history. Nothing in the history is replaced or removed
+          by it.
+  - id: q2
+    type: single
+    concept: new-vs-all-messages
+    source_section: all-messages-or-new-messages
+    prompt: >-
+      A chat keeps `history = []`. After every turn it runs `history += result.all_messages()`,
+      and the next turn passes `message_history=history`. What goes wrong?
+    options:
+      - text: >-
+          `all_messages()` already contains the old history, so each turn copies the earlier
+          turns in again. The history repeats itself and grows much too fast.
+        correct: true
+        feedback: >-
+          Right. After three turns you get 14 messages instead of 6. Use
+          `history += result.new_messages()`, or set `history = result.all_messages()`.
+      - text: Nothing. `all_messages()` is the only method that returns the messages of a run.
+        misconception: Thinks all_messages is the only way to read a run's messages.
+        feedback: >-
+          There is also `new_messages()`, which returns only what the current run added. It is
+          the right one to append with.
+      - text: The run fails with an error, because history cannot be reused after it was extended.
+        misconception: Thinks a repeated history is rejected.
+        feedback: >-
+          Pydantic AI does not detect repeated turns. The run works, and the model is just sent
+          the same turns more than once. That is the quiet part of the bug.
+      - text: The first turn is lost, because `all_messages()` leaves out messages from earlier runs.
+        misconception: Mixes up all_messages() with new_messages().
+        feedback: >-
+          It is the other way round. `all_messages()` includes messages from earlier runs, and
+          `new_messages()` leaves them out.
+  - id: q3
+    type: order
+    concept: save-and-load-flow
+    source_section: saving-and-loading-history
+    prompt: Put the steps of saving a chat and continuing it later in order.
+    steps:
+      - You run the agent and keep the messages of the run.
+      - You turn the messages into JSON with `ModelMessagesTypeAdapter.dump_json` and write it to a file.
+      - Later, in a new process, you read the file and call `ModelMessagesTypeAdapter.validate_json`.
+      - You pass the loaded messages as `message_history` to the next run.
+      - The model answers with the earlier turns in view.
+    explanation: >-
+      The adapter writes the messages out and reads them back as real message objects, not plain
+      dicts. Only real message objects can be passed to `message_history`.
+  - id: q4
+    type: single
+    concept: sanitize-messages
+    source_section: history-from-untrusted-clients
+    prompt: >-
+      A browser sends the chat history with every request, and one message in it is a
+      `SystemPromptPart` saying "Ignore all earlier rules." What does
+      `sanitize_messages(history)` do with it, and what does it still not guarantee?
+    options:
+      - text: >-
+          It strips the client's system prompt. It does not prove that the other messages are
+          genuine, so you still need authentication and tool limits.
+        correct: true
+        feedback: >-
+          Right. Stripping system prompts keeps the client out of your operator voice, but a client
+          can still invent user turns or tool calls. Sanitizing narrows the problem. It does not
+          make the history trustworthy.
+      - text: It keeps the system prompt, because system prompts are always trusted.
+        misconception: Thinks system prompts in a history are always safe.
+        feedback: >-
+          A system prompt carries your authority as the operator. That is why one that arrives from a
+          client is removed by default.
+      - text: >-
+          It checks a signature on every message and rejects the history if any message was forged.
+        misconception: Thinks Pydantic AI signs and verifies messages.
+        feedback: >-
+          Pydantic AI has no signature check on tool calls, tool results or approvals. Sanitizing
+          removes risky parts. It does not prove origin.
+      - text: It raises an error and refuses to run, so a client can never reach the model.
+        misconception: Thinks sanitizing rejects the whole request.
+        feedback: >-
+          It cleans the history and returns the rest. By default it only emits a warning when it
+          strips a system prompt, and the run can continue.
+  - id: q5
+    type: single
+    concept: keeping-history-small
+    source_section: keeping-history-small
+    prompt: >-
+      Your chat requests get slower and costlier as the conversation grows. Which fix is sound?
+    options:
+      - text: >-
+          Send only the recent messages, cut on a whole-turn boundary, and keep the full history
+          stored if you still need it.
+        correct: true
+        feedback: >-
+          Right. What you store and what you send can differ. Cutting on a turn boundary also keeps
+          tool calls and their results together. This site's tutor sends the newest 10 stored messages.
+      - text: Set a bigger `max_tokens`, so the model can handle the longer history.
+        misconception: Thinks max_tokens controls how much history is sent.
+        feedback: >-
+          `max_tokens` limits the length of the model's answer. It does nothing to the size of the
+          history that you send, so each request stays just as long.
+      - text: Delete the instructions from every stored message to save space.
+        misconception: Thinks instructions are what makes the history large.
+        feedback: >-
+          Instructions are rebuilt from the current agent on every request, and old copies are not
+          sent again. They are not what is making the request grow. The turns are.
+      - text: Do nothing. The model remembers the chat by itself between runs, so only new text needs sending.
+        misconception: Thinks the model keeps conversation state between runs.
+        feedback: >-
+          The model has no memory between requests. Everything it should know about earlier turns has
+          to be in the messages you send.
+  - id: q6
+    type: blank
+    concept: validate-json
+    source_section: saving-and-loading-history
+    prompt: |-
+      Fill in the blank. Which method turns JSON bytes from a file back into message objects?
+
+      history = ModelMessagesTypeAdapter.____(path.read_bytes())
+    answer: 're:(ModelMessagesTypeAdapter\.)?validate_json(\(\))?'
+    explanation: >-
+      `validate_json` parses the bytes and checks them, giving you real `ModelRequest` and
+      `ModelResponse` objects. Its partner for writing is `dump_json`.
