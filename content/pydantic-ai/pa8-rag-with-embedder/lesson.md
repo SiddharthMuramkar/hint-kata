@@ -105,7 +105,7 @@ class CountingModel(TestEmbeddingModel):
 
 Now a text that says "cats" twice has the vector `[2.0, 0.0]`, and you know the right answer before the test runs. The hands-on task at the end of this lesson uses this idea.
 
-One more switch. The docs say `models.ALLOW_MODEL_REQUESTS = False` also blocks embedding calls, so an embedder you forgot to override cannot reach the provider. We saw it. With the flag off, both `embed_query` and `embed_documents` on a real `Embedder` raised `RuntimeError: Model requests are not allowed, since ALLOW_MODEL_REQUESTS is False`. The same embedder with `override(model=TestEmbeddingModel())` still worked. Two things to watch for. With no API key set, we saw the missing-key error first, not the block. And with only `pydantic-ai-slim[openrouter]` installed, importing the OpenAI-style embedding model raised an `ImportError` until we installed `tiktoken`. This repo's ingestion pull request adds `tiktoken` for that reason.
+One more switch. The docs say `models.ALLOW_MODEL_REQUESTS = False` also blocks embedding calls, so an embedder you forgot to override cannot reach the provider. We saw it. With the flag off, both `embed_query` and `embed_documents` on a real `Embedder` raised `RuntimeError: Model requests are not allowed, since ALLOW_MODEL_REQUESTS is False`. The same embedder with `override(model=TestEmbeddingModel())` still worked. Two things to watch for. With no API key set, we saw the missing-key error first, not the block. And with only `pydantic-ai-slim[openrouter]` installed, importing the OpenAI-style embedding model raised an `ImportError` until we installed `tiktoken`. This repo lists `tiktoken` in `pyproject.toml` for that reason.
 
 ## Chunking by headings
 
