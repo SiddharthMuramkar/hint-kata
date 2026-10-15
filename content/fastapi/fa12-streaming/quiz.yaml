@@ -1,0 +1,164 @@
+items:
+  - id: q1
+    type: single
+    concept: jsonl-format
+    source_section: json-lines
+    prompt: >-
+      A route is `async def`, has the return type `AsyncIterable[Step]`, and yields three `Step`
+      objects. It has no `response_class`. What does the client receive?
+    options:
+      - text: >-
+          Three JSON objects, one per line, with the content type `application/jsonl`. Each line
+          is sent as soon as the route yields it.
+        correct: true
+        feedback: >-
+          Right. A route that yields is a stream. FastAPI writes each item as one line of JSON
+          and uses `application/jsonl`. A client can parse every complete line while the route
+          is still producing the next.
+      - text: >-
+          One JSON array, `[{...}, {...}, {...}]`, sent when the route has finished.
+        misconception: Thinks `yield` in a route only collects the items into one array.
+        feedback: >-
+          A normal response is built in one piece. A route that yields is streamed. There is no
+          array and no `[` or `]`, only one object per line.
+      - text: >-
+          Server-Sent Events blocks, `data: {...}` separated by blank lines.
+        misconception: Thinks any streaming route in FastAPI sends SSE.
+        feedback: >-
+          SSE needs `response_class=EventSourceResponse`. Without it, a route that yields sends
+          JSON Lines. We saw this when we forgot the class on an SSE route.
+      - text: >-
+          An error, because a streaming route has to say `response_class=...` first.
+        misconception: Thinks a streaming route needs a special response class.
+        feedback: >-
+          JSON Lines needs no response class. Only SSE does. In our run the route above answered
+          with status 200 and three lines.
+  - id: q2
+    type: single
+    concept: named-event
+    source_section: named-events-with-serversentevent
+    prompt: >-
+      An SSE route (with `response_class=EventSourceResponse`) must send each step as an event
+      named `step`, so that the page can tell it apart from an event named `done`. Which `yield`
+      does that?
+    options:
+      - text: >-
+          `yield ServerSentEvent(data=step, event="step")`
+        correct: true
+        feedback: >-
+          Right. `ServerSentEvent` has an `event` field for the name. On the wire it becomes the
+          line `event: step`, and the data goes on the `data:` line as JSON.
+      - text: >-
+          `yield ServerSentEvent(data=step, name="step")`
+        misconception: Thinks the field for the event name is called `name`.
+        feedback: >-
+          The field is `event`. We tried `name`. FastAPI raised no error and the event simply
+          had no name, which is the worst kind of bug: quiet.
+      - text: >-
+          `yield {"event": "step", "data": step}`
+        misconception: Thinks a dict with the SSE field names is read as an event.
+        feedback: >-
+          A plain dict is just data. We yielded one, and the whole dict, with its `"event"` key,
+          ended up inside the `data:` line. The event had no name.
+      - text: >-
+          `yield step`, because the route is already an SSE route.
+        misconception: Thinks yielding the item is enough to name the event.
+        feedback: >-
+          A plain item fills only the `data` field. The client gets `data: {...}` blocks with no
+          `event:` line, so every event looks the same. To name events, yield `ServerSentEvent`.
+  - id: q3
+    type: single
+    concept: data-vs-raw-data
+    source_section: named-events-with-serversentevent
+    prompt: >-
+      A page waits for a final event that carries the exact text `[DONE]`, with no quotes. The
+      route says `yield ServerSentEvent(data="[DONE]", event="done")`. What does the page get on
+      the `data:` line?
+    options:
+      - text: >-
+          `data: "[DONE]"`, with the quotes, because `data` is always encoded as JSON. For the
+          bare text, use `raw_data="[DONE]"`.
+        correct: true
+        feedback: >-
+          Right. A Python string turned into JSON gets quotes. `raw_data` sends the text as it is.
+          That is what the page wants for a marker like `[DONE]`.
+      - text: >-
+          `data: [DONE]`, because a string is sent as it is.
+        misconception: Thinks strings skip the JSON encoding.
+        feedback: >-
+          `data` is always JSON-encoded, for strings too. We checked: the line was
+          `data: "[DONE]"`. Only `raw_data` skips the encoding.
+      - text: >-
+          `data: [DONE]`, because FastAPI keeps `[DONE]` as a special word.
+        misconception: Thinks FastAPI knows the `[DONE]` marker.
+        feedback: >-
+          FastAPI has no special case for `[DONE]`. The docs mention it only as an example of what
+          `raw_data` is good for.
+      - text: >-
+          An error, because `data` must be a model or a dict.
+        misconception: Thinks `data` accepts only objects.
+        feedback: >-
+          `data` takes any value that JSON can hold, including a string. It just encodes it.
+  - id: q4
+    type: single
+    concept: error-after-first-yield
+    source_section: when-a-stream-breaks
+    prompt: >-
+      A streaming route has already yielded two items when it raises `RuntimeError`. What does
+      the client see?
+    options:
+      - text: >-
+          Status 200, then a stream that breaks. The status line went out before the first item,
+          so FastAPI cannot turn this into a 500. To report the failure, catch it inside the
+          generator and yield an `error` event.
+        correct: true
+        feedback: >-
+          Right. On a real server our client got 200, the first line, and then a
+          `RemoteProtocolError` about an incomplete body. FastAPI does not send an error event on
+          its own. This site's tutor route catches the exception and yields `event="error"`.
+      - text: >-
+          A 500 response, as for any route that raises.
+        misconception: Thinks the status can still change in the middle of a stream.
+        feedback: >-
+          A normal route raises before anything is sent, so FastAPI can answer with a 500. A
+          stream has already sent status 200 and some data. The status cannot be taken back.
+      - text: >-
+          The two items and a clean end of the stream, as if the route had finished.
+        misconception: Thinks FastAPI ends a failed stream politely.
+        feedback: >-
+          The client library reported an incomplete message body. The stream did not end
+          cleanly. A client must expect that and reconnect or show an error.
+      - text: >-
+          An `event: error` block, which FastAPI sends for you.
+        misconception: Thinks FastAPI turns exceptions into SSE error events.
+        feedback: >-
+          FastAPI sends no error event. If you want one, your route must catch the exception and
+          yield it itself, as the tutor route does.
+  - id: q5
+    type: order
+    concept: resume-with-last-event-id
+    source_section: named-events-with-serversentevent
+    prompt: >-
+      An SSE route gives each event an `id`. A browser loses its connection after event 2.
+      Put what happens next in the order it happens.
+    steps:
+      - The route sends events with the ids 1 and 2, and the connection drops
+      - "The browser reconnects and sends the header `Last-Event-ID: 2`"
+      - The route reads that header and skips the events up to id 2
+      - The route sends the events from id 3 onward
+    explanation: >-
+      The browser remembers the last `id` it saw and sends it back when it reconnects. The route
+      reads it as a header parameter and continues from the next event. The ids have to come from
+      something that survives the reconnect.
+  - id: q6
+    type: blank
+    concept: event-source-response
+    source_section: server-sent-events
+    prompt: >-
+      Fill in the blank. This route yields `ServerSentEvent` objects. Which response class turns
+      it into a real SSE stream?
+      `@app.get("/events", response_class=____)`
+    answer: re:(fastapi\.sse\.)?EventSourceResponse
+    explanation: >-
+      `EventSourceResponse` comes from `fastapi.sse`. Without it, the route would stream JSON
+      Lines, and each line would be a whole `ServerSentEvent` object turned into JSON.

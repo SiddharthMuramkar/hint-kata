@@ -1,0 +1,106 @@
+questions:
+  - id: d1
+    prompt: >-
+      An SSE route yields a `step` event for each of five jobs. On job 3 the code raises an
+      exception. Say what status code the client sees and why it cannot be a 500. Say what the
+      client receives. Say how you would change the route so that the page can show "the job
+      failed". Then say what happens if the client closes the page after job 2, and where you
+      would put cleanup code.
+    rubric:
+      - name: status-already-sent
+        explanation: >-
+          The answer says the status is 200, because the status line is sent before the first
+          item, so it is too late to change it into a 500.
+        pass_anchor: >-
+          "The client sees 200. The status goes out before the first item, so FastAPI cannot change it to a 500 later."
+        fail_anchor: >-
+          "The client gets a 500 error", or "FastAPI turns the exception into an error event."
+      - name: stream-is-cut
+        explanation: >-
+          The answer says the client gets the events sent so far and then a broken or incomplete
+          stream, not a clean end.
+        pass_anchor: >-
+          "The client gets the first events and then the connection is cut, so the client library reports an incomplete body."
+        fail_anchor: >-
+          "The client gets all five events", or "the stream ends normally after job 2."
+      - name: catch-and-yield-error-event
+        explanation: >-
+          The answer catches the exception inside the generator and yields an event, for example
+          `ServerSentEvent(event="error", data=...)`, which the page can react to.
+        pass_anchor: >-
+          "Wrap the loop in try/except inside the route and, in the except, yield an event named error that the page shows."
+        fail_anchor: >-
+          "Add an exception handler on the app that returns a 500", or "wrap the route call in try/except in the client."
+      - name: cleanup-in-finally
+        explanation: >-
+          The answer says that when the client leaves, the generator is cancelled and the code
+          after the last yield does not run, so cleanup belongs in a `finally` block.
+        pass_anchor: >-
+          "If the client closes the page, the generator is cancelled, so the code after the last yield never runs. Put cleanup in a finally block."
+        fail_anchor: >-
+          "The route keeps running to the end and runs the code after the last yield anyway."
+    model_answer: >-
+      The client sees status 200. FastAPI sends the status line before the first item, so when
+      job 3 raises, it is too late to change it to a 500. The client receives the events for jobs
+      1 and 2, and then the stream is cut: a client library such as `httpx` reports an incomplete
+      message body. FastAPI does not send an error event by itself. To let the page say "the job
+      failed", I would put the loop in a `try` block inside the generator, and in the `except`
+      yield `ServerSentEvent(event="error", data="The job failed.")`. The page then reacts to the
+      `error` event, as the tutor route of this site does. If the client closes the page after
+      job 2, the generator is cancelled at its next `await`, and the code after the last `yield`
+      does not run. So I would put any cleanup, such as releasing a resource, in a `finally`
+      block.
+    hints:
+      - When is the status code sent, compared with the first item, and what does that leave FastAPI able to change?
+      - What would make the exception reach the client as something the page can read, and which part of a generator still runs when the client has left?
+  - id: d2
+    prompt: >-
+      You add resume to an SSE route. Each event gets an `id`, and the route keeps the last 100
+      events in a Python list, so that a client that sends `Last-Event-ID` can continue. The app
+      runs with 4 worker processes and is redeployed every day. Explain what goes wrong with the
+      list. Say what a client should expect from the stream itself when the app is redeployed.
+      Then say how you would store the events instead.
+    rubric:
+      - name: workers-have-own-memory
+        explanation: >-
+          The answer says each worker process has its own memory, so a client that reconnects
+          may reach a worker whose list does not hold the events.
+        pass_anchor: >-
+          "Each of the 4 workers has its own list, so a client that reconnects may land on a worker that does not have the events it missed."
+        fail_anchor: >-
+          "The 4 workers share the list, so it works fine", or "the list is too small."
+      - name: redeploy-loses-the-list
+        explanation: >-
+          The answer says a redeploy or restart ends the process, so the list is lost.
+        pass_anchor: >-
+          "When the app is redeployed the processes restart, and the list in memory is gone."
+        fail_anchor: >-
+          "The list survives a redeploy because Python saves it."
+      - name: client-must-expect-a-broken-stream
+        explanation: >-
+          The answer says a restart or deploy cuts open streams, so the client sees a stream that
+          ends or breaks and has to reconnect, sending `Last-Event-ID`.
+        pass_anchor: >-
+          "A redeploy cuts the open streams, so the client sees them end and has to reconnect with Last-Event-ID."
+        fail_anchor: >-
+          "Open streams carry on across a redeploy with no change for the client."
+      - name: durable-shared-store
+        explanation: >-
+          The answer keeps the events in something that all workers can read and that survives a
+          restart, such as a database, and takes the ids from it.
+        pass_anchor: >-
+          "Store the events in a database that every worker can read, and use the stored id as the event id."
+        fail_anchor: >-
+          "Make the list bigger", or "keep one list per worker."
+    model_answer: >-
+      The list lives in the memory of one worker process, and the 4 workers do not share memory.
+      A client that reconnects may land on a different worker, whose list does not hold the
+      events it missed. A redeploy restarts the processes, so every list is lost too. A redeploy
+      also cuts the streams that are open, so the client sees the stream end or break, and it has
+      to reconnect and send `Last-Event-ID`. A client should expect this, not treat it as a rare
+      fault. To make resume work, I would store the events in a database that all workers can
+      read and that survives a restart, and I would use the stored id as the `id` of each event.
+      Then any worker can answer a reconnect.
+    hints:
+      - What does the deployment page say processes share, and what happens to a variable when the process is replaced?
+      - Where could the events live so that every worker, and every new deploy, can still read them?

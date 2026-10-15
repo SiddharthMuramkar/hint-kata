@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      A route yields three items. Before each one it waits 0.5 s with `await asyncio.sleep(0.5)`.
+      A client asks for the stream. At what times, after the request, does the client see the
+      three items: all at about 1.5 s, or one by one? Take a guess before you read.
+    note: >-
+      One by one. FastAPI sends each item as soon as the route yields it. On a real server we saw
+      them at 0.56 s, 1.06 s and 1.56 s.
+  - id: w2
+    prompt: >-
+      A streaming route yields one item and then raises an exception. What status code does the
+      client get: 200, or 500? And what does it see in the body? Take a guess before you read.
+    note: >-
+      The status is 200. The status line goes out before the first item, so it is too late to
+      change it. The client receives what was sent and then a broken stream. Our client library
+      raised an error about an incomplete body.
