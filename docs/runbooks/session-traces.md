@@ -11,7 +11,7 @@ enabled (`docs/HARNESS.md` section 3), a copy is in `~/hint-kata-inbox/`.
 ```
 uv run python traces/scripts/claude_session.py \
   --transcript ~/hint-kata-inbox/<session-id>.jsonl \
-  --repo siddharth-0044/hint-kata --pr 23 \
+  --repo SiddharthMuramkar/hint-kata --pr 23 \
   --title "Building the trace player" \
   --out content/github/<lesson>/trace.json
 ```

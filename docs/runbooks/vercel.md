@@ -3,7 +3,7 @@
 Config lives in `vercel.json`, `.vercelignore`, `.python-version` and `[tool.vercel]` in `pyproject.toml`. Nothing here holds secrets.
 
 ## What the owner must do
-- [ ] Link the GitHub repo `siddharth-0044/hint-kata` to a new Vercel project (steps below).
+- [ ] Link the GitHub repo `SiddharthMuramkar/hint-kata` to a new Vercel project (steps below).
 - [ ] Set the environment variables below in Project > Settings > Environment Variables.
 - [ ] Open the first preview URL and check `/healthz` returns `{"ok": true}`.
 - [ ] Before phase 3 (payments): flip production protection (see Deployment Protection) and move to Pro.

@@ -34,7 +34,7 @@ GitHub Actions posts checks, never commit statuses. A rule can require either ki
 Here are the check runs on this repo's `main` at the time of writing. The command is read-only, so you can run it yourself. The list changes over time, so yours may show more rows:
 
 ```bash
-gh api repos/siddharth-0044/hint-kata/commits/main/check-runs --jq '.check_runs[] | [.name, .app.slug, .conclusion] | @tsv'
+gh api repos/SiddharthMuramkar/hint-kata/commits/main/check-runs --jq '.check_runs[] | [.name, .app.slug, .conclusion] | @tsv'
 ```
 
 ```text
