@@ -1,0 +1,19 @@
+items:
+  - id: w1
+    prompt: >-
+      A file called `CLAUDE.md` in your repo says "Never push to main." An agent works in that repo
+      without anyone watching. Is that sentence enough to keep it off `main`? What else would you
+      put in place? Guess before you read.
+    note: >-
+      The sentence is a request, not a lock. The agent usually follows it, but nothing stops it if
+      it does not. A lock is something a program enforces: a deny rule, a hook that blocks the
+      command, and best of all a GitHub ruleset that refuses a direct push to `main`. For this rule,
+      this repo uses a hookify rule and the ruleset.
+  - id: w2
+    prompt: >-
+      Two agents work on two different tasks at the same time, in the same folder of the same
+      repo. What do you think goes wrong, and how would you give each agent its own space?
+    note: >-
+      They edit the same files and can commit each other's half-finished work, because there is
+      only one set of files and one checked-out branch. A git worktree gives each agent its own
+      folder and its own branch, while all of them share one history.

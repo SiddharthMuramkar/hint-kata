@@ -1,0 +1,108 @@
+questions:
+  - id: d1
+    prompt: >-
+      You will let an agent work on a small task in your repo with nobody watching. Answer four
+      things. (1) Give one kind of command you would allow without a prompt, and say how narrowly
+      you would write the rule. (2) Name two commands you would deny. (3) Say why you deny them
+      instead of setting them to ask. (4) Say which protection lives on GitHub and not on your
+      machine.
+    rubric:
+      - name: allow-narrow
+        explanation: The answer allows a named tool, not a whole family of commands.
+        pass_anchor: >-
+          Allows a specific command such as `uv run pytest *` or `git commit *`, and says a broad
+          prefix like `uv run *` or `Bash(*)` would let any command through.
+        fail_anchor: >-
+          Allows everything, or allows a broad prefix with no thought about what else it lets run,
+          or names no allow rule at all.
+      - name: deny-harm
+        explanation: The answer names two commands that can do real damage.
+        pass_anchor: >-
+          Names at least two of: force push, `git reset --hard`, `sudo`, an admin merge,
+          `gh repo delete` or `gh repo edit`, `gh secret`, reading the env file, editing the
+          guard-rail files.
+        fail_anchor: >-
+          Names only one, or names harmless commands such as `git status`, or only says "dangerous
+          things" with no example.
+      - name: deny-not-ask
+        explanation: The answer explains why deny fits an unattended run.
+        pass_anchor: >-
+          Says an ask rule waits for a person, and with nobody present the run stalls, while a deny
+          refuses at once so the agent must find another way.
+        fail_anchor: >-
+          Says ask is just as safe, or gives no reason, or says deny is used only because it is
+          stricter.
+      - name: outside-lock
+        explanation: The answer names a protection that does not live on your machine.
+        pass_anchor: >-
+          Names the GitHub ruleset on `main` (a required pull request and required checks, with no
+          bypass) as the protection that does not depend on the local machine.
+        fail_anchor: >-
+          Names only local things such as `CLAUDE.md`, a hook or a deny rule, or names no
+          protection.
+    model_answer: >-
+      I would allow `uv run pytest *`, and similar rules for `ruff`, `ty`, `git add`, `git commit`
+      and `gh pr create`. I would write each one against the exact tool. I would not write
+      `uv run *`, because `uv run` starts any program, so that one rule would allow every command.
+      I would deny `git push --force`, `gh pr merge --admin`, `gh secret *` and reading the env
+      file, and also editing `.claude/settings.json`, so the agent cannot loosen its own fence. I
+      deny them instead of asking, because an ask rule waits for a person. With nobody watching,
+      the run would stall. A deny refuses at once, and the agent has to find another way. The
+      protection that does not depend on my machine is the GitHub ruleset on `main`. It requires a
+      pull request and a green `checks` job, allows only squash merges, and has no bypass actors,
+      so even a local session running with my login cannot push straight to `main`.
+    hints:
+      - What does `uv run` do with the words that come after it, and what would that mean for a rule that allows it?
+      - If nobody is there to answer a prompt, what happens to a rule that asks? And which lock would still hold if every local check failed?
+
+  - id: d2
+    prompt: >-
+      An agent opens a pull request for the issue "fix a typo". The `checks` job is green. Name
+      four things you check in the diff itself before you merge, and for each one say what you look
+      for. One of the four must be which files deserve a line-by-line read because they control
+      what the next agent may do.
+    rubric:
+      - name: size-and-scope
+        explanation: The answer compares the change with what was asked.
+        pass_anchor: >-
+          Says to compare the size of the diff and the list of changed files with the issue, and to
+          look for unrelated edits (scope creep) in a change that should be tiny.
+        fail_anchor: >-
+          Says to read the code in general, or only checks that the title matches, with no mention
+          of size or of which files changed.
+      - name: guard-rail-files
+        explanation: The answer treats files that control the agent with extra care.
+        pass_anchor: >-
+          Says to look for changes to `.claude/settings.json`, hooks, hookify rules or workflow
+          files, and to read every line of them, because they change what the next run may do.
+        fail_anchor: >-
+          Treats all changed files alike, or never mentions configuration, hooks or workflows.
+      - name: tests-are-real
+        explanation: The answer checks the tests themselves, not only the green result.
+        pass_anchor: >-
+          Says to check that new behaviour has a new test, and that no test was deleted, skipped
+          or weakened to make CI pass.
+        fail_anchor: >-
+          Says green CI is enough, or only says to "run the tests" again.
+      - name: secrets-and-personal-details
+        explanation: The answer looks for leaked secrets and private details.
+        pass_anchor: >-
+          Says to search the diff for keys, tokens, passwords or personal paths, and that a leaked
+          secret must be rotated first, not just deleted.
+        fail_anchor: >-
+          Does not mention secrets, or relies only on GitHub's scanning to catch them.
+    model_answer: >-
+      First, size and scope. A typo fix should be a line or two in one file. I compare the numbers
+      from `gh pr view --json additions,deletions,changedFiles` and the file list with the issue,
+      and I look for unrelated edits. Second, guard-rail files. If the diff touches
+      `.claude/settings.json`, a hook, a hookify rule or a workflow file, I read every line, because
+      those files decide what the next agent may do, and an edited workflow can change what
+      `checks` itself does. Third, the tests. I check that new behaviour has a new test and that no
+      test was deleted, skipped or loosened to turn CI green. Fourth, secrets and personal details.
+      I search the diff for words like key, token, secret and password, and for local paths. A hit
+      only tells me to read that line. If a real secret got in, I rotate it first, because
+      deleting the commit does not make it safe again. Green CI alone is not enough, because it
+      only says that the tests that exist passed.
+    hints:
+      - A typo fix should look a certain way in numbers. What would make you suspicious before you read a single line?
+      - Which files would change what the next agent is allowed to do, and which part of the diff proves a test is real?

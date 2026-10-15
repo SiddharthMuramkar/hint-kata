@@ -1183,6 +1183,22 @@ sources:
   version: live
   license: all rights reserved; linked, never ingested
   attribution: 'Linked, not copied: Claude Code documentation, Best practices for Claude Code (https://code.claude.com/docs/en/best-practices). Summaries on this site are written in our own words.'
+- id: claude-code-docs-permission-modes
+  track: github
+  title: Choose a permission mode
+  url: https://code.claude.com/docs/en/permission-modes
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Choose a permission mode (https://code.claude.com/docs/en/permission-modes). Summaries on this site are written in our own words.'
+- id: claude-code-docs-hooks
+  track: github
+  title: Hooks reference
+  url: https://code.claude.com/docs/en/hooks
+  kind: link
+  version: live
+  license: all rights reserved; linked, never ingested
+  attribution: 'Linked, not copied: Claude Code documentation, Hooks reference (https://code.claude.com/docs/en/hooks). Summaries on this site are written in our own words.'
 - id: claude-code-docs-github-actions
   track: github
   title: Claude Code GitHub Actions

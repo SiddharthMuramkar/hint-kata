@@ -1,0 +1,10 @@
+checks:
+  - name: a pull request comes from a branch that starts with claude/
+    args: ["pr", "list", "-R", "{repo}", "--state", "all", "--limit", "100", "--json", "headRefName", "--jq", "[.[] | select(.headRefName | startswith(\"claude/\"))] | length"]
+    expect: 're:[1-9][0-9]*'
+  - name: that kind of pull request has Claude Code in its body
+    args: ["pr", "list", "-R", "{repo}", "--state", "all", "--limit", "100", "--json", "headRefName,body", "--jq", "[.[] | select(.headRefName | startswith(\"claude/\")) | select(.body | test(\"Claude Code\"))] | length"]
+    expect: 're:[1-9][0-9]*'
+  - name: a workflow run on a pull request finished with success
+    args: ["run", "list", "-R", "{repo}", "--event", "pull_request", "--limit", "50", "--json", "conclusion", "--jq", "[.[] | select(.conclusion == \"success\")] | length"]
+    expect: 're:[1-9][0-9]*'
