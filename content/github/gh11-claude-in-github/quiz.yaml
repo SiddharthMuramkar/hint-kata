@@ -120,7 +120,7 @@ items:
         correct: true
         feedback: >-
           Right. The check is about who starts the run, not about who wrote the words in the
-          context. Filtering helps, but it is one layer. Small permissions limit the damage.
+          context. Filtering helps, but it is one layer. A small token limits the damage.
       - text: >-
           Set `allowed_non_write_users: '*'` so that the stranger's text is checked like any other.
         misconception: Thinks the non-write-user switch adds a check on text.
@@ -164,7 +164,8 @@ items:
     explanation: >-
       `id-token: write` lets the job ask GitHub for a short-lived identity token. The setup guide
       says the action uses it. The default GitHub app path needs it, and so does workload identity
-      federation. Despite the word `write`, it gives no write access to the repo's files.
+      federation. On its own it gives no write access to the repo's files, but on the default path the action
+      trades it for the Claude app's token, which can write.
 
   - id: q6
     type: single

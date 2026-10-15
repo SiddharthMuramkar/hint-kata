@@ -90,7 +90,7 @@ Things to notice:
 - `on: issue_comment` fires when a comment is created on an issue or a pull request.
 - The `if:` line only looks at the comment text. It saves runner minutes. It is not the access check. The action does that itself.
 - The top-level `permissions:` block lists four lines. Everything else becomes `none`. Compare it with the example workflow in the lesson: `contents` is `read` here, and there is no `actions: read`.
-- `id-token: write` is there because the action needs an identity token, for the default app path and for federation. It does not let the job change files.
+- `id-token: write` is not used by this exact file. With `github_token` and an API key, the action never asks for an identity token. It is only used on the default app path (no `github_token`) or with federation. We keep it so the file still works if you switch to one of those, and the checker looks for it. On its own it does not let the job change files.
 - `github_token` makes the action use the job's own token, so the `permissions:` block is the real limit. Without it the action uses the Claude app's token, which can write.
 - Both actions are pinned to a full commit SHA with the version in a comment. The `actions/checkout` pin is the same one this repo's `ci.yml` uses.
 - The key comes from `${{ secrets.ANTHROPIC_API_KEY }}`. No key is written in the file. The secret does not exist, and you leave it that way.
@@ -102,6 +102,7 @@ The checker below is deliberately small. Before you commit, check these by eye:
 - The event is `issue_comment`, and the job has the `if:` guard with `@claude`.
 - The `permissions:` block is at the top level and has `contents: read`, `pull-requests: write`, `issues: write` and `id-token: write`.
 - Every `uses:` line ends in 40 hex characters and a `# vX.Y.Z` comment.
+- The action's `with:` has `github_token: ${{ secrets.GITHUB_TOKEN }}`.
 - There is no API key, token or password anywhere in the file.
 
 ## 5. Open a pull request and merge it
@@ -128,6 +129,7 @@ Set `PRACTICE_REPO` in `.env`, then press **Check my work**. It runs read-only `
 - The file `.github/workflows/claude.yml` exists.
 - It has a `uses:` line for `anthropics/claude-code-action` followed by `@` and a full 40-character hex SHA.
 - It has the line `id-token: write`.
+- It passes `github_token: ${{ secrets.GITHUB_TOKEN }}` to the action.
 - It contains no string that starts with `sk-ant-`.
 
 The checker cannot tell a commit SHA from a tag-object SHA, because both are 40 hex characters. Step 2 is how you make sure you pinned a commit. It also does not check the event, the guard or the other permissions. Step 4 covers those.

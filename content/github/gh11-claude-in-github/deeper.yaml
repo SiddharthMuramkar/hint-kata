@@ -3,7 +3,7 @@ questions:
     prompt: >-
       A friend wants `@claude` to answer comments on issues and pull requests in their public repo.
       Describe the workflow's top-level `permissions:` block: which permissions you grant, and why
-      the job needs `id-token: write` even though it does not write to the repo. Then say how you
+      the example workflow grants `id-token: write` even though it does not write to the repo. Then say how you
       write the `uses:` line for the action and why, and where the credential for the model lives.
     rubric:
       - name: small-permission-set
@@ -44,9 +44,9 @@ questions:
       every area I leave out becomes `none`. I would also pass `github_token: ${{ secrets.GITHUB_TOKEN }}`
       to the action. Without it the action uses the Claude app's own token, and the block would
       not limit it. The example workflow gives `contents: write` so Claude can push a branch, but
-      my friend only wants answers, so I would not. The job needs `id-token: write` because the
-      action asks GitHub for a short-lived identity (OIDC) token and uses it to get its own token.
-      The name says write, but GitHub's own scope for it gives no access to the repo's files. For the `uses:` line I would not
+      my friend only wants answers, so I would not. The example grants `id-token: write` because, on
+      the default app path, the action asks GitHub for a short-lived identity (OIDC) token and
+      trades it for its own token. With `github_token` passed, that step is skipped. For the `uses:` line I would not
       write `@v1`. A tag is a label the owner can move, and the action runs inside my job with my
       token. I would look up the commit behind the release tag, check its type is `commit`, because
       annotated tags point first at a tag object, and write the full 40-character SHA with the

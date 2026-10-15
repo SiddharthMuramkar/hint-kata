@@ -23,3 +23,12 @@ checks:
   - name: the file has no string that starts with sk-ant-
     args: ["api", "repos/{repo}/contents/.github/workflows/claude.yml", "--jq", ".content | @base64d | test(\"sk-ant-\")"]
     expect: "false"
+  - name: the action is given github_token from secrets.GITHUB_TOKEN
+    args:
+      - api
+      - repos/{repo}/contents/.github/workflows/claude.yml
+      - --jq
+      - >-
+        .content | @base64d
+        | test("(?m)^[ \\t]*github_token:[ \\t]*\\$\\{\\{ *secrets\\.GITHUB_TOKEN *\\}\\}")
+    expect: "true"
