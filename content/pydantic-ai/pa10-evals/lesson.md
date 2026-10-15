@@ -308,8 +308,18 @@ With two cases and `repeat=3` we saw:
 
 You can keep cases in a file, away from the code. `to_file` saves and `from_file` loads. A custom evaluator must be listed in `custom_evaluator_types` both ways.
 
+For this section we use a smaller two-case dataset, not the four-case one above:
+
 ```python
-dataset.to_file("summaries.yaml", custom_evaluator_types=[ShorterThanInput])
+small = Dataset[str, str, dict[str, str]](
+    name="summaries",
+    cases=[
+        Case(name="tea", inputs="Tea is a drink. It is hot.", expected_output="Tea is a drink."),
+        Case(name="rain", inputs="Rain falls. Farmers smile.", evaluators=[Contains(value="Rain")]),
+    ],
+    evaluators=[EqualsExpected(), ShorterThanInput()],
+)
+small.to_file("summaries.yaml", custom_evaluator_types=[ShorterThanInput])
 loaded = Dataset[str, str, dict[str, str]].from_file(
     "summaries.yaml", custom_evaluator_types=[ShorterThanInput]
 )
@@ -366,7 +376,7 @@ async def task(text: str) -> str:
 report = loaded.evaluate_sync(task, progress=False)
 ```
 
-All checks on both cases passed. A few things we ran into:
+All checks on both cases of the small dataset passed. A few things we ran into:
 
 - A `FunctionModel` function must return a `ModelResponse`. We first returned a plain string and got an `AssertionError`.
 - You can run a judge offline too. Pass a `FunctionModel` as `model=`. It is not a real model, so the block on real requests does not stop it. The function gets the judge prompt and must call the output tool with `reason`, `pass` and `score`. Our scripted judge always said pass. That tests the wiring only. It says nothing about how good a real judge would be.
@@ -383,7 +393,7 @@ def test_summaries() -> None:
 
 ## How this site calibrates its grader
 
-The think-deeper grader in `app/agents/grader.py` marks each rubric criterion as met or not met. If someone changes a rubric or the grader prompt, will it still agree with a human? The files for this check are `evals/run_grader.py`, `evals/grader_dataset.yaml` and `.github/workflows/evals.yml`.
+Observed on 2026-10-14, from the files on main at that date: the think-deeper grader in `app/agents/grader.py` marks each rubric criterion as met or not met. If someone changes a rubric or the grader prompt, will it still agree with a human? The files for this check are `evals/run_grader.py`, `evals/grader_dataset.yaml` and `.github/workflows/evals.yml`.
 
 **The data.** `grader_dataset.yaml` holds five answers to one question, labelled by hand. The file's header calls the labels owner-labelled. Each answer lists, per criterion (`reuse`, `tests`, `scope`), whether a careful human would mark it met. The five answers are traps on purpose: a good answer, a long answer that says nothing (`verbose-wrong`), a prompt injection, a short right answer (`terse-right`) and a right answer in other words (`synonym`). It is not the pydantic-evals YAML format from the last section. It is a plain list that the script reads with `yaml.safe_load` and turns into `Case` objects. The question itself comes from a test fixture, `fx-demo`.
 
@@ -391,8 +401,8 @@ The think-deeper grader in `app/agents/grader.py` marks each rubric criterion as
 
 Why kappa and not plain agreement? Kappa takes away the agreement you would get by luck. We ran the script's own `build_dataset()` and `kappa()` offline with two scripted graders. One copied the labels: agreement 100%, kappa 1.00. One said "met" for everything: agreement 60%, because 9 of the 15 labels are true, but kappa 0.00. The second grader learned nothing, and kappa shows it. The spec asks for 0.7 per criterion. The script prints one number over all labels, and with only 15 labels that number is rough. Five answers are a start, not proof.
 
-**The judge model.** The script calls `set_default_judge_model(settings.judge_model)` before it runs. `JUDGE_MODEL` defaults to an OpenRouter Claude model. Today the dataset has no `LLMJudge`, because `MetAgreement` is plain Python, so the call changes nothing yet. The project spec (`docs/SPEC.md`, section 12) says the judge model is set explicitly because the default would be `openai:gpt-5.2`. So an `LLMJudge` added later will use the project's judge.
+**The judge model.** The script calls `set_default_judge_model(settings.judge_model)` before it runs. `JUDGE_MODEL` defaults to an OpenRouter Claude model. On 2026-10-14 the dataset had no `LLMJudge`, because `MetAgreement` is plain Python, so the call changed nothing yet. The project spec (`docs/SPEC.md`, section 12) says the judge model is set explicitly because the default would be `openai:gpt-5.2`. So an `LLMJudge` added later will use the project's judge.
 
-**Where it runs.** The calibration calls a real model, three times per answer, so it costs tokens and needs the owner's OpenRouter key. The workflow `evals.yml` starts only on `workflow_dispatch`, which means someone presses the button. It runs `uv run python -m evals.run_grader` with the `OPENROUTER_API_KEY` secret. The CI workflow (`ci.yml`) does not run it, and when we wrote this lesson no test imported `run_grader`. We did not run the real calibration for this lesson. We ran its pieces offline, as above.
+**Where it runs.** The calibration calls a real model, three times per answer, so it costs tokens and needs the owner's OpenRouter key. The workflow `evals.yml` starts only on `workflow_dispatch`, which means someone presses the button. It runs `uv run python -m evals.run_grader` with the `OPENROUTER_API_KEY` secret. The CI workflow (`ci.yml`) does not run it, and on 2026-10-14 no test imported `run_grader`. We did not run the real calibration for this lesson. We ran its pieces offline, as above.
 
 Sources: [Pydantic Evals overview](https://pydantic.dev/docs/ai/evals/evals/), [Quick Start](https://pydantic.dev/docs/ai/evals/getting-started/quick-start/), [LLM Judge](https://pydantic.dev/docs/ai/evals/evaluators/llm-judge/) and [Standard Quality Metrics](https://pydantic.dev/docs/ai/evals/evaluators/standard-quality-metrics/) from the Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. 2024 to present. The Dataset Management page is linked only. This site is not affiliated with Pydantic.
