@@ -1,0 +1,152 @@
+items:
+  - id: q1
+    type: single
+    concept: delegation-vs-hand-off
+    source_section: delegation-is-an-agent-inside-a-tool
+    prompt: >-
+      A cook agent has a tool. Inside the tool, your code runs a pantry agent, waits, and returns
+      the pantry agent's number to the cook. The cook then writes the final answer. What is this
+      pattern, and who stays in control?
+    options:
+      - text: Delegation. The cook agent stays in control and takes the result back.
+        correct: true
+        feedback: >-
+          Right. In delegation the delegate is called from inside a tool of the parent. The parent
+          waits, gets the result, and carries on with its own run.
+      - text: Programmatic hand-off. Your application code decides which agent runs next.
+        misconception: Mixes up delegation with hand-off.
+        feedback: >-
+          In a hand-off no agent calls another. Your own code runs one agent, reads the result and
+          then runs the next. Here an agent called another one from inside a tool, so this is
+          delegation.
+      - text: An output function. The pantry agent now owns the rest of the conversation.
+        misconception: Thinks calling a second agent from a tool passes control away.
+        feedback: >-
+          Control did not leave the cook: its tool returned a value and the cook wrote the answer.
+          The docs point to an output function for the case where you want to hand control over for
+          good.
+      - text: A graph. Every multi-agent app has to be built as a graph.
+        misconception: Thinks multi-agent always needs a graph.
+        feedback: >-
+          A graph is level four of five and is meant for the most complex cases. Delegation is
+          level two and needs only a tool.
+  - id: q2
+    type: single
+    concept: async-delegation
+    source_section: why-the-delegating-tool-is-async
+    prompt: |-
+      A learner writes this delegating tool and the run stops with a UserError. What is wrong?
+
+      @cook_agent.tool
+      def check_pantry(ctx: RunContext[KitchenDeps], ingredient: str) -> int:
+          return pantry_agent.run_sync(f"How many {ingredient}?", deps=ctx.deps).output
+    options:
+      - text: >-
+          run_sync cannot be used inside a tool. Make the tool async def and use await
+          pantry_agent.run(...).
+        correct: true
+        feedback: >-
+          Right. Calling run_sync, or run_stream_sync, inside a tool can deadlock the run, so
+          Pydantic AI raises UserError. The parent can still be started with run_sync.
+      - text: The tool must return a string, not an int.
+        misconception: Thinks a tool can only return text.
+        feedback: >-
+          Tools can return an int, and the lesson's tool does. The error is about run_sync inside
+          a run, not about the return type.
+      - text: The parent agent must be started with run, not run_sync.
+        misconception: Thinks the parent has to be async too.
+        feedback: >-
+          We started the parent with run_sync and it worked. Only the function that delegates has
+          to be async.
+      - text: deps=ctx.deps is not allowed, so the delegate needs its own dependencies.
+        misconception: Thinks dependencies cannot be passed to a delegate.
+        feedback: >-
+          Passing deps=ctx.deps is the normal way to share dependencies with a delegate. The
+          UserError comes from the nested run_sync call.
+  - id: q3
+    type: single
+    concept: shared-usage
+    source_section: sharing-usage-and-a-budget
+    prompt: >-
+      The cook's tool runs the pantry agent without usage=ctx.usage. You run the cook with
+      UsageLimits(request_limit=3). The cook makes 2 model requests and the pantry makes 5. What
+      happens?
+    options:
+      - text: >-
+          The run finishes. The limit only sees the cook's 2 requests, and result.usage.requests is
+          2.
+        correct: true
+        feedback: >-
+          Right. Each run counts its own usage unless you pass the parent's counter down. We saw
+          the same: requests=2 and a limit of 3 that never fired.
+      - text: The run stops with UsageLimitExceeded, because the limit covers every agent in the app.
+        misconception: Thinks limits apply to all agents automatically.
+        feedback: >-
+          A limit is checked against the counter of the run it was given to. Without
+          usage=ctx.usage the pantry's 5 requests are in a different counter.
+      - text: The pantry agent inherits the limit and stops itself after 3 requests.
+        misconception: Thinks a delegate inherits the parent's limits.
+        feedback: >-
+          Nothing is inherited by itself. The delegate's run has no limit unless you give it one.
+      - text: The usage is added up at the end, so result.usage.requests is 7.
+        misconception: Thinks usage is summed across runs by itself.
+        feedback: >-
+          Usage is summed only when the delegate's run adds into the parent's counter. We removed
+          the usage= line and the total dropped from 4 to 2.
+  - id: q4
+    type: single
+    concept: mcp-tool-error-behavior
+    source_section: tool-errors-and-name-clashes
+    prompt: >-
+      You use an MCPToolset with its default settings. An MCP tool raises an error on the server
+      because the model passed bad arguments. What does the model see?
+    options:
+      - text: A retry prompt that holds the server's error message, so it can fix the call.
+        correct: true
+        feedback: >-
+          Right. The default tool_error_behavior is 'retry', which raises ModelRetry. In our run
+          the retry prompt said Error calling tool 'divide': b must not be zero.
+      - text: Nothing. The run ends at once with an exception.
+        misconception: Thinks every MCP error ends the run.
+        feedback: >-
+          That is tool_error_behavior='error', which you must ask for. The default sends the error
+          back to the model.
+      - text: A failed tool result that the model must live with, with no chance to retry the call.
+        misconception: Mixes up the default with 'failed'.
+        feedback: >-
+          'failed' records the call as a failed result and lets the model decide what to do next.
+          It is not the default.
+      - text: The tool silently returns an empty string.
+        misconception: Thinks errors are hidden from the model.
+        feedback: >-
+          The error text is passed on. Hiding it would stop the model from correcting its call.
+  - id: q5
+    type: order
+    concept: delegation-sequence
+    source_section: testing-with-functionmodel-on-both-agents
+    prompt: >-
+      A user asks the cook agent a question. The cook calls its check_pantry tool, which runs the
+      pantry agent. Put the events in the order they happen.
+    steps:
+      - The cook's model gets the user's question and asks for check_pantry
+      - The tool check_pantry starts a run of the pantry agent
+      - The pantry's model asks for shelf_count
+      - The pantry's model gets the shelf count and returns its final answer
+      - The tool returns the pantry's number to the cook
+      - The cook's model writes the final answer
+    explanation: >-
+      The cook is paused while its tool runs the delegate. In our test the log of who was asked
+      read cook, pantry, pantry, cook: two turns for the pantry between the cook's two turns.
+  - id: q6
+    type: blank
+    concept: mcp-tool-prefix
+    source_section: tool-errors-and-name-clashes
+    prompt: |-
+      Two MCP servers both offer a tool called get_data. Fill in the method that gives the tools of
+      the first server the names weather_get_data and so on:
+
+      weather = MCPToolset("http://localhost:3001/sse").____("weather")
+    answer: 're:prefixed'
+    explanation: >-
+      The prefixed method of a toolset adds a prefix to every tool name. We saw calc_add and
+      calc_divide when we used prefixed("calc").

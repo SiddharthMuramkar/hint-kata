@@ -1,0 +1,81 @@
+questions:
+  - id: d1
+    prompt: >-
+      You build a research desk. A "desk" agent talks to the user. When it needs a summary, its tool
+      runs a "summariser" agent. Both agents use the same database connection, and the whole
+      request must never cost more than 10 model requests. Describe how you write the tool, and
+      say what each part does. Cover how the summariser gets the connection, how the 10-request
+      limit covers both agents, why the tool is written the way it is, and what the summariser
+      knows about the user's conversation.
+    hints:
+      - "Look at the three things you pass to the delegate's run, and at which one carries the counter. Where do you put the limit itself?"
+      - "Think about what happens if the tool is a plain def that calls the synchronous run method, and about what the delegate receives if you pass only a prompt."
+    rubric:
+      - name: shared-deps
+        explanation: The answer passes the parent's dependencies to the delegate's run (deps=ctx.deps), so both agents use the same object and connection, and the delegate has a compatible deps type.
+        pass_anchor: "In the tool I run the summariser with deps=ctx.deps, so it gets the same database connection as the desk agent."
+        fail_anchor: "The summariser opens its own new connection every time it is called."
+      - name: shared-usage-limit
+        explanation: The answer passes usage=ctx.usage to the delegate's run and puts UsageLimits(request_limit=10) on the parent run, so requests from both agents count against the one limit.
+        pass_anchor: "I pass usage=ctx.usage to the delegate and run the desk agent with UsageLimits(request_limit=10), so the summariser's requests count in the same total."
+        fail_anchor: "I put request_limit=10 on both agents, which gives each agent its own budget of 10."
+      - name: async-tool
+        explanation: The answer makes the tool async def and awaits the delegate's run, because run_sync raises UserError inside a tool and can deadlock the run.
+        pass_anchor: "The tool is async def and uses await summariser.run(...), because run_sync is not allowed inside a tool."
+        fail_anchor: "The tool is a normal def that calls summariser.run_sync, which is the simplest way."
+      - name: delegate-context
+        explanation: The answer says the delegate starts with its own history and sees only the prompt the tool builds, not the user's conversation, and that message_history can be passed if it needs more.
+        pass_anchor: "The summariser only sees the prompt I build in the tool. If it needs the earlier chat I would pass message_history."
+        fail_anchor: "The summariser automatically sees everything the user said to the desk agent."
+    model_answer: >-
+      I write the tool as async def, because run_sync is not allowed inside a tool and raises a
+      UserError. Inside it I await summariser.run(prompt, deps=ctx.deps, usage=ctx.usage). Passing
+      deps=ctx.deps gives the summariser the same dependencies object, so both agents share one
+      database connection and I do not open another. Passing usage=ctx.usage makes the summariser's
+      requests count into the desk agent's counter. I start the desk agent with
+      UsageLimits(request_limit=10). Because the counter is shared, the limit covers both agents,
+      and the run stops with UsageLimitExceeded when the total would pass 10. If I left out
+      usage=ctx.usage, the limit would only see the desk agent's own requests. The summariser
+      starts a new run, so it sees only the prompt that my tool builds, not the user's conversation
+      with the desk agent. If it needs earlier messages, I would pass message_history to its run.
+  - id: d2
+    prompt: >-
+      Your app has a parent agent that delegates to a second agent, and the parent also uses an MCP
+      server for calculations. Describe how you test it so that no real model and no network is
+      used. Say how you fake the models, what you assert about the two agents together, and how you
+      run the MCP server. Then say how you would test that a bad call to an MCP tool makes the model
+      try again.
+    hints:
+      - "A test needs a fake model for each agent, and the parent's tool needs the delegate's work to count. Which two numbers on result.usage would change if someone removed a line from the tool?"
+      - "Pydantic AI can take an MCP server that lives in the same Python process. For the retry, think about which message part carries the server's error to the model, and what the default error behaviour is."
+    rubric:
+      - name: block-and-fake-both
+        explanation: The answer blocks real requests with models.ALLOW_MODEL_REQUESTS = False and overrides both agents with FunctionModel (scripted replies), using override on each agent.
+        pass_anchor: "I set ALLOW_MODEL_REQUESTS = False, then use parent.override(model=FunctionModel(...)) and delegate.override(model=FunctionModel(...)), each with its own scripted replies."
+        fail_anchor: "I override only the parent and let the delegate use its real model because it is cheap."
+      - name: assert-both-agents
+        explanation: The answer asserts something that proves the two agents worked together, such as the order in which each fake model was called, result.usage.requests and result.usage.tool_calls counting both agents, or the shared dependencies being changed by the delegate's tool.
+        pass_anchor: "I check that result.usage.requests is the sum of both agents' turns, and that a log kept by the fake models shows parent, delegate, delegate, parent."
+        fail_anchor: "I only check that the final text is right."
+      - name: in-process-mcp
+        explanation: The answer runs the MCP server inside the test process by giving a FastMCP server object to MCPToolset (or MCP(local=...)), so no network or subprocess is needed.
+        pass_anchor: "I write a small FastMCP server in the test file and pass it directly to MCPToolset, so it runs in the same process with no network."
+        fail_anchor: "I start the real server on localhost before the tests and hope it is running."
+      - name: retry-prompt
+        explanation: The answer scripts a bad call to the MCP tool, then checks that the next request holds a RetryPromptPart with the server's error text (the default behaviour is a retry), and that a corrected call finishes the run.
+        pass_anchor: "I script a call with bad arguments, find a RetryPromptPart for that tool with the server's error message, then script a good call and check the run finishes."
+        fail_anchor: "I assume the run just fails when the server reports an error."
+    model_answer: >-
+      I set models.ALLOW_MODEL_REQUESTS = False for the whole test run. Then I override both agents
+      with a FunctionModel each: parent.override(model=...) and delegate.override(model=...) in one
+      with statement. Each fake model returns scripted replies, so I choose the tool calls and the
+      final answers. The fake models also append to a shared log, so I can assert the order: parent,
+      delegate, delegate, parent. I assert result.usage.requests and result.usage.tool_calls. If the
+      tool forgets usage=ctx.usage, those numbers drop, so the assertions catch it. I can also
+      assert that the delegate's tool changed the shared deps. For the MCP server, I write a tiny
+      FastMCP server in the test file and give it to MCPToolset, which runs it inside the same
+      process, so there is no network and no subprocess. To test the retry, I script the parent's
+      model to call an MCP tool with bad arguments. With the default tool_error_behavior of
+      'retry', the next request holds a RetryPromptPart for that tool with the server's error
+      text. I assert that, then script a corrected call and a final answer, and check that the run
+      ends normally.
