@@ -119,7 +119,6 @@ async def chat(
         attempts=len(attempts),
         misconceptions=_misconceptions(lesson, attempts),
         escalate=no_progress([*stored, {"role": "user", "content": body.message}]),
-        n_sources=len(hits),
     )
     history: list[ModelMessage] = [
         ModelRequest(parts=[UserPromptPart(_wrap(m["content"]))])
