@@ -6,6 +6,9 @@
   --fg-muted: #9198a1;
   --accent: #478be6;
   --border: #3d444d;
+  --learning: #d29922;
+  --mastered: #3fb950;
+  --wrong: #f85149;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
@@ -19,16 +22,20 @@ html, body {
 
 body { min-height: 100vh; display: flex; flex-direction: column; }
 main { flex: 1; }
+main > h1 { margin: 24px 0 16px; }
 a { color: var(--accent); }
-pre { font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; overflow-x: auto; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+pre { font-family: var(--mono); font-size: 0.8rem; overflow-x: auto; }
+#check-output, #tutor-answer, .card > pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
 
 .wrap { max-width: 900px; margin: 0 auto; padding: 0 16px; }
 
 .site-header { border-bottom: 1px solid var(--border); background: var(--bg-muted); }
 .site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
 .site-name { color: var(--fg); font-weight: 600; font-size: 1.25rem; text-decoration: none; }
-.site-header nav a { margin-left: 16px; text-decoration: none; }
-.site-header nav a:hover { text-decoration: underline; }
+.site-header nav a { color: var(--fg-muted); margin-left: 16px; text-decoration: none; }
+.site-header nav a:hover { color: var(--fg); }
 
 .site-footer { border-top: 1px solid var(--border); color: var(--fg-muted); font-size: 0.875rem; padding: 16px 0; margin-top: 32px; }
 
@@ -36,20 +43,36 @@ pre { font-family: var(--mono); font-size: 0.8rem; white-space: pre-wrap; overfl
 .card h2 { margin-top: 0; }
 .muted { color: var(--fg-muted); }
 
-.review-card button, #quiz button { margin: 0 6px 6px 0; padding: 4px 10px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
-.review-card button:disabled, #quiz button:disabled { opacity: 0.4; cursor: default; }
+.track-card { border-radius: 12px; padding: 20px; }
+.track-card h2 { margin-bottom: 8px; }
+.track-lessons { list-style: none; margin: 0; padding: 0; }
+.track-lessons li { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.track-lessons li + li { border-top: 1px solid var(--border); }
+.track-lessons li:hover { background: rgba(209, 215, 224, 0.06); }
+.track-lessons a { color: var(--fg); font-weight: 500; text-decoration: none; }
+.track-lessons li:hover a { color: var(--accent); }
+.track-lessons .badge { margin-left: auto; }
+
+button, input:not([type="checkbox"]):not([type="radio"]), textarea, select { font: inherit; color: var(--fg); background: var(--bg-muted); border: 1px solid var(--border); border-radius: 6px; }
+button { padding: 4px 10px; cursor: pointer; }
+button:disabled { opacity: 0.4; cursor: default; }
+input:not([type="checkbox"]):not([type="radio"]), textarea, select { padding: 6px; }
+textarea { width: 100%; box-sizing: border-box; }
+
+.review-card button, #quiz button { margin: 0 6px 6px 0; }
 #quiz .quiz-opt, .review-card .quiz-opt { display: block; text-align: left; }
 #quiz .quiz-opt.sel, .review-card .quiz-opt.sel { border-color: var(--accent); }
-#quiz input, .review-card input { width: 100%; box-sizing: border-box; padding: 6px; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+#quiz input, .review-card input { width: 100%; box-sizing: border-box; }
 #quiz p, .review-card p { white-space: pre-wrap; }
+#tutor textarea { margin-bottom: 8px; }
 .quiz-conf { margin-top: 12px; }
 .quiz-msg { border-left: 4px solid var(--border); padding: 4px 12px; margin: 12px 0; }
-.quiz-msg.ok { border-color: #3fb950; }
-.quiz-msg.bad { border-color: #f85149; }
+.quiz-msg.ok { border-color: var(--mastered); }
+.quiz-msg.bad { border-color: var(--wrong); }
 .quiz-surprise { font-weight: 600; }
 .quiz-score { font-size: 1.25rem; font-weight: 600; }
 
-.badge { font-size: 0.8rem; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--border); }
+.badge { font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; white-space: nowrap; background: color-mix(in srgb, var(--fg) 8%, transparent); }
 .badge.notstarted { color: var(--fg-muted); }
-.badge.learning { border-color: #d29922; }
-.badge.mastered { border-color: #3fb950; font-weight: 600; }
+.badge.learning { color: var(--learning); background: color-mix(in srgb, var(--learning) 12%, transparent); }
+.badge.mastered { color: var(--mastered); background: color-mix(in srgb, var(--mastered) 12%, transparent); }
