@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      You write your own evaluator. Its evaluate method returns True or False. When you run the
+      dataset and print the report, where do you expect that result to show up: as a number
+      (a score), as a piece of text (a label), or as a pass or fail mark (an assertion)?
+    note: >-
+      A bool becomes an assertion, shown as a tick or a cross in the Assertions column. A float
+      becomes a score, and a str becomes a label.
+  - id: w2
+    prompt: >-
+      A dataset has LLMJudge(rubric="The reply is polite") and you pass no model to it. Which
+      model do you think judges the replies, and what could go wrong if your project has no key
+      for that provider?
+    note: >-
+      The library falls back to a default judge model, openai:gpt-5.2 in 2.56.0. With no OpenAI
+      key the judge cannot run. Always choose the judge model yourself.
