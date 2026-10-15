@@ -1,0 +1,110 @@
+questions:
+  - id: d1
+    prompt: >-
+      You want to connect the GitHub MCP server to Claude Code for one practice repo. Explain how
+      the pieces fit (host, client, server), which kind of server you would pick and why, how you
+      would limit what the agent can do on GitHub, and where the token must never end up.
+    rubric:
+      - name: roles
+        explanation: The answer names the three MCP roles correctly.
+        pass_anchor: >-
+          Says Claude Code is the host, that it makes one client per server, and that the GitHub
+          server is the program that offers the tools.
+        fail_anchor: >-
+          Calls Claude Code the server, or says GitHub is the host, or does not name the roles.
+      - name: remote-or-local
+        explanation: The answer picks local or remote and gives a trust reason.
+        pass_anchor: >-
+          Picks remote (a web address plus a token, nothing runs on your machine) or local (a
+          program on your machine with your rights, so read its command and trust the image) and
+          states what that choice makes you trust.
+        fail_anchor: >-
+          Picks one with no reason, or says one of them is automatically safe.
+      - name: limit-the-agent
+        explanation: The answer limits the powers of the connection.
+        pass_anchor: >-
+          Uses read-only mode (`/readonly` or `X-MCP-Readonly`) or a narrow toolset, and a token
+          that names only the practice repo with read access, to start with.
+        fail_anchor: >-
+          Relies only on telling the agent in the prompt not to write, or gives a token that covers
+          all repos with full rights.
+      - name: token-placement
+        explanation: The answer keeps the token out of shared files.
+        pass_anchor: >-
+          Uses the default local scope (not `project`), keeps `.env` and `.mcp.json` out of git, and
+          says a leaked token must be revoked first.
+        fail_anchor: >-
+          Puts the token in `.mcp.json` or any committed file, or says to just delete the commit.
+    model_answer: >-
+      Claude Code is the MCP host. It creates one MCP client for each server it connects to, and
+      the GitHub MCP server is the program that offers the GitHub tools. I would pick the remote
+      server, because nothing has to run on my machine. The price is that I trust its operator with
+      my token and the data I send. A local server would be code on my computer, with my rights, so
+      I would have to read its command and trust the image. To limit the agent, I would use the
+      address ending in `/readonly`, so that every tool that writes is left out, and a fine-grained
+      token that names only the practice repo with read access. The agent has exactly the powers of
+      the token, so a prompt that says "do not write" is not a limit. I would add the server with
+      the default local scope, never `--scope project`, because project scope saves it in
+      `.mcp.json`, which is shared through the repo. I would keep `.env` and `.mcp.json` out of git.
+      If the token ever reached a commit, I would revoke it first, then clean up.
+    hints:
+      - Which of the three roles is the part of Claude Code that keeps a connection to one server?
+      - Which scope puts the server, and any token in its command, into a file that the repo shares?
+
+  - id: d2
+    prompt: >-
+      An agent has been given a read-only GitHub connection and a way to push branches and open
+      pull requests. It is asked to fix issue 12 in your repo. Describe the steps from the issue to
+      the closed issue, explain what stops the agent from changing `main` directly or skipping the
+      checks, say what risk comes from the agent reading issue text on a public repo and how you
+      reduce it, and say who decides the merge.
+    rubric:
+      - name: branch-pr-keyword
+        explanation: The answer describes the flow with a branch and a closing keyword.
+        pass_anchor: >-
+          Says the agent works on its own branch, opens a pull request whose body ends with a
+          closing keyword and the number (for example `Closes #12`), and that merging the pull
+          request closes the issue.
+        fail_anchor: >-
+          Has the agent commit on `main`, or leaves out the keyword and says the issue closes by
+          itself.
+      - name: ruleset-guard-rails
+        explanation: The answer says what the ruleset enforces.
+        pass_anchor: >-
+          Says the ruleset on `main` requires a pull request and a passing required check, and
+          blocks force pushes and deletion, so the agent cannot push to `main` or skip `checks`.
+        fail_anchor: >-
+          Says the agent is trusted to follow the rules, or that read-only tools alone protect
+          `main`.
+      - name: untrusted-issue-text
+        explanation: The answer sees that issue text is written by other people.
+        pass_anchor: >-
+          Says an issue on a public repo is text anyone can write and it may contain instructions
+          aimed at the agent, and reduces the risk (read it yourself first, keep write tools off,
+          lockdown mode as a partial help).
+        fail_anchor: >-
+          Says issue text is safe because it comes from GitHub, or says lockdown mode fully removes
+          the risk.
+      - name: human-merges
+        explanation: The answer keeps the merge decision with a person.
+        pass_anchor: >-
+          Says a person reviews the diff (size, scope, tests, secrets, explanation) and merges, and
+          that a green check alone is not a review.
+        fail_anchor: >-
+          Says the agent should merge its own pull request, or that a passing check is enough.
+    model_answer: >-
+      A person writes the issue. The agent reads it through the read-only tools, makes a branch, for
+      example `issue-12-fix-typo`, commits the change there and pushes it. Then it opens a pull
+      request whose body ends with `Closes #12`. The required `checks` run runs on the pull request.
+      A person reviews the diff and squash merges, and the keyword closes issue 12 on merge. The
+      ruleset on `main` is what stops the agent. It requires a pull request and the required check,
+      and it blocks force pushes and deletion, so the agent cannot push straight to `main` and
+      cannot skip the check. The risk from issue text is that on a public repo anyone can write it,
+      and it may hold instructions aimed at the agent. I would read the issue myself first, keep
+      write tools off while the agent reads it, and use lockdown mode only as a partial help,
+      because the docs say it is not a security boundary. The decision to merge is mine. A green
+      check says the tests passed, not that the change is the right size or safe, so I review before
+      I merge.
+    hints:
+      - What does a line like `Closes #12` at the end of the pull request body do when the pull request is merged?
+      - Who can write the text of an issue on a public repo, and does the agent know which text is a job and which is a trick?

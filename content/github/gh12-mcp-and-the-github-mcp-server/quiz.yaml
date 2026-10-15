@@ -1,0 +1,183 @@
+items:
+  - id: q1
+    type: single
+    concept: mcp-host-client-server
+    source_section: host-client-and-server
+    prompt: >-
+      Claude Code is connected to the GitHub MCP server and to a second MCP server for local files.
+      In MCP terms, how many clients does Claude Code have, and what is Claude Code itself?
+    options:
+      - text: >-
+          Two clients, one for each server. Claude Code is the host that creates and manages them.
+        correct: true
+        feedback: >-
+          Right. The host makes one client per server, and each client keeps its own connection. The
+          host is the AI application. The servers are the programs that provide tools and context.
+      - text: >-
+          One client, shared by both servers. Claude Code is the MCP server.
+        misconception: Mixes up the three roles, and thinks one connection carries many servers.
+        feedback: >-
+          The servers are the GitHub program and the files program. Claude Code is the host, and it
+          holds a separate client for each server it connects to.
+      - text: >-
+          Zero clients. Only servers have a client, and Claude Code is the client.
+        misconception: Thinks the host and the client are the same thing.
+        feedback: >-
+          The host contains the clients. A client is the part that keeps one connection to one
+          server. The host is the application that manages all of them.
+      - text: >-
+          Two servers. Claude Code is the client, and GitHub is the host.
+        misconception: Thinks the service on the other end is the host.
+        feedback: >-
+          The host is the AI application you use. GitHub and the files program are the servers.
+
+  - id: q2
+    type: single
+    concept: mcp-local-vs-remote
+    source_section: host-client-and-server
+    prompt: >-
+      A tutorial tells you to add a GitHub MCP server with a long `docker run ...` command. Another
+      tutorial adds the server with only a web address and a header. What is the main difference in
+      what you are trusting?
+    options:
+      - text: >-
+          The `docker run` form is a local server: a program that runs on your own computer with the
+          same rights as the app that starts it, so you must read the command and trust the image.
+          The web address form is a remote server that someone else runs for you.
+        correct: true
+        feedback: >-
+          Right. A local server is code on your machine, so the command that starts it matters. A
+          remote server keeps that code off your machine, but you trust its operator with the data
+          and token you send.
+      - text: >-
+          There is no difference. Both run on GitHub's computers, and Docker is only a different
+          name for HTTP.
+        misconception: Thinks local and remote are only two ways to write the same address.
+        feedback: >-
+          Docker runs the server as a program on your machine, talking to the host over standard
+          input and output. The web address form sends requests over the network to a server that
+          is run elsewhere.
+      - text: >-
+          The remote form is always unsafe, and the `docker run` form is always safe because Docker
+          is a sandbox.
+        misconception: Believes a container is automatically a safe sandbox for any command.
+        feedback: >-
+          Neither form is safe by default. A local command runs with real rights, and the security
+          page asks you to see the exact command first. A remote server is a trust decision about
+          its operator.
+      - text: >-
+          The `docker run` form can only read, and the web address form can only write.
+        misconception: Thinks the transport decides read or write access.
+        feedback: >-
+          Read or write comes from the toolsets and the token, not from where the server runs.
+
+  - id: q3
+    type: single
+    concept: github-mcp-readonly
+    source_section: the-github-mcp-server
+    prompt: >-
+      You want the agent to read your issues and pull requests, but you do not want it able to
+      create or change anything on GitHub. Which setting does that on the remote GitHub MCP server?
+    options:
+      - text: >-
+          Use the address ending in `/readonly` (or send the `X-MCP-Readonly` header with a true
+          value). Every tool that changes something is left out.
+        correct: true
+        feedback: >-
+          Right. Read-only mode removes the write tools, whatever toolsets are on. A read-only token
+          is a good second layer, so that a mistake in one place does not matter.
+      - text: >-
+          Send `X-MCP-Lockdown: true`. Lockdown makes every tool read-only.
+        misconception: Mixes up lockdown with read-only mode.
+        feedback: >-
+          Lockdown hides the content of public issues written by people without push access. It does
+          not remove write tools, and the docs call it a best-effort filter, not a security
+          boundary.
+      - text: >-
+          Name the toolset `readonly` in `X-MCP-Toolsets`.
+        misconception: Thinks read-only is a toolset name.
+        feedback: >-
+          `readonly` is not a toolset. An unknown toolset name is silently ignored, so nothing
+          would stop the write tools. Use the path or the read-only header.
+      - text: >-
+          Nothing is needed. An agent only reads unless you ask it in the prompt to write.
+        misconception: Trusts the prompt to limit the agent instead of the connection.
+        feedback: >-
+          The prompt is a request, not a limit. The agent can use any tool the server offers and
+          the token allows. Restrict the connection itself.
+
+  - id: q4
+    type: single
+    concept: mcp-token-scope-project
+    source_section: connect-it-to-claude-code
+    prompt: |
+      You run this in a repo you share with teammates, and then commit all changed files. What is
+      the problem?
+
+      ```bash
+      claude mcp add-json github '{"type":"http","url":"https://api.githubcopilot.com/mcp/","headers":{"Authorization":"Bearer ghp_example"}}' --scope project
+      ```
+    options:
+      - text: >-
+          `--scope project` writes the server, token included, into `.mcp.json`, which is shared
+          through the repo. The token is now in git. Revoke it first, then redo the setup with the
+          default `local` scope.
+        correct: true
+        feedback: >-
+          Right. The project scope is the one that is shared with everyone through `.mcp.json`. A
+          token in a committed file is a leaked token, and the order is: revoke first, clean up
+          after.
+      - text: >-
+          `--scope project` only means this project, so the token stays private to you.
+        misconception: Confuses `project` with `local`, the private default.
+        feedback: >-
+          The default `local` scope is the one that is yours alone. `project` is the one shared with
+          everyone through `.mcp.json`.
+      - text: >-
+          There is no problem. Claude Code hides the token when it saves the file.
+        misconception: Assumes the tool will protect a pasted secret.
+        feedback: >-
+          Nothing in the command hides the value. You gave it as plain text, and it is saved the way
+          you wrote it.
+      - text: >-
+          The only problem is that the address is missing `/readonly`. The token is fine to commit
+          once the server is read-only.
+        misconception: Thinks a read-only server makes a leaked token harmless.
+        feedback: >-
+          Read-only mode is set on the connection, not on the token. Anyone who finds the token can
+          use it directly against GitHub, with whatever rights the token has.
+
+  - id: q5
+    type: order
+    concept: agent-pr-flow
+    source_section: an-agent-pull-request-under-the-ruleset
+    prompt: >-
+      Put the steps of an agent-assisted change in the order they should happen, from the issue to
+      the closed issue.
+    steps:
+      - "A person writes an issue that states one small job."
+      - "The agent reads the issue through the read-only MCP tools."
+      - "The agent makes a branch and commits the change there, not on `main`."
+      - "The agent opens a pull request whose body ends with `Closes #<n>`."
+      - "The required `checks` run passes."
+      - "A person reviews the diff and squash merges."
+      - "GitHub closes the issue because of the closing keyword."
+    explanation: >-
+      The agent works on a branch and proposes. The ruleset makes the pull request and the passing
+      check mandatory. A person reviews and merges, and the merge is what closes the issue through
+      the keyword. The agent never decides the merge.
+
+  - id: q6
+    type: blank
+    concept: claude-mcp-list
+    source_section: connect-it-to-claude-code
+    prompt: |
+      Fill in the Claude Code command that lists the MCP servers you have configured:
+
+      ```bash
+      claude mcp ____
+      ```
+    answer: "re:list"
+    explanation: >-
+      `claude mcp list` shows the servers, and `claude mcp get github` shows one in detail. Inside
+      a Claude Code session the `/mcp` command shows them too.
