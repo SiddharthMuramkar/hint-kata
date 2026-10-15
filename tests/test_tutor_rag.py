@@ -28,7 +28,7 @@ from app.agents.tutor import MAX_SOURCE_CHARS, STATIC_INSTRUCTIONS, format_sourc
 from app.config import settings
 from app.ingest.search import Hit
 from app.main import app, configure_logging
-from app.routes.tutor import get_tutor
+from tests.test_tutor import fake_tutor
 
 FIXTURES = Path(__file__).parent / "fixtures" / "content"
 REPLY = "Start at [src:1], not [src:9]; also [src:2] and [§intro]."
@@ -110,7 +110,7 @@ def seen(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Seen]:
         retrieval, "make_embedder", lambda: Embedder(TestEmbeddingModel(dimensions=1536))
     )
     monkeypatch.setattr(retrieval, "search", fake_search)
-    with get_tutor().override(model=FunctionModel(reply, stream_function=stream)):
+    with fake_tutor(FunctionModel(reply, stream_function=stream)):
         yield s
 
 
