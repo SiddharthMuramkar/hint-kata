@@ -1,0 +1,17 @@
+items:
+  - id: w1
+    prompt: >-
+      A tool of agent A runs agent B with `await b.run("...")` and returns B's answer. A's run
+      finishes. B made 2 model requests and A made 2. What does `result.usage.requests` of A's run
+      say, and what could you add to the call so that it says something different?
+    note: >-
+      By default it says 2, because B's run counted into its own usage. Passing
+      usage=ctx.usage to B's run makes B count into A's usage, so the total becomes 4 and A's
+      usage limits see the work of both agents.
+  - id: w2
+    prompt: >-
+      Your agent should use the tools of a separate program that speaks MCP. Which Pydantic AI
+      class stands for that connection, and where does it go when you build the Agent?
+    note: >-
+      The class is MCPToolset. It is a toolset, so it goes into the toolsets argument of the Agent,
+      for example Agent("openai:gpt-5.2", toolsets=[MCPToolset(url)]).
