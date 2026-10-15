@@ -1,0 +1,89 @@
+questions:
+  - id: d1
+    prompt: >-
+      A support agent has two tools, search and fetch. Last night it got stuck: the model kept
+      calling tools and the bill was large. Describe the guards you add so that this cannot happen
+      again. Name the setting for each, say which kind of loop it catches, and explain why one
+      limit is not enough. Then say how you would prove in a test that the guards work, without a
+      real model.
+    hints:
+      - "Think about two different loops: one where every tool call works but gets nowhere, and one where the tool calls keep failing. Which limit sees each of them?"
+      - "A test needs a model that misbehaves on purpose. Which fake model lets you choose every reply, and what do you check afterwards besides the error?"
+    rubric:
+      - name: request-limit-backstop
+        explanation: The answer sets request_limit in UsageLimits, passed as usage_limits to the run, to bound the model turns, and says it ends every kind of loop, including failing tool calls.
+        pass_anchor: "I pass usage_limits=UsageLimits(request_limit=5) to the run. It counts model turns, so it stops any loop, even one where the tool calls keep failing."
+        fail_anchor: "I trust the model to stop when it has enough information."
+      - name: tool-calls-limit
+        explanation: The answer sets tool_calls_limit to cap the tool calls that ran successfully, and says it catches a loop of calls that work but get nowhere, not a loop of failing calls.
+        pass_anchor: "tool_calls_limit=3 stops a run that keeps doing successful work. A call that fails is not counted, so I still need the request limit."
+        fail_anchor: "I set only tool_calls_limit and think it covers every loop."
+      - name: retry-budget
+        explanation: The answer sets a small retry budget for tools (retries or per-tool retries), so a tool that keeps raising ModelRetry ends the run with UnexpectedModelBehavior, and notes the counter is per tool and is cleared on success.
+        pass_anchor: "I set retries={'tools': 2}, so a tool that keeps asking for retries ends the run. The counter clears when the tool succeeds, so the request limit is still the backstop."
+        fail_anchor: "I leave the retry settings alone because the default is fine for every tool."
+      - name: functionmodel-loop-test
+        explanation: The answer tests with a FunctionModel that returns the same tool call on every turn, expects UsageLimitExceeded, and asserts how many times the tool ran, with real requests blocked.
+        pass_anchor: "I use a FunctionModel that calls the tool on every turn, expect UsageLimitExceeded, and assert the tool ran exactly 3 times."
+        fail_anchor: "I run the agent against the real model with a hard prompt and see whether it loops."
+    model_answer: >-
+      I would add three guards. First, a request limit: I pass
+      usage_limits=UsageLimits(request_limit=5) to every run. It counts model turns, so it is the
+      backstop for any loop, including a loop where the tool calls keep failing. Second, a tool
+      call limit: tool_calls_limit=3 caps the tool calls that ran successfully. It catches the
+      loop where every call works but the model gets nowhere. It does not count failed calls, so
+      it cannot replace the request limit, and that is why one limit is not enough. Third, a
+      retry budget, for example retries={"tools": 2}. A tool that keeps raising ModelRetry then
+      ends the run with UnexpectedModelBehavior. The counter is kept per tool and is cleared when
+      the tool succeeds, so a tool that alternates between failing and working is not caught by
+      it. I also catch UsageLimitExceeded and UnexpectedModelBehavior at the edge of the app, give
+      the user a plain message and log the stop. To prove the guards work, I block real requests
+      with models.ALLOW_MODEL_REQUESTS = False and override the agent with a FunctionModel that
+      returns the same tool call on every turn. I expect UsageLimitExceeded and I assert how many
+      times the tool ran, for example exactly 3. If someone loosens a limit, the count changes and
+      the test fails. I write a second loop with a tool that raises ToolFailed, to check the
+      request limit on its own.
+  - id: d2
+    prompt: >-
+      You put an agent that answers customer questions into production, and your team wants to see
+      each run afterwards. Describe how you set up tracing with Logfire. Say what you turn on, what
+      a single run looks like in the trace and what you would look for in it, how you keep customer
+      text out of the trace, and what the version policy means for any alert you build on the span
+      attributes.
+    hints:
+      - "Two calls switch it on, in a certain order. After that, picture the tree of spans for one run: what is the parent and what are the children?"
+      - "Some changes are not counted as breaking in a minor release. Which one touches the data your alert reads?"
+    rubric:
+      - name: turn-it-on
+        explanation: The answer calls logfire.configure() and logfire.instrument_pydantic_ai() (and names the agent with name=), and says that with no token or no instrumentation nothing is sent.
+        pass_anchor: "I call logfire.configure() and then logfire.instrument_pydantic_ai(), and I give the agent a name so its runs are easy to tell apart."
+        fail_anchor: "I install the logfire package and expect every run to be traced."
+      - name: read-the-trace
+        explanation: The answer says one run is one agent-run span with a child span for each model request and each tool call, and says what to look for, such as repeated tool calls with the same arguments, a run that ends in an error, or token and cost use.
+        pass_anchor: "Each run is one invoke_agent span with chat spans for the model requests and execute_tool spans for the tools. I look for the same tool called again and again, and for runs that end in an error."
+        fail_anchor: "I read the log lines of the app, because the trace only has the final answer."
+      - name: keep-content-out
+        explanation: The answer sets include_content=False in InstrumentationSettings (or the Instrumentation capability), so prompts, tool arguments and replies stay out while spans, timing and token counts remain.
+        pass_anchor: "I set include_content=False, so customer prompts and tool arguments are not recorded but the spans and token counts are."
+        fail_anchor: "I rely on the Logfire SDK to hide anything private."
+      - name: version-policy
+        explanation: The answer says that span attributes may change in a minor release (not counted as breaking), so alerts on exact attribute names can break, and the answer suggests pinning the version, reading release notes and testing.
+        pass_anchor: "Span attributes can change in a minor release, so I pin the version, read the release notes and keep a test that checks the attribute my alert uses."
+        fail_anchor: "Everything in the library is stable after V2.0, so alerts never need to change."
+    model_answer: >-
+      I install the Logfire SDK, log in once with logfire auth, and choose a project. In the app I
+      call logfire.configure(), which finds the token, and then
+      logfire.instrument_pydantic_ai(), which turns on tracing of every agent run in the process.
+      I give each agent a name so that its runs can be told apart. With no token or no
+      instrumentation nothing is sent. One run is one invoke_agent span. Under it is a chat span
+      for each model request and an execute_tool span for each tool call. The run span holds the
+      summed token use. I look for a run with many pairs of chat and tool spans and no answer,
+      which is a loop, for the same tool called with the same arguments, and for a run that ends
+      in an error such as a usage limit. To keep customer text out, I set include_content=False in
+      InstrumentationSettings, with the Instrumentation capability or Agent.instrument_all. Then
+      prompts, tool arguments and replies are not recorded, but the spans, timings and token
+      counts are, which is enough to debug a loop. I do not count on the Logfire SDK to scrub
+      private data. The version policy says changes to OpenTelemetry span attributes are not
+      breaking changes and may arrive in a minor release. So an alert that reads an exact attribute
+      name could stop working. I pin the Pydantic AI version, read the release notes when I
+      upgrade, and keep a test that checks the attributes my alert depends on.

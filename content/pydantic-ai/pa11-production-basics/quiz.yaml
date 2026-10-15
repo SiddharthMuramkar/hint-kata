@@ -1,0 +1,147 @@
+items:
+  - id: q1
+    type: single
+    concept: retry-layers
+    source_section: the-retry-layers
+    prompt: >-
+      Which of these retries does the model see, as a RetryPromptPart in the message history?
+    options:
+      - text: A tool retry, when a tool raises ModelRetry.
+        correct: true
+        feedback: >-
+          Right. Tool retries and output retries are agent retries: the failure comes back to the
+          model as a retry prompt, and the model answers with a new request.
+      - text: A transport retry, when a retrying HTTP client sends the same request again.
+        misconception: Thinks every retry is visible to the model.
+        feedback: >-
+          The transport sends the same request again below the model client. The agent never sees
+          the failed attempt, so nothing is added to the history.
+      - text: A provider SDK retry, when the provider's client library sends the request again.
+        misconception: Thinks SDK retries show up in the message history.
+        feedback: >-
+          The SDK client retries before your code hears about the failure. The agent sees only the
+          final result, so there is no retry prompt.
+      - text: A fallback, when a second model answers because the first one failed.
+        misconception: Thinks a fallback is a retry that the model sees.
+        feedback: >-
+          A fallback moves to a different model and is not a retry of the same one. The model never
+          sees the failed attempt. The response that answers lists the attempts that were skipped.
+  - id: q2
+    type: single
+    concept: tool-retry-counter
+    source_section: tool-retries-and-output-retries
+    prompt: >-
+      A tool has the default retry budget. On every odd call it raises ModelRetry, and on every
+      even call it works. The fake model calls it on every turn and never answers. What ends the
+      run?
+    options:
+      - text: Nothing in the retry budget. The counter is cleared each time the tool succeeds, so only a request limit ends the run.
+        correct: true
+        feedback: >-
+          Right. The counter is kept per tool name and is cleared on success, so this tool never
+          reaches its budget. We saw it run 10 times until request_limit=10 stopped the run. Without
+          your own limit the default request limit of 50 would do it.
+      - text: UnexpectedModelBehavior, after the second ModelRetry.
+        misconception: Thinks the retry budget counts all failures in the run.
+        feedback: >-
+          The budget counts failures in a row for one tool, and a success clears it. There is no
+          budget for the whole run, so the second failure is not the end.
+      - text: UnexpectedModelBehavior, after the first ModelRetry, because the default budget is zero.
+        misconception: Mixes up the default budget and max_retries=0.
+        feedback: >-
+          The default is one retry. Only max_retries=0 makes a tool fail on the first failure with
+          no retry prompt.
+      - text: The run goes on for ever, because no limit applies.
+        misconception: Thinks that no limit has been set means no limit exists.
+        feedback: >-
+          A default request_limit of 50 is always in force unless you change it. The run is slow
+          and costly, but it does end.
+  - id: q3
+    type: single
+    concept: limit-for-failing-tool-loop
+    source_section: usage-limits
+    prompt: >-
+      A model keeps calling a tool that raises ToolFailed on every call. You set
+      UsageLimits(tool_calls_limit=3, request_limit=5) and a tool retry budget of 3. Which setting
+      ends the run?
+    options:
+      - text: request_limit=5
+        correct: true
+        feedback: >-
+          Right. ToolFailed does not use the retry budget, and a failed call is not a successful
+          tool call. We saw the tool run 5 times, and the error named request_limit of 5.
+      - text: tool_calls_limit=3
+        misconception: Thinks tool_calls_limit counts every call, failed or not.
+        feedback: >-
+          The limit counts calls that ran successfully. A call that failed is not counted, so this
+          loop never reaches 3.
+      - text: The tool retry budget of 3
+        misconception: Thinks ToolFailed uses the retry budget like ModelRetry.
+        feedback: >-
+          ToolFailed is the opposite of ModelRetry here. It records a failed tool return and does
+          not use up the budget, so repeated failures are bounded by usage limits.
+      - text: cost_limit, because a loop always costs money
+        misconception: Thinks cost_limit is a reliable stop.
+        feedback: >-
+          Cost is a best effort and is empty for a model with no price data. We saw cost_limit
+          never fire on a fake model. Pair it with request_limit.
+  - id: q4
+    type: single
+    concept: request-limit-counts
+    source_section: retries-multiply
+    prompt: >-
+      You set request_limit=4, and the provider SDK allows 3 attempts per request. Roughly how many
+      HTTP requests can one run send in the worst case, with no fallback model and no transport
+      retry?
+    options:
+      - text: Up to 12, because the limit counts model turns and each turn can be tried 3 times.
+        correct: true
+        feedback: >-
+          Right. request_limit counts the model responses the agent acts on, one per turn. SDK
+          retries sit below it and are not counted, so 4 turns times 3 attempts is 12.
+      - text: Exactly 4, because the request limit is the cap on requests.
+        misconception: Thinks request_limit counts every request on the wire.
+        feedback: >-
+          It counts turns of the agent loop. Attempts that the SDK, a transport or a fallback model
+          make underneath a turn are not counted.
+      - text: Up to 3, because the SDK retries replace the request limit.
+        misconception: Thinks one retry layer switches off another.
+        feedback: >-
+          The layers stack. They do not replace each other and they share no budget, so each one
+          multiplies the others.
+      - text: Up to 7, because 4 plus 3.
+        misconception: Adds the budgets instead of multiplying them.
+        feedback: >-
+          Every turn can have its own retries, so the worst cases multiply: N × F × M × K in the
+          docs, which is 4 × 1 × 3 × 1 here.
+  - id: q5
+    type: order
+    concept: run-span-shape
+    source_section: what-one-run-looks-like-in-a-trace
+    prompt: >-
+      A looping agent runs with request_limit=2 and one tool. Put in order what happens in the run
+      (the order the spans are made, not the order they are shown).
+    steps:
+      - "Model request 1 comes back with a call to the tool"
+      - "The tool runs and returns its result"
+      - "Model request 2 comes back with a call to the tool"
+      - "The tool runs again"
+      - "The agent refuses to send request 3: UsageLimitExceeded is raised"
+      - "The run span ends with the status ERROR"
+    explanation: >-
+      Each turn is one model request followed by one tool run. The limit is checked before the
+      next request goes out, so request 3 is never sent. The run span ends last, and because the
+      run raised, its status is ERROR. In the exported list it is the last span, because spans are
+      listed when they finish.
+  - id: q6
+    type: blank
+    concept: tool-calls-limit
+    source_section: usage-limits
+    prompt: |-
+      Fill in the name so that a run may execute at most 3 tool calls successfully:
+
+      agent.run_sync("Find it", usage_limits=UsageLimits(____=3))
+    answer: 'tool_calls_limit'
+    explanation: >-
+      tool_calls_limit caps the tool calls that ran successfully in one run. It is checked before
+      a batch of calls runs, so a batch that would pass the limit does not run at all.
