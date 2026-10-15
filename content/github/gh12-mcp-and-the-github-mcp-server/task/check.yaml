@@ -1,0 +1,47 @@
+checks:
+  - name: a pull request from a branch was merged into main and it closes an issue
+    args:
+      - pr
+      - list
+      - -R
+      - "{repo}"
+      - --state
+      - merged
+      - --base
+      - main
+      - --limit
+      - "100"
+      - --json
+      - headRefName,closingIssuesReferences
+      - --jq
+      - '[.[] | select(.headRefName != "main" and (.closingIssuesReferences | length) > 0)] | length'
+    expect: 're:[1-9][0-9]*'
+  - name: an issue is closed as completed, and a pull request is its closer
+    args:
+      - issue
+      - list
+      - -R
+      - "{repo}"
+      - --state
+      - closed
+      - --limit
+      - "100"
+      - --json
+      - stateReason,closedByPullRequestsReferences
+      - --jq
+      - '[.[] | select(.stateReason == "COMPLETED" and (.closedByPullRequestsReferences | length) > 0)] | length'
+    expect: 're:[1-9][0-9]*'
+  - name: the rules on main still include a pull request rule
+    args:
+      - api
+      - repos/{repo}/rules/branches/main
+      - --jq
+      - '[.[].type] | index("pull_request") != null'
+    expect: "true"
+  - name: no .mcp.json or .env file is committed in the repo
+    args:
+      - api
+      - "repos/{repo}/git/trees/HEAD?recursive=1"
+      - --jq
+      - '[.tree[].path | select(test("(^|/)(\\.mcp\\.json|\\.env)$"))] | length'
+    expect: "0"
