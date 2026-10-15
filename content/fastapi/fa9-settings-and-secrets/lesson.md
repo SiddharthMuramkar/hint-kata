@@ -17,7 +17,7 @@ One sentence is the whole mental model: **declare your settings as a typed class
 
 The rest of the lesson goes through that sentence in order. Environment variables first. Then the `Settings` class and what happens when a value is bad. Then the env file, the cached dependency, tests, and secrets. The last section reads this site's own settings.
 
-This lesson builds on dependencies (FA1) and testing (FA2). Overrides and lifespan come back here.
+This lesson builds on dependencies (FA1), testing (FA2) and lifespan (FA8). Overrides and lifespan come back here.
 
 ## Environment variables
 
@@ -114,7 +114,7 @@ Look at `input_value`. The error prints the text it could not use. For `lots` th
 - With a plain `settings = Settings()` at the top of a module, it fails when the module is imported. The program never starts. That is the good case.
 - With a lazy `get_settings()`, which the later sections use, the server **starts fine**. The first request that needs the settings gets a 500 `Internal Server Error`, and the `ValidationError` is in the server log. The next request fails the same way. We ran this with `fastapi run` and no variables set: the server came up and `/info` answered 500.
 
-To make the lazy version fail at start, build the settings once in a lifespan function, as in FA2.
+To make the lazy version fail at start, build the settings once in a lifespan function, as in FA8.
 
 ```python
 from contextlib import asynccontextmanager

@@ -15,6 +15,9 @@ Give `Settings` three fields:
 | `max_items` | `int` | `10` |
 | `api_key` | `str` | none, so it is required. This is the secret |
 
+Keep `api_key` a plain `str` here so the tests can compare it; in a real app you would use
+`SecretStr` as the lesson shows.
+
 Add a `model_config` with `SettingsConfigDict(env_file=".env")`. You do not need to create that
 file. The hidden tests run in an empty folder and set the variables themselves.
 
