@@ -69,12 +69,14 @@ Read each line with GH5 in mind. Once you list a permission, every unlisted one 
 
 - **`contents`.** Files, commits and branches. The security page says the app uses it to read files and to create branches. The example gives `write` so Claude can push a branch.
 - **`pull-requests` and `issues`.** Reading threads and posting or updating comments. Both are `write` in the example.
-- **`id-token: write`.** This one is easy to miss. It lets the job ask GitHub for an identity token (OIDC). The setup guide says the action uses it to fetch that token, and that the default path through the GitHub app already needs it. Without it the action cannot prove who it is.
+- **`id-token: write`.** This one is easy to miss. It lets the job ask GitHub for an identity token (OIDC). The setup guide says the action uses it to fetch that token, and that the default path through the GitHub app already needs it. Without it the action cannot prove who it is, and by default that proof is how the job gets its write-capable token (see below).
 - **`actions: read`.** The comment in the file says this lets Claude read CI results on pull requests. Leave it out, and by the GH5 rule that access is `none`. That is a reading of the comment and the GH5 rule. We did not run the action to see it fail.
 
-For your practice file you will use a smaller set than the example: `contents: read` where the example has `write`, and no `actions: read`. The point of the lesson is that you choose these lines on purpose. Reading, commenting and a pull-request comment need less than pushing code. Because we do not run the action, we have not tested what `contents: read` stops. We expect it to stop Claude from pushing a branch. Check that yourself before you rely on it.
+**Which token does Claude use?** By default the action does not use the job's `GITHUB_TOKEN`. It uses `id-token: write` to get a short-lived token from the Claude app, and that token's access comes from the app's own permissions, not from your `permissions:` block. The security page lists them: Contents, Pull requests and Issues, each read and write. ([Security](https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/security.md)) So in the default setup, a small `permissions:` block does not limit Claude. To make the block the real limit, pass `github_token: ${{ secrets.GITHUB_TOKEN }}` to the action. The security page says that token is scoped to the job's declared permissions. The other way is your own GitHub app with fewer permissions, as in the setup guide. We did not run the action to test either route.
 
-The `if:` line in the example is the other thing to notice. It runs the job only when the comment holds `@claude`:
+For your practice file you will use a smaller set than the example: `contents: read` where the example has `write`, and no `actions: read`, and you pass `github_token: ${{ secrets.GITHUB_TOKEN }}` so those lines apply. The point of the lesson is that you choose these lines on purpose. Reading and commenting need less than pushing code.
+
+The example's `if:` has one branch per event. The branch for issue comments is the other thing to notice. It runs the job only when the comment holds `@claude`:
 
 ```yaml
 if: contains(github.event.comment.body, '@claude')
@@ -108,7 +110,7 @@ The documented mitigations, from cheapest to strongest:
 
 - **Narrow who is heard.** On public repos, `include_comments_by_actor` lists the users whose comments reach Claude. `exclude_comments_by_actor` drops noisy bots. If a user is in both, exclusion wins. ([Security](https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/security.md))
 - **Narrow what Claude can do.** Limit the tools in `claude_args` with `--allowedTools`, as the example file shows. The page recommends this for workflows that admit non-write users.
-- **Narrow the token.** Keep `permissions:` small. If an injection works, it can only use what the token can do. This is least privilege from GH5. The page says the app gets a short-lived token for the one repo only.
+- **Narrow the token.** Pass `GITHUB_TOKEN` with a small `permissions:` block, or use your own app with fewer permissions. If an injection works, it can only use what the token can do. This is least privilege from GH5. The page says the Claude app's token is short-lived and for the one repo only, but its access is the app's, not your block's.
 - **Keep secrets out of the model's reach.** With `allowed_non_write_users`, the action scrubs Anthropic, cloud and Actions secrets from the environment of the programs it starts, as a best effort. The page says this reduces the risk and does not remove it. You can also cap how many times a helper script may run per job with `CLAUDE_CODE_SCRIPT_CAPS`.
 - **Do not print everything.** `show_full_output` is off by default, because it would log tool output, which can hold secrets or file contents. In a public repo those logs are public. GitHub's step debug mode turns it on by itself, so do not leave debug on.
 - **Keep a human in the loop.** The action does not open pull requests by default, and its commits are unsigned unless you turn on signing.
@@ -151,10 +153,10 @@ The comment is for people and for Dependabot, which can update the SHA and the c
 
 This repo teaches the action and does not run it. The rejected list in `docs/HARNESS.md` gives two reasons.
 
-1. **Shared weekly limits.** The owner would run the action with an OAuth token, which comes from `claude setup-token` and is made from a Pro or Max plan, as the setup guide describes. The harness notes record that this bills the same weekly limits as Claude Code on the owner's Mac. A busy issue thread could use up the allowance that the build work needs. The sources in this lesson do not state how limits are shared. Treat that as the owner's finding, and see the linked Claude Code pages for your own plan.
+1. **Shared usage limits.** The rejected list in `docs/HARNESS.md` (read 2026-10-14) records that the action would use the same usage limits as Claude Code on the owner's Mac. The note does not say how. We assume the owner would use the OAuth token from `claude setup-token`, which the setup guide says comes from a Pro or Max plan. A busy issue thread could then use up the allowance that the build work needs. The sources in this lesson do not state how limits are shared, so treat this as an observation about this repo, and see the linked Claude Code pages for your own plan.
 2. **A public injection surface.** The repo is public. Anyone can open an issue or write a comment, and all of that text is untrusted. Even with the write-access check, the repo would have an agent that reads strangers' words and holds a token that can write.
 
-Neither reason says the tool is bad. They are a trade-off for this project, for now, and the choice can change. Our reading is that an API key with a spend cap at the provider, a short allow-list of commenters, a small `permissions:` block and a pinned SHA would address most points in this lesson.
+Neither reason says the tool is bad. They are a trade-off for this project, for now, and the choice can change. Our reading is that an API key with a spend cap at the provider, a short allow-list of commenters, `github_token` with a small `permissions:` block and a pinned SHA would address most points in this lesson.
 
 That is the exercise in the task. You write the file as if you would turn it on, with the guards in place, and you leave it switched off: no app, no secret. If someone commented `@claude` on that repo, the job would start and the secret would be empty. We expect the run to fail, and we did not try it. Do not try it either.
 

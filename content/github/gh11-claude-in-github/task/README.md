@@ -1,6 +1,6 @@
 # Task: write a safe, switched-off claude.yml in your practice repo
 
-You will add one workflow file, `.github/workflows/claude.yml`, that would run `claude-code-action` when someone writes `@claude` in a comment. You pin the action to a full commit SHA, give the job a small token, and leave the credential out. The workflow stays switched off in practice, because you install no app and add no secret.
+You will add one workflow file, `.github/workflows/claude.yml`, that would run `claude-code-action` when someone writes `@claude` in a comment. You pin the action to a full commit SHA, give the action a small token, and leave the credential out. The workflow stays switched off in practice, because you install no app and add no secret.
 
 You work in your **practice repo**, the one in `PRACTICE_REPO` from lesson GH1. It is a public repo. If you do not have it yet, stop here and do the setup in lesson GH1 first. The checker below needs it.
 
@@ -82,6 +82,7 @@ jobs:
         uses: anthropics/claude-code-action@34968b5981d5d170904281aa3df6f3c0d4a28855 # v1.0.249
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 Things to notice:
@@ -89,7 +90,8 @@ Things to notice:
 - `on: issue_comment` fires when a comment is created on an issue or a pull request.
 - The `if:` line only looks at the comment text. It saves runner minutes. It is not the access check. The action does that itself.
 - The top-level `permissions:` block lists four lines. Everything else becomes `none`. Compare it with the example workflow in the lesson: `contents` is `read` here, and there is no `actions: read`.
-- `id-token: write` is there because the action needs an identity token. It does not let the job change files.
+- `id-token: write` is there because the action needs an identity token, for the default app path and for federation. It does not let the job change files.
+- `github_token` makes the action use the job's own token, so the `permissions:` block is the real limit. Without it the action uses the Claude app's token, which can write.
 - Both actions are pinned to a full commit SHA with the version in a comment. The `actions/checkout` pin is the same one this repo's `ci.yml` uses.
 - The key comes from `${{ secrets.ANTHROPIC_API_KEY }}`. No key is written in the file. The secret does not exist, and you leave it that way.
 

@@ -11,7 +11,7 @@ questions:
         pass_anchor: >-
           Lists a short `permissions:` block such as `contents: read` with `pull-requests: write`
           and `issues: write`, and does not use `write-all` or grant `contents: write` without a
-          reason.
+          reason. Passes `github_token: ${{ secrets.GITHUB_TOKEN }}` so the block applies.
         fail_anchor: >-
           Leaves `permissions:` out, uses `write-all`, or lists many permissions the job does not
           need.
@@ -20,7 +20,8 @@ questions:
           The answer knows what `id-token: write` is for.
         pass_anchor: >-
           Says `id-token: write` lets the job ask GitHub for a short-lived identity (OIDC) token that
-          the action uses, and that it does not give write access to files in the repo.
+          the action uses to get its own token, and that by itself it does not give write access
+          to files in the repo.
         fail_anchor: >-
           Says it lets the job push code, or says it is not needed, or gives no reason.
       - name: pin-to-commit
@@ -40,10 +41,12 @@ questions:
     model_answer: >-
       I would write a small block at the top: `contents: read`, `pull-requests: write`,
       `issues: write` and `id-token: write`. Reading the code and posting comments needs no more, and
-      every area I leave out becomes `none`. The example workflow gives `contents: write` so Claude
-      can push a branch, but my friend only wants answers, so I would not. The job needs
-      `id-token: write` because the action asks GitHub for a short-lived identity (OIDC) token. The
-      name says write, but it gives no access to the repo's files. For the `uses:` line I would not
+      every area I leave out becomes `none`. I would also pass `github_token: ${{ secrets.GITHUB_TOKEN }}`
+      to the action. Without it the action uses the Claude app's own token, and the block would
+      not limit it. The example workflow gives `contents: write` so Claude can push a branch, but
+      my friend only wants answers, so I would not. The job needs `id-token: write` because the
+      action asks GitHub for a short-lived identity (OIDC) token and uses it to get its own token.
+      The name says write, but GitHub's own scope for it gives no access to the repo's files. For the `uses:` line I would not
       write `@v1`. A tag is a label the owner can move, and the action runs inside my job with my
       token. I would look up the commit behind the release tag, check its type is `commit`, because
       annotated tags point first at a tag object, and write the full 40-character SHA with the
@@ -88,8 +91,9 @@ questions:
       - name: damage-is-capped
         explanation: The answer explains how a small token limits what a successful attack can do.
         pass_anchor: >-
-          Says that a small `permissions:` block (least privilege) means injected instructions can
-          only use what the job's token allows, for example no `contents: write`.
+          Says a small token limits what injected instructions can do: for example GITHUB_TOKEN
+          passed as `github_token` with a small `permissions:` block, or a custom app with fewer
+          permissions.
         fail_anchor: >-
           Says nothing about limiting the token, or says that filtering alone is enough.
     model_answer: >-
@@ -101,9 +105,9 @@ questions:
       filter may appear. So I would use the layers the docs describe. For example, I would read the
       raw text of outside contributions before asking Claude to work on them, and on a public repo I
       would use `include_comments_by_actor` so only trusted people's comments reach Claude. I would
-      also limit the tools with `--allowedTools`. And I would keep the token small, with
-      `contents: read` where I can, so that if an injection works, it can only do what the token
-      allows. That is least privilege, and it caps the damage.
+      also limit the tools with `--allowedTools`. And I would keep the token small: `GITHUB_TOKEN` passed as `github_token` with
+      `contents: read` where I can, or a custom app with fewer permissions, so that if an
+      injection works, it can only do what the token allows. That is least privilege, and it caps the damage.
     hints:
       - The check runs at one moment. Whose words are in the thread at that moment, and who wrote them?
       - If the model were fooled completely, what would still stop it from doing harm?

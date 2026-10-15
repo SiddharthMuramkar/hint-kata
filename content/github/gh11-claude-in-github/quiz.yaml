@@ -81,8 +81,8 @@ items:
           Claude runs, but with a read-only token, because the commenter has read access only.
         misconception: Thinks the action runs with the commenter's own permissions.
         feedback: >-
-          The token comes from the workflow's `permissions:` block, not from the person who
-          commented. The action stops instead of running with less.
+          The action does not run with the commenter's permissions. It checks the commenter and
+          stops when they lack write access.
       - text: >-
           The `if:` line matches, so the job starts. The action then checks the commenter's access,
           finds no write access, and stops.
@@ -140,11 +140,12 @@ items:
       - "GitHub starts the workflow for the `issue_comment` event, and the job's `if:` line matches the text."
       - "The action checks that the commenter has write access to the repo."
       - "The action reads the issue and the comments, and runs Claude Code on the runner."
-      - "Claude posts its answer back to the issue, using the job's token."
+      - "Claude posts its answer back to the issue, using the token the action holds."
     explanation: >-
       The text match comes first and decides only whether the job starts. The access check comes
       next, before Claude runs. The untrusted text reaches the model only after both. The reply
-      goes out with the token, so the token's permissions limit what it can do.
+      goes out with the token the action holds. Whatever that token can do is what an injected
+      instruction could do.
 
   - id: q5
     type: blank
