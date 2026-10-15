@@ -1,0 +1,113 @@
+questions:
+  - id: d1
+    prompt: >-
+      A teammate wants to copy the official FastAPI SQL tutorial into this site. Explain how the
+      tutorial gives each request its database session, and how it creates its tables. Then say
+      how this site does the SQL part differently, and why it made that choice.
+    rubric:
+      - name: tutorial-session-per-request
+        explanation: >-
+          The answer says the tutorial uses a dependency with `yield` that opens a new `Session`
+          for each request and closes it afterwards, and the routes get it with `Depends`.
+        pass_anchor: >-
+          "A `get_session` dependency opens a `Session` in a `with` block and yields it, so every request gets its own session and it is closed when the request ends."
+        fail_anchor: >-
+          "The tutorial makes one global session at startup and every route shares it", or "each route opens its own session by hand."
+      - name: tutorial-create-all-at-startup
+        explanation: >-
+          The answer says the tutorial creates the tables when the app starts, by calling
+          `SQLModel.metadata.create_all(engine)` from a startup handler.
+        pass_anchor: >-
+          "It calls `create_all` from a startup handler, so the tables exist as soon as the app is running."
+        fail_anchor: >-
+          "The tables are created the first time a route is called", or "it uses a migration tool and never creates tables in code."
+      - name: sql-inside-store
+        explanation: >-
+          The answer says this site keeps all its SQL inside two classes, `SqliteStore` and
+          `PostgresStore`, behind a `Store` Protocol, so routes call methods and never see SQL
+          or a cursor.
+        pass_anchor: >-
+          "The site hides the SQL in `SqliteStore` and `PostgresStore`, which both follow a `Store` Protocol. Routes call methods like `last_check` and never touch a query."
+        fail_anchor: >-
+          "Routes build their own SQL strings and run them", or "the site uses SQLModel like the tutorial."
+      - name: two-databases-reason
+        explanation: >-
+          The answer gives the reason: the same routes must run on SQLite now and on Postgres
+          (Neon) later, so the database specifics are kept in one place per database.
+        pass_anchor: >-
+          "The site runs on a SQLite file locally and Postgres on Neon later. Keeping each database's SQL in its own store means the routes do not change when the database does."
+        fail_anchor: >-
+          "Because plain SQL is always faster than an ORM", or "because FastAPI cannot work with SQLModel."
+    model_answer: >-
+      The tutorial writes a dependency with `yield` called `get_session`. It opens a `Session`
+      for the request, yields it to the route, and closes it when the request is over, so every
+      request has its own session. The tables are created at startup. A function calls
+      `SQLModel.metadata.create_all(engine)`, and it is run from an `@app.on_event("startup")`
+      handler. That decorator is the deprecated style in FastAPI 0.143.0, and a `lifespan`
+      function is the way to do it now. This site does not use SQLModel. It keeps all its SQL
+      inside two classes, `SqliteStore` and `PostgresStore`, which both follow a `Store`
+      Protocol. A route calls a method such as `store.last_check(...)` and never sees a cursor
+      or a query. The reason is that the site runs on a SQLite file on the learner's Mac now and
+      on Postgres on Neon later. With the SQL for each database in its own class, the routes stay
+      the same when the database changes. The price is that every query is written twice.
+    hints:
+      - Look at the tutorial's `get_session`. What does it open, what does it hand to the route, and when does it close?
+      - Where would you have to edit if the site moved from SQLite to Postgres? Which parts of the code would not need to change?
+  - id: d2
+    prompt: >-
+      You are writing the dependency `get_conn` for an API that saves notes in a SQLite file. It
+      must give every request its own connection. Describe what it does before the `yield`,
+      after the route returns normally, when the route raises, and at the very end. Say why
+      `check_same_thread=False` is needed here. Then say when the code after the `yield` runs by
+      default, and what you would change if a failed commit has to reach the client.
+    rubric:
+      - name: open-yield-close
+        explanation: >-
+          The answer says `get_conn` opens a new connection for each request, yields it, and
+          closes it in a `finally` block, so it is closed on success and on error.
+        pass_anchor: >-
+          "It opens a new `sqlite3` connection, yields it to the route, and closes it in `finally`, so the connection is closed whether the route worked or not."
+        fail_anchor: >-
+          "It keeps one connection in a module variable and reuses it", or "the route closes the connection itself."
+      - name: commit-or-rollback
+        explanation: >-
+          The answer says it commits after the `yield` only when the route returned normally. If
+          the route raised, it rolls back and raises the same exception again.
+        pass_anchor: >-
+          "After the yield it calls `commit()`. In an `except` block it calls `rollback()` and then `raise`, so FastAPI still returns the error."
+        fail_anchor: >-
+          "It calls `commit()` in `finally`, so it always saves", or "it catches the error and returns without raising."
+      - name: thread-flag-reason
+        explanation: >-
+          The answer says `check_same_thread=False` is needed because the dependency and the
+          route are plain functions that run in a threadpool, so one request can use the
+          connection from more than one thread.
+        pass_anchor: >-
+          "Plain `def` dependencies and routes run in a threadpool, so the setup, the route and the exit code of one request can run on different threads. SQLite refuses that unless the check is off."
+        fail_anchor: >-
+          "So that all requests can share the same connection", or "to make SQLite faster."
+      - name: scope-function
+        explanation: >-
+          The answer says the code after `yield` runs after the response is sent by default, and
+          that `Depends(get_conn, scope="function")` runs it right after the route returns,
+          before the response, so a failed commit can become an error response.
+        pass_anchor: >-
+          "By default the exit code runs after the response is sent, so a commit that fails cannot change what the client heard. With `scope="function"` it runs before the response, and a failed commit gives a 500."
+        fail_anchor: >-
+          "The exit code always runs before the response is sent", or "scope controls how long the connection stays open in the pool."
+    model_answer: >-
+      Before the `yield`, `get_conn` opens a new `sqlite3` connection for this request, with
+      `check_same_thread=False`, and yields it. The route uses it and never commits or closes. If
+      the route returns normally, the code after the `yield` calls `commit()`. If the route
+      raises, an `except` block calls `rollback()` and then `raise`, so FastAPI still sends the
+      error. A `finally` block closes the connection in every case. I need
+      `check_same_thread=False` because a plain `def` dependency and route run in a threadpool.
+      The setup, the route and the exit code of one request can land on different threads, and
+      `sqlite3` refuses that by default. By default the code after the `yield` runs after the
+      response has been sent. A commit that fails there cannot change what the client was told,
+      so the client sees a 200 and the data is missing. To make a failed commit reach the
+      client, I would declare `Depends(get_conn, scope="function")`. Then the exit code runs
+      right after the route returns, before the response, and a failed commit becomes a 500.
+    hints:
+      - Think of the four moments in the prompt as four places in one generator. Which statement belongs to each one, and which statement must run in every case?
+      - After the route returns, has the client already received its response when the exit code runs? What setting of `Depends` changes that?

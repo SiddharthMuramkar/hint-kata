@@ -1,0 +1,181 @@
+items:
+  - id: q1
+    type: single
+    concept: where-the-site-commits
+    source_section: commit-rollback-and-when-the-exit-code-runs
+    prompt: >-
+      In this site's `app/store.py`, where does the commit for a write such as `add_check`
+      happen?
+    options:
+      - text: >-
+          Inside the store, in the helper that runs the statement, right after that one
+          statement. If it fails, the helper rolls back and raises again.
+        correct: true
+        feedback: >-
+          Right. Every write goes through `_write`, which runs one statement and commits it.
+          That makes each statement its own transaction. A route that makes two writes has two
+          transactions.
+      - text: >-
+          In `get_store`, after the route returns, as in this lesson's hands-on task.
+        misconception: Thinks the site's dependency commits.
+        feedback: >-
+          `get_store` only opens the store and closes it in `finally`. The commit has already
+          happened inside the store. The task uses the other design, where the dependency commits
+          once per request.
+      - text: >-
+          In the route function, which calls `commit()` itself as the official tutorial does.
+        misconception: Thinks the site copies the tutorial's route-level commit.
+        feedback: >-
+          The tutorial's routes call `session.commit()`. The routes of this site never see a
+          connection. They call a store method, and the store saves.
+      - text: >-
+          Nowhere. SQLite saves every statement by itself.
+        misconception: Thinks `sqlite3` saves changes without a commit.
+        feedback: >-
+          `connect()` switches autocommit off after the setup. From then on a change is only a
+          pending transaction until `commit()` is called. A connection that closes first throws
+          it away.
+  - id: q2
+    type: single
+    concept: check-same-thread
+    source_section: one-connection-per-request
+    prompt: >-
+      Why does the site's `connect()` pass `check_same_thread=False` to `sqlite3.connect`?
+    options:
+      - text: >-
+          A plain `def` dependency and its route run in a threadpool, so one request may use its
+          connection from more than one thread, and `sqlite3` refuses that by default.
+        correct: true
+        feedback: >-
+          Right. In our run with 30 overlapping requests through an async in-process client, the
+          setup, the route and the exit code of a request never all shared one thread. The flag stays safe because each connection
+          belongs to a single request.
+      - text: >-
+          It makes one connection safe to share between all requests.
+        misconception: Thinks the flag makes a shared connection safe.
+        feedback: >-
+          The flag only turns off a check. A shared connection still mixes the transactions of
+          different requests. In our run, one request's rollback came too late because another
+          request had already committed on the same connection.
+      - text: >-
+          It switches the database file into WAL mode.
+        misconception: Mixes up a connect option with a PRAGMA.
+        feedback: >-
+          WAL comes from `PRAGMA journal_mode=WAL`, which `connect()` runs on its own line.
+          `check_same_thread` is about which thread may use the connection object.
+      - text: >-
+          It makes SQLite wait up to five seconds when the database is locked.
+        misconception: Mixes up `check_same_thread` with `timeout`.
+        feedback: >-
+          That is the `timeout=5.0` argument next to it. We saw it as `database is locked` when a
+          second writer waited too long.
+  - id: q3
+    type: single
+    concept: commit-in-finally
+    source_section: commit-rollback-and-when-the-exit-code-runs
+    prompt: |-
+      Spot the bug. This dependency is used by a route that inserts a row and then raises `RuntimeError`. What happens?
+
+      ```python
+      def get_conn():
+          conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+          try:
+              yield conn
+          finally:
+              conn.commit()
+              conn.close()
+      ```
+    options:
+      - text: >-
+          The client gets a 500, and the inserted row is saved, because `finally` also runs when
+          the route raised.
+        correct: true
+        feedback: >-
+          Right. We ran this: status 500 and one row in the database. Commit belongs after the
+          `yield` for the success case, with a rollback in an `except` block for the failure
+          case.
+      - text: >-
+          The client gets a 500, and no row is saved, because an error cancels the open
+          transaction.
+        misconception: Thinks an exception undoes pending changes by itself.
+        feedback: >-
+          Nothing cancels the transaction unless your code does. Here the code asks for a commit,
+          and `finally` runs on the error path too.
+      - text: >-
+          The client gets a 200, because `finally` hides the error.
+        misconception: Thinks `finally` swallows the exception.
+        feedback: >-
+          `finally` runs its code and the exception carries on. Only an `except` block that does
+          not raise again would hide it, and then FastAPI could not even log it.
+      - text: >-
+          `conn.close()` raises, because the connection still has a pending transaction.
+        misconception: Thinks closing a connection with pending changes is an error.
+        feedback: >-
+          `close()` does not complain. It drops the uncommitted changes, which is what makes a
+          plain close safe. Here the commit ran first, so there was nothing left to drop.
+  - id: q4
+    type: single
+    concept: pooled-vs-direct-url
+    source_section: neon-pooled-and-direct-urls
+    prompt: >-
+      Which statement about the two Neon connection strings in `docs/runbooks/neon.md` is
+      right?
+    options:
+      - text: >-
+          The pooled string (the host contains `-pooler`) is for the app. It runs PgBouncer in
+          transaction mode, so a setting should use `SET LOCAL` inside a transaction. The direct
+          string is for schema changes.
+        correct: true
+        feedback: >-
+          Right. The app uses the pooled `DATABASE_URL`. `scripts/migrate.py` uses
+          `DATABASE_URL_UNPOOLED`, because the code comment on `apply_schema` warns that DDL
+          through PgBouncer can fail.
+      - text: >-
+          The direct string is for the app, and the pooled string is for migrations because it is
+          faster.
+        misconception: Swaps the roles of the two strings.
+        feedback: >-
+          It is the other way round. Schema changes go through the direct string, and the app
+          runs on the pooled one.
+      - text: >-
+          Both behave the same, so either works for everything. The pooled one is just cheaper.
+        misconception: Thinks pooling changes nothing a developer must care about.
+        feedback: >-
+          Transaction mode changes what a connection remembers between transactions. That is why
+          the runbook tells you to use `SET LOCAL` and not a session-level `SET`.
+      - text: >-
+          On the pooled string a plain `SET` is fine, because the session stays yours until you
+          close the connection.
+        misconception: Thinks a pooled session belongs to one client.
+        feedback: >-
+          In transaction mode the pool may give your next transaction to another server
+          connection, so a session-level `SET` can be gone. `SET LOCAL` lasts for one
+          transaction.
+  - id: q5
+    type: order
+    concept: exit-code-timing
+    source_section: commit-rollback-and-when-the-exit-code-runs
+    prompt: >-
+      A client sends `POST /notes`. The route uses `Depends(get_conn, scope="function")`, and
+      it finishes without an error. Put the steps in the order they happen.
+    steps:
+      - "FastAPI runs `get_conn` up to its `yield`, which opens a new connection and hands it over"
+      - "The route function inserts the row using that connection"
+      - "The code after the `yield` runs: it commits and closes the connection"
+      - "The response is sent to the client"
+    explanation: >-
+      With `scope="function"` the exit code of the dependency runs as soon as the route function
+      returns, before the response goes out. So the row is saved when the client hears back. With
+      the default `scope="request"`, the last two steps would swap places.
+  - id: q6
+    type: blank
+    concept: psycopg-placeholder
+    source_section: datetimes-and-placeholders
+    prompt: >-
+      Fill in the blank with the placeholder marker that `psycopg` uses (not the one `sqlite3`
+      uses): `conn.execute("SELECT id FROM users WHERE name = ____", (name,))`
+    answer: "%s"
+    explanation: >-
+      `psycopg` uses `%s`, and `sqlite3` uses `?`. The value goes in the second argument, never
+      glued into the text. In `psycopg` the `%s` is a marker for a value, not Python string
+      formatting.
