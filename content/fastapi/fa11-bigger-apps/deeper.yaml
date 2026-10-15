@@ -1,0 +1,109 @@
+questions:
+  - id: d1
+    prompt: >-
+      A flat app has ten routes. Six start with `/orders`, are tagged `orders` and repeat the
+      same `Depends(require_key)`. Four start with `/staff` and need no key. There is also a
+      shared `reports` router, in a file you may not edit, that must live at `/reports` behind
+      the key. Describe how you would split the app, what you put where, and how the
+      `reports` router gets its settings.
+    rubric:
+      - name: shared-settings-on-router
+        explanation: >-
+          The answer makes one `APIRouter` for the orders routes and puts the `prefix`, the
+          `tags` and the key check on the router, so the routes stop repeating them.
+        pass_anchor: >-
+          "An `orders` router with `prefix=\"/orders\"`, `tags=[\"orders\"]` and `dependencies=[Depends(require_key)]`, and the routes inside it just use `/` and `/{order_id}`."
+        fail_anchor: >-
+          "Keep the settings on each route and just move the functions to another file."
+      - name: separate-router-without-key
+        explanation: >-
+          The answer gives the staff routes their own router, without the key check, so the check
+          is not applied to routes that never needed it.
+        pass_anchor: >-
+          "A second router for `/staff` with its own prefix and tag and no dependency."
+        fail_anchor: >-
+          "Put all ten routes on one router with the key check."
+      - name: include-time-settings-for-shared-router
+        explanation: >-
+          The answer leaves the shared file alone and passes `prefix`, `tags` and `dependencies`
+          in the `include_router` call for the reports router.
+        pass_anchor: >-
+          "`app.include_router(reports.router, prefix=\"/reports\", tags=[\"reports\"], dependencies=[Depends(require_key)])`, so the shared file stays unchanged."
+        fail_anchor: >-
+          "Edit the shared file to add the prefix and the key check", or "copy it and edit the copy."
+      - name: main-just-wires
+        explanation: >-
+          The answer says `main.py` creates the app, imports the router modules (not the bare
+          `router` names) and calls `include_router` for each. It is now a short list.
+        pass_anchor: >-
+          "`main.py` imports `from .routers import orders, staff`, makes the `FastAPI` app and calls `app.include_router(orders.router)` and so on."
+        fail_anchor: >-
+          "`from .routers.orders import router` and `from .routers.staff import router`", or no mention of how the routers get into the app.
+    model_answer: >-
+      I would make a file for each group and put an `APIRouter` in it. For orders I would write
+      `APIRouter(prefix="/orders", tags=["orders"], dependencies=[Depends(require_key)])`, so the
+      six routes lose the repeated start, tag and key check and their paths shrink to `/` and
+      `/{order_id}`. The four staff routes get their own router with `prefix="/staff"` and
+      `tags=["staff"]` and no dependency, because they never needed the key. The shared `reports`
+      file stays as it is. I plug it in with `app.include_router(reports.router,
+      prefix="/reports", tags=["reports"], dependencies=[Depends(require_key)])`. Those settings
+      apply to this inclusion only, so other projects can use the same router differently. In
+      `main.py` I import the modules, `from .routers import orders, staff` and the reports one, so
+      the names do not clash, create the app, and call `include_router` for each. That is all that
+      is left in the main file.
+    hints:
+      - Which settings would you otherwise repeat on six routes, and where can they live once?
+      - You cannot edit the reports file. Which call takes the same settings as a router does?
+  - id: d2
+    prompt: >-
+      After a split into routers, a teammate reports two bugs. A request to `/users/me` gets a
+      422 that says `"me"` is not an integer. And one pet route is at `/pets/pets/` instead of
+      `/pets/`. Explain the likely cause of each and how to fix it, and say how you would make a
+      test catch both.
+    rubric:
+      - name: me-is-order-of-inclusion
+        explanation: >-
+          The answer says the variable route `/users/{user_id}` matches `me` first, because its
+          router was included first, and the conversion then fails.
+        pass_anchor: >-
+          "The router with `/users/{user_id}` is included before the one with `/users/me`, so it wins and `me` fails to become an int."
+        fail_anchor: >-
+          "FastAPI is buggy", or "the `/users/me` route is missing", or "the `int` type is wrong."
+      - name: me-fix
+        explanation: >-
+          The answer fixes it by including the fixed-path router first, or by putting both routes
+          in one router with the fixed one declared first.
+        pass_anchor: >-
+          "Include the router with `/users/me` first, or put both routes in one router with `/users/me` above `/users/{user_id}`."
+        fail_anchor: >-
+          "Change `user_id` to `str`" (that hides the bug) or "add a try and except."
+      - name: double-prefix
+        explanation: >-
+          The answer says the path `/pets/pets/` comes from writing the prefix twice, once on the
+          router and once in the route path, and fixes it by writing the route path as `/`.
+        pass_anchor: >-
+          "The router has `prefix=\"/pets\"` and the route is also `\"/pets/\"`, so they join. Change the route to `\"/\"`."
+        fail_anchor: >-
+          "The tags are wrong", or "FastAPI adds the prefix twice by itself."
+      - name: test-reads-openapi
+        explanation: >-
+          The answer reads `/openapi.json` with a test client and checks the paths, and for the
+          422 also makes a request to `/users/me`, checking the status.
+        pass_anchor: >-
+          "Get `/openapi.json` with `TestClient`, assert the set of paths, and call `/users/me` and assert it is a 200."
+        fail_anchor: >-
+          "Look at the `/docs` page by eye", or "print the routes."
+    model_answer: >-
+      The 422 comes from the order of the `include_router` calls. The router that holds
+      `/users/{user_id}` was included before the router that holds `/users/me`. The first
+      matching route wins, and `{user_id}` matches the text `me`, so FastAPI tries to turn `me`
+      into an `int` and fails. I would include the router with the fixed `/users/me` first, or
+      move both routes into one router with `/users/me` declared above the variable one. The
+      `/pets/pets/` path comes from the prefix being written twice: the router has
+      `prefix="/pets"` and the route path also starts with `/pets/`. FastAPI joins them as they
+      are, so I would change the route path to `/`. To catch both, a test reads
+      `/openapi.json` through a `TestClient` and checks the exact set of paths, which would show
+      `/pets/pets/`, and calls `/users/me` and checks for a `200`.
+    hints:
+      - In which order does FastAPI check the routes of two included routers, and what does `{user_id}` match?
+      - How does the router's prefix join the path you write on the route, and what data can a test read to see the final paths?
