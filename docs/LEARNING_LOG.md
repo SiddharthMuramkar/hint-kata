@@ -30,6 +30,7 @@ This page is the index, in merge order. Read the files top to bottom to re-learn
 | #64 | [042 — sources manifest for the next nine lessons](learning-log/042-sources-wave-a.md) |
 | #67 | [057 — Claude Code session-trace normaliser with redaction](learning-log/057-session-traces.md) |
 | #68 | [052 — PostgresStore with pgvector schema and CI Postgres service](learning-log/052-postgres-store.md) |
+| #76 | [020 — phase 1 closed, phase 2 in flight](learning-log/020-docs-pass-muse.md) |
 | #76 | [020 — Docs pass: phase 1 closed, phase 2 opened](learning-log/020-docs-pass.md) |
 | #74 | [044 — lesson FA4 — Response models, status codes and errors](learning-log/044-lesson-fa4.md) |
 | #71 | [043 — lesson FA3 — Request bodies with Pydantic models](learning-log/043-lesson-fa3.md) |
@@ -48,9 +49,27 @@ This page is the index, in merge order. Read the files top to bottom to re-learn
 | #108 | [085 — lesson PA6 — Instructions and model settings](learning-log/085-lesson-pa6.md) |
 | #110 | [092 — lesson GH6 — Git and GitHub flow: branches, commits, remotes](learning-log/092-lesson-gh6.md) |
 | #107 | [078 — lesson FA6 — Run it right: uv, fastapi dev and entrypoints](learning-log/078-lesson-fa6.md) |
-
-## Unmatched entries
-
-No merged PR claims these files yet (the PR is still open, or its number does not match).
-
-- [116-docs-status-script.md](learning-log/116-docs-status-script.md)
+| #116 | [116 — learning-log index script and phase-2 progress](learning-log/116-docs-status-script.md) |
+| #117 | [093 — lesson GH7 — Status checks, required checks and auto-merge](learning-log/093-lesson-gh7.md) |
+| #115 | [054 — RAG mode with hybrid search and URL+anchor citations](learning-log/054-rag-tutor.md) |
+| #118 | [086 — lesson PA7 — Serving an agent from FastAPI over SSE](learning-log/086-lesson-pa7.md) |
+| #114 | [112 — majority vote across three samples, flag non-unanimous criteria](learning-log/112-grader-majority.md) |
+| #123 | [088 — lesson PA9 — Testing agents](learning-log/088-lesson-pa9.md) |
+| #124 | [087 — lesson PA8 — RAG with Embedder and pgvector](learning-log/087-lesson-pa8.md) |
+| #119 | [094 — lesson GH8 — Rulesets, CODEOWNERS and required reviews](learning-log/094-lesson-gh8.md) |
+| #120 | [080 — lesson FA8 — Resource lifecycles: yield dependencies, scope, lifespan](learning-log/080-lesson-fa8.md) |
+| #121 | [095 — lesson GH9 — Scheduled automation, concurrency and the merge queue idea](learning-log/095-lesson-gh9.md) |
+| #122 | [079 — lesson FA7 — async def vs def](learning-log/079-lesson-fa7.md) |
+| #126 | [111 — static instructions so the OpenRouter cache marker applies](learning-log/111-tutor-cache.md) |
+| #134 | [133 — repo on SiddharthMuramkar, Opus 5.5 judges](learning-log/133-harness-handover.md) |
+| #130 | [082 — lesson FA10 — Databases: a session per request](learning-log/082-lesson-fa10.md) |
+| #129 | [081 — lesson FA9 — Settings and secrets with pydantic-settings](learning-log/081-lesson-fa9.md) |
+| #135 | [083 — lesson FA11 — Bigger apps with APIRouter](learning-log/083-lesson-fa11.md) |
+| #138 | [084 — lesson FA12 — Streaming: SSE and JSON Lines, deploy notes](learning-log/084-lesson-fa12.md) |
+| #131 | [089 — lesson PA10 — Evals and LLM-as-judge](learning-log/089-lesson-pa10.md) |
+| #137 | [090 — lesson PA11 — Production basics: Logfire, retries, usage limits](learning-log/090-lesson-pa11.md) |
+| #140 | [091 — lesson PA12 — Multi-agent apps and the MCP client](learning-log/091-lesson-pa12.md) |
+| #125 | [096 — lesson GH10 — Claude Code in your local git flow](learning-log/096-lesson-gh10.md) |
+| #132 | [097 — lesson GH11 — Claude in GitHub: claude-code-action and its security model](learning-log/097-lesson-gh11.md) |
+| #136 | [098 — lesson GH12 — MCP and the GitHub MCP server](learning-log/098-lesson-gh12.md) |
+| #139 | [128 — cache lesson sections with the rules](learning-log/128-tutor-lesson-cache.md) |

@@ -34,9 +34,10 @@ Topic rules live in `.claude/rules/` and load by themselves:
 - `git.md` — branches, commits, PR body, learning-log file.
 
 ## Model routing
-Opus 5.5 judges (main session, reviews every diff, merges). Sonnet 5.5 at effort high builds (`builder`,
-`content-writer`). `second-opinion` is a rare extra read of risky changes only. Check the real
-model of each running agent with `/tasks`. Do not set `CLAUDE_CODE_SUBAGENT_MODEL`.
+Built historically in Claude Code (judge/builder split; see `docs/HARNESS.md`). Current work runs in
+Muse Code: one session reviews every diff, runs the four checks, and merges only with the owner's
+explicit yes. No paid Claude Code model is required for maintenance. The `.claude/` harness files stay
+as history and reference; they are not needed to run or deploy the site.
 
 ## Style
 `/ponytail ultra` is the house style: the least code that does the job. No extra layers, options or files.
@@ -47,14 +48,14 @@ to read first) ending with `Closes #<n>`. Every PR adds one new file `docs/learn
 Do not edit `docs/LEARNING_LOG.md` or `docs/PROGRESS.md` in a task PR; the main session updates them between tasks.
 Details: `.claude/rules/git.md`.
 
-## Claude builds, the owner learns
-Claude does all the building. There are no `[ME]` tasks for the owner. The owner reads PRs and the learning log and
+## The agent builds, the owner learns
+The coding agent does all the building. There are no `[ME]` tasks for the owner except typing secret
+values and linking accounts (Neon, Vercel). The owner reads PRs and the learning log and
 learns from them, so write the PR body for a beginner. Out-of-scope ideas go in `docs/PARKING_LOT.md`.
 
 ## Secrets
-Secrets live only in `.env` (local, gitignored) and GitHub secrets. The owner types the values; Claude never reads,
-prints, edits or commits them. Add new variable names to `.env.example` (names only). `.env` reads and edits are denied
-by `.claude/settings.json` and by hookify rules.
+Secrets live only in `.env` (local, gitignored) and GitHub secrets. The owner types the values; the agent never reads,
+prints, edits or commits them. Add new variable names to `.env.example` (names only).
 
 ## Resume here
 After a cut-off or in a fresh session, read `docs/RESUME.md` (the prompt to paste) and `docs/PROGRESS.md` (done, in
