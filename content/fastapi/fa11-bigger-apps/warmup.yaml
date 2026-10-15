@@ -1,0 +1,20 @@
+items:
+  - id: w1
+    prompt: >-
+      A router is made with `APIRouter(prefix="/items")`. It has a route written as
+      `@router.get("/items/{item_id}")`. The router is included in the app with no other
+      settings. At which URL does that route answer? Take a guess before you read.
+    note: >-
+      At `/items/items/{item_id}`. The prefix is put in front of every route path, so writing
+      it again in the route doubles it. FastAPI does not warn about this. The route is just at
+      a different URL than you meant.
+  - id: w2
+    prompt: >-
+      Two router files each end with `router = APIRouter(...)`. In `main.py` you write
+      `from app.routers.items import router` and then `from app.routers.users import router`,
+      and include `router` twice. Do you expect an error, both sets of routes, or something
+      else? Take a guess before you read.
+    note: >-
+      No error, and only one set of routes. The second import replaces the name `router`, so
+      the same users router is included twice and the items routes never get plugged in. Import
+      the modules instead and write `items.router` and `users.router`.

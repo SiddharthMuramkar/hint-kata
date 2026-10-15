@@ -1,0 +1,163 @@
+items:
+  - id: q1
+    type: single
+    concept: router-prefix
+    source_section: settings-on-a-router
+    prompt: >-
+      A router is `APIRouter(prefix="/pets", tags=["pets"])`. A teammate writes a route on it as
+      `@router.get("/pets/")` and includes the router with `app.include_router(pets.router)`.
+      Which URL answers, and what does FastAPI say about it?
+    options:
+      - text: >-
+          `/pets/pets/`, and FastAPI says nothing. The prefix is added in front of the route
+          path, so it appears twice.
+        correct: true
+        feedback: >-
+          Right. The prefix is joined to every route path as it is, and there is no check for
+          a repeat. A test that reads the paths from `/openapi.json` catches it at once.
+      - text: >-
+          `/pets/`. FastAPI sees that the route path already starts with the prefix and does not
+          add it again.
+        misconception: Thinks FastAPI removes a repeated prefix.
+        feedback: >-
+          There is no such clean-up. We ran the same mistake and the path was `/pets/pets/`.
+      - text: >-
+          The app fails to start with an error about the prefix.
+        misconception: Thinks FastAPI rejects a prefix that repeats.
+        feedback: >-
+          FastAPI does check two things about a prefix: it must start with `/` and must not end
+          with one. A repeat of the prefix inside a route path is not checked.
+      - text: >-
+          `/pets/`, because the `tags=["pets"]` setting tells FastAPI that the route belongs to
+          the pets group.
+        misconception: Thinks tags change routing.
+        feedback: >-
+          Tags are labels for the docs. They never change a URL.
+  - id: q2
+    type: single
+    concept: include-time-settings
+    source_section: settings-added-at-include-time
+    prompt: >-
+      A router in `internal/admin.py` is shared with other projects, so you must not edit the
+      file. It has no prefix and no key check. You want its routes at `/admin/...`, tagged
+      `admin`, behind your `require_key` check. What do you do?
+    options:
+      - text: >-
+          Pass `prefix="/admin"`, `tags=["admin"]` and `dependencies=[Depends(require_key)]` to
+          `app.include_router(admin.router, ...)`.
+        correct: true
+        feedback: >-
+          Right. `include_router` takes the same settings as `APIRouter`. They apply to this
+          inclusion only, and the router object itself stays as it was.
+      - text: >-
+          Copy the router into your project and edit the copy.
+        misconception: Thinks a shared router can only be changed by editing it.
+        feedback: >-
+          That works, but now you have two versions to keep in step. The include call exists so
+          you do not have to.
+      - text: >-
+          Set `prefix`, `tags` and `dependencies` on `FastAPI(...)`, and they flow down into every
+          router.
+        misconception: Thinks `FastAPI()` takes a prefix and tags that apply to routers.
+        feedback: >-
+          `FastAPI()` has no `prefix` or `tags` setting (we checked its parameters). It does take
+          `dependencies`, but that would apply to every route in the app, not only the admin ones.
+          For one router, put the settings on its include call.
+      - text: >-
+          Add the settings to `admin.router` from `main.py`, with `admin.router.prefix = "/admin"`.
+        misconception: Thinks the router's attributes can be changed from outside, safely.
+        feedback: >-
+          That changes the shared object for every user of it in the process, and it is not the
+          documented way. The include call keeps the change to one inclusion.
+  - id: q3
+    type: single
+    concept: dependency-order
+    source_section: settings-added-at-include-time
+    prompt: >-
+      A key check `A` is set on `FastAPI(dependencies=[...])`. A check `B` is set on an
+      `APIRouter`. A check `C` is set on one route's decorator. A request reaches that route.
+      In what order do they run?
+    options:
+      - text: "A, then B, then C."
+        correct: true
+        feedback: >-
+          Right. The outer settings run first: the app, then the router, then the decorator. (We
+          also saw that dependencies given at `include_router` run between the app's and the
+          router's.)
+      - text: "C, then B, then A, because the most specific check runs first."
+        misconception: Thinks the most specific setting wins and goes first.
+        feedback: >-
+          It is the other way round. The check set highest up runs first, which lets you turn
+          away a client before any route-level work happens.
+      - text: "Only C runs, because a route's own setting replaces the ones above it."
+        misconception: Thinks a lower-level `dependencies` list replaces a higher one.
+        feedback: >-
+          The lists add up. A route with its own `dependencies` still runs the router's and the
+          app's too.
+      - text: "They run at the same time, and the order is not defined."
+        misconception: Thinks the order of dependencies is random.
+        feedback: >-
+          The order is fixed. We ran it and got the same order each time.
+  - id: q4
+    type: single
+    concept: route-order-across-routers
+    source_section: route-order-across-routers
+    prompt: >-
+      Router `v` has `GET /users/{user_id}` with `user_id: int`. Router `m` has `GET /users/me`.
+      Both have the prefix `/users`. `main.py` includes `v` first and `m` second. What does a
+      request to `/users/me` get?
+    options:
+      - text: >-
+          A `422`, because the `v` route matches first and `"me"` is not an integer.
+        correct: true
+        feedback: >-
+          Right. The first matching route wins, and across routers that means the first one
+          included. Include `m` first, or put both routes in one router with the fixed one on
+          top.
+      - text: >-
+          A `200` from `m`, because the exact path `/users/me` is more specific.
+        misconception: Thinks FastAPI picks the most specific path across routers.
+        feedback: >-
+          Order decides, not how specific a path is. Splitting the app into files does not
+          change that rule.
+      - text: >-
+          A `404`, because two routers with the same prefix cancel each other out.
+        misconception: Thinks two routers with one prefix clash.
+        feedback: >-
+          Routers with the same prefix are fine. Their routes are just checked in the order they
+          were included.
+      - text: >-
+          A `200` from `m`, because FastAPI tries the next route when a conversion fails.
+        misconception: Thinks a failed conversion falls through to the next route.
+        feedback: >-
+          The route is chosen by its path first. Once `v` matched, the failed conversion is an
+          error for the client.
+  - id: q5
+    type: order
+    concept: wiring-a-router
+    source_section: what-a-router-is
+    prompt: >-
+      Put these steps in the order you do them to move a group of routes out of `main.py` into a
+      router.
+    steps:
+      - "Create `routers/recipes.py` and make `router = APIRouter(prefix=\"/recipes\")` in it"
+      - "Move the recipe routes there and change `@app.get` to `@router.get`"
+      - "In `main.py`, import the module with `from .routers import recipes`"
+      - "Call `app.include_router(recipes.router)`"
+    explanation: >-
+      The router must exist before routes can be put on it, and the app can only plug in a module
+      it has imported. The `include_router` call comes last because it is the step that makes the
+      routes part of the app.
+  - id: q6
+    type: blank
+    concept: tag-metadata
+    source_section: tags-and-docs-metadata
+    prompt: >-
+      Fill in the blank so the docs list the tags in the order of `tags_metadata`, each with a
+      description:
+      `app = FastAPI(____=tags_metadata)`
+    answer: openapi_tags
+    explanation: >-
+      `openapi_tags` takes a list of dicts, each with a `name` and optionally a `description`.
+      The order of the list is the order shown in the docs. A tag used on a route but missing from
+      the list stays on the route and is left out of the top-level tag list.
