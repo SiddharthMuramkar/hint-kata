@@ -1,0 +1,18 @@
+items:
+  - id: w1
+    prompt: >-
+      An agent has one tool that always works and always returns "no result yet". The fake model
+      calls that tool on every turn. You set no usage limits. Does the run go on for ever? If not,
+      what stops it?
+    note: >-
+      It does not go on for ever. Pydantic AI has a default request_limit of 50 model turns, so
+      the run stops with UsageLimitExceeded after 50 requests, and the tool has run 50 times. That
+      is a safety net, not a good limit: you set smaller numbers yourself.
+  - id: w2
+    prompt: >-
+      A tool raises ModelRetry on every call, and you changed no retry settings. The model keeps
+      calling it. How many times does the tool run, and what does the run end with?
+    note: >-
+      The default budget is one retry per tool, so the tool runs twice: the first call and one
+      retry. Then the run raises UnexpectedModelBehavior. A budget of N retries means N + 1
+      attempts.
