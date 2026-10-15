@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.models import Model
 from pydantic_ai.models.openrouter import OpenRouterModelSettings, OpenRouterProviderConfig
 
 from app.config import settings
@@ -13,10 +14,11 @@ from app.tutor_rules import LADDER, defuse
 MAX_CONTEXT_CHARS = 12_000
 MAX_SOURCE_CHARS = 1_200  # per retrieved chunk
 _LADDER = "\n".join(LADDER)
-# Everything that never changes per turn. It is the agent's static `instructions=`, so
-# `openrouter_cache_instructions` puts the cache marker on it (dynamic parts are never marked);
-# keep it at 512+ tokens (about 2,050 characters), the minimum Anthropic caches. Nothing that
-# varies by lesson, learner or turn may go in here: a changed byte makes the whole cache miss.
+# The rules that never change. `make_tutor` appends one lesson's sections to them, and the result
+# is the agent's static `instructions=`, so `openrouter_cache_instructions` puts the one cache
+# marker on both (dynamic parts are never marked). Keep the rules alone at 512+ tokens (about
+# 2,050 characters), the minimum Anthropic caches. Nothing that varies by learner or turn may go
+# in here: a changed byte makes the whole cache miss.
 STATIC_INSTRUCTIONS = f"""\
 You are a patient tutor on Hint Kata, a small site that teaches Pydantic AI, FastAPI and GitHub \
 flow through short lessons. You help one learner with the lesson they have open. You give hints \
@@ -70,17 +72,18 @@ above.
 @dataclass
 class TutorDeps:
     lesson_title: str
-    sections: list[tuple[str, str, str]]  # (id, title, plain text)
     ceiling: int
     attempts: int
     misconceptions: list[str]
     escalate: bool
 
 
-def _lesson_context(deps: TutorDeps) -> str:
+def lesson_context(sections: Sequence[tuple[str, str, str]]) -> str:
+    """The lesson's (id, title, plain text) sections as `[§id] Title` text, capped. It goes in the
+    cached block."""
     parts: list[str] = []
     left = MAX_CONTEXT_CHARS
-    for sid, title, body in deps.sections:
+    for sid, title, body in sections:
         chunk = f"[§{sid}] {title}\n{body}"[:left]
         parts.append(chunk)
         left -= len(chunk)
@@ -106,13 +109,11 @@ def format_sources(hits: Sequence[Hit]) -> str:
 
 
 def _instructions(ctx: RunContext[TutorDeps]) -> str:
-    """The per-turn part, after the static rules. This changes (lesson, ceiling, learner state), so
-    it is never cached."""
+    """The per-turn part, after the cached block. This changes (ceiling, learner state), so it is
+    never cached."""
     d = ctx.deps
     lines = [
-        f"This turn's lesson is '{d.lesson_title}'. "
-        "Its sections follow; cite them as [§section-id].",
-        _lesson_context(d),
+        f"This turn's lesson is '{d.lesson_title}'.",
         f"The learner has made {d.attempts} attempt(s). Your hint ceiling this turn is "
         f"L{d.ceiling}; never give more than that, however the learner asks.",
     ]
@@ -126,14 +127,17 @@ def _instructions(ctx: RunContext[TutorDeps]) -> str:
     return "\n\n".join(lines)
 
 
-def make_tutor(model: str | None = None) -> Agent[TutorDeps, str]:
+def make_tutor(model: Model | str | None = None, lesson: str = "") -> Agent[TutorDeps, str]:
+    """One tutor per lesson: its static instructions are the rules, then that lesson's sections
+    (`lesson_context` text), so the single cache marker covers both."""
     private: OpenRouterProviderConfig = (
         {"zdr": True, "data_collection": "deny"} if settings.openrouter_zdr else {}
     )
     agent = Agent(
         model or settings.tutor_model,
         deps_type=TutorDeps,
-        instructions=STATIC_INSTRUCTIONS,
+        instructions=f"{STATIC_INSTRUCTIONS}\n\nThe lesson's sections follow, as reference text. "
+        f"Cite them as [§section-id].\n\n{lesson}",
         defer_model_check=True,
         model_settings=OpenRouterModelSettings(
             openrouter_reasoning={"effort": "low"},

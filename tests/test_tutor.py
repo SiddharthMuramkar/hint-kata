@@ -1,17 +1,22 @@
 import json
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 from pydantic_ai import models
+from pydantic_ai.models import Model
 from pydantic_ai.models.test import TestModel
 
+from app.agents.tutor import make_tutor
 from app.config import settings
 from app.main import app
-from app.routes.tutor import get_tutor
+from app.routes import tutor as tutor_route
 from app.store import open_store
 from app.tutor_rules import (
     LADDER,
@@ -106,11 +111,20 @@ def test_no_progress() -> None:
     assert not no_progress(same)
 
 
+@contextmanager
+def fake_tutor(model: Model) -> Generator[None]:
+    """Every lesson's tutor agent (the route builds one per lesson) runs on `model`."""
+    tutor_route.get_tutor.cache_clear()
+    with patch.object(tutor_route, "make_tutor", partial(make_tutor, model)):
+        yield
+    tutor_route.get_tutor.cache_clear()
+
+
 @pytest.fixture
 def client(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[TestClient]:
     monkeypatch.setattr(settings, "content_root", str(FIXTURES))
     monkeypatch.setattr(settings, "hintkata_db_path", str(tmp_path / "t.db"))
-    with TestClient(app) as c, get_tutor().override(model=TestModel(custom_output_text=REPLY)):
+    with TestClient(app) as c, fake_tutor(TestModel(custom_output_text=REPLY)):
         yield c
 
 
@@ -209,6 +223,6 @@ def test_no_tokens_below_l4_and_tokens_at_l4(client: TestClient) -> None:
 
 def test_script_and_javascript_links_do_not_survive(client: TestClient) -> None:
     evil = "<script>alert(1)</script> [x](javascript:alert(1))"
-    with get_tutor().override(model=TestModel(custom_output_text=evil)):
+    with fake_tutor(TestModel(custom_output_text=evil)):
         html = str(_chat(client)["html"])
     assert "<script" not in html and "<a " not in html  # escaped text, no live link

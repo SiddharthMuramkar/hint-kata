@@ -18,8 +18,8 @@ from app.config import settings
 from app.content import DeeperQuestion, Lesson, QuizItem, load_lessons
 from app.main import app
 from app.quiz import scramble
-from app.routes.tutor import get_tutor
 from app.store import SqliteStore, open_store
+from tests.test_tutor import fake_tutor
 
 ROOT = Path(__file__).resolve().parents[2]
 LESSONS = load_lessons(ROOT / "content")
@@ -57,7 +57,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
         yield TUTOR_REPLY.format(first=_first_section(info))
 
     fake = FunctionModel(reply, stream_function=stream)
-    with TestClient(app) as c, get_tutor().override(model=fake):
+    with TestClient(app) as c, fake_tutor(fake):
         yield c
 
 

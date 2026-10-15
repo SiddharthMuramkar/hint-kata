@@ -20,7 +20,7 @@ from pydantic_ai.messages import (
 )
 
 from app import retrieval
-from app.agents.tutor import TutorDeps, format_sources, make_tutor
+from app.agents.tutor import TutorDeps, format_sources, lesson_context, make_tutor
 from app.config import settings
 from app.content import Lesson, Source
 from app.deps import get_store, get_user_id
@@ -50,9 +50,10 @@ class RevealIn(BaseModel):
     item_id: str
 
 
-@lru_cache
-def get_tutor() -> Agent[TutorDeps, str]:
-    return make_tutor()
+@lru_cache(maxsize=64)
+def get_tutor(lesson: str) -> Agent[TutorDeps, str]:
+    """One agent per lesson text (the key), so an edited lesson gets a fresh cached block."""
+    return make_tutor(lesson=lesson)
 
 
 def get_lesson(request: Request, lesson_id: str) -> Lesson:
@@ -114,7 +115,6 @@ async def chat(
     )  # never the chunk text
     deps = TutorDeps(
         lesson_title=lesson.title,
-        sections=[(s.id, s.title, _plain(s.html)) for s in lesson.sections],
         ceiling=ceiling,
         attempts=len(attempts),
         misconceptions=_misconceptions(lesson, attempts),
@@ -129,9 +129,10 @@ async def chat(
     ]
     # Docs change every turn: they go in the learner's turn, not the cached instructions.
     prompt = f"{format_sources(hits)}\n\n{_wrap(body.message)}" if hits else _wrap(body.message)
+    tutor = get_tutor(lesson_context([(s.id, s.title, _plain(s.html)) for s in lesson.sections]))
     parts: list[str] = []
     try:
-        async with get_tutor().run_stream(prompt, deps=deps, message_history=history) as result:
+        async with tutor.run_stream(prompt, deps=deps, message_history=history) as result:
             async for delta in result.stream_text(delta=True):
                 parts.append(delta)
                 if ceiling >= 4:  # below L4 the learner sees only the filtered final html
