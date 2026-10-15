@@ -262,7 +262,7 @@ More: [Settings and Environment Variables](https://fastapi.tiangolo.com/advanced
 
 Three jobs: keep the file out of git, keep values out of output, and treat a leak as a leak.
 
-**Keep the file out of git.** This repo's `.gitignore` has these lines, in this order.
+**Keep the file out of git.** On 2026-10-15 this repo's `.gitignore` had these lines, in this order.
 
 ```text
 .env
@@ -270,7 +270,7 @@ Three jobs: keep the file out of git, keep values out of output, and treat a lea
 !.env.example
 ```
 
-The first two ignore the real file and variants like `.env.local`. The third makes an exception for the example file. `git check-ignore -v` confirmed that `.env` and `.env.local` are ignored and `.env.example` is not.
+The first two ignore the real file and variants like `.env.local`. The third makes an exception for the example file. On 2026-10-15, `git check-ignore -v` confirmed that `.env` and `.env.local` are ignored and `.env.example` is not.
 
 **Commit a names-only example.** `.env.example` lists every variable with an empty value and a comment. A new person copies it to `.env` and fills in the values. It has no secrets, so it is safe in a public repo. With `env_ignore_empty=True`, a copy of it with nothing filled in still loads, as the site section shows.
 
@@ -301,7 +301,7 @@ The hands-on task asks for a route that returns only the key's length. That is a
 
 ## How this site does it
 
-This site is a worked example. The code is in `app/config.py`, the names are in `.env.example`, and the rules are in `CLAUDE.md` and `docs/RESUME.md`.
+This site is a worked example. We read these files and ran these checks on 2026-10-15; the values may have changed since. The code is in `app/config.py`, the names are in `.env.example`, and the rules are in `CLAUDE.md` and `docs/RESUME.md`.
 
 **One `Settings` class, built once.** `app/config.py` has a `Settings(BaseSettings)` and, under it, `settings = Settings()`. That object is created when `app.config` is first imported, and other modules import it. The site does not use the `lru_cache` dependency, because agents and scripts need settings outside any request. Tests use `monkeypatch.setattr(settings, ...)` or build a fresh `Settings(_env_file=None)`.
 
