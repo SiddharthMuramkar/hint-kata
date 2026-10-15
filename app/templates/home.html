@@ -2,10 +2,10 @@
 {% block content %}
 <h1>Tracks</h1>
 {% for track in tracks %}
-<section class="card">
+<section class="card track-card">
   <h2>{{ track.name }}</h2>
   {% if track.lessons %}
-  <ul>
+  <ul class="track-lessons">
     {% for lesson in track.lessons %}
     <li><a href="/lessons/{{ lesson.id }}">{{ lesson.title }}</a> <span class="muted">({{ lesson.minutes }} min)</span> <span class="badge {{ mastery[lesson.id] }}">{{ {"notstarted": "Not started", "learning": "Learning", "mastered": "Mastered"}[mastery[lesson.id]] }}</span></li>
     {% endfor %}
