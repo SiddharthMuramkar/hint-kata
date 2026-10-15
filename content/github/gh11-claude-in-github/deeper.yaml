@@ -21,9 +21,10 @@ questions:
         pass_anchor: >-
           Says `id-token: write` lets the job ask GitHub for a short-lived identity (OIDC) token that
           the action uses to get its own token, and that by itself it does not give write access
-          to files in the repo.
+          to files in the repo. It may add that with `github_token` passed the action skips that step;
+          that is also correct.
         fail_anchor: >-
-          Says it lets the job push code, or says it is not needed, or gives no reason.
+          Says it lets the job push code, or gives no reason.
       - name: pin-to-commit
         explanation: The answer fixes the code that runs, and says why.
         pass_anchor: >-

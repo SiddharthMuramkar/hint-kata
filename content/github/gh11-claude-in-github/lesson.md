@@ -45,7 +45,7 @@ The manual way has three steps. ([Setup guide](https://github.com/anthropics/cla
 
 Two rules for the secret. **It lives in the repo's secrets, never in a file.** The workflow only names it: `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}`. The guide calls a pasted key in the YAML the wrong way to do it, and tells you to rotate keys now and then and to never log them. This is the same advice as GH5, with an extra reason: in a public repo, the workflow file is public. Add the secret with the hidden prompt of `gh secret set`, as GH5 shows. In this project the build agents are not even allowed to run `gh secret` (see `docs/HARNESS.md`). A person types the value.
 
-**The token choice matters.** The guide offers both and does not compare what they cost you. It only says where the OAuth token comes from. Which limits that token uses depends on your plan. See the linked Claude Code pages for that.
+**The token choice matters.** The guide offers both and does not compare what they cost you. It only says where the OAuth token comes from. The sources here do not say which limits that token uses; see the linked Claude Code pages.
 
 The guide also describes two ways to avoid a stored key or the shared app. ([Setup guide](https://github.com/anthropics/claude-code-action/blob/34968b5981d5d170904281aa3df6f3c0d4a28855/docs/setup.md))
 
@@ -68,7 +68,7 @@ permissions:
 Read each line with GH5 in mind. Once you list a permission, every unlisted one becomes `none`.
 
 - **`contents`.** Files, commits and branches. The security page says the app uses it to read files and to create branches. The example gives `write` so Claude can push a branch.
-- **`pull-requests` and `issues`.** Reading threads and posting or updating comments. Both are `write` in the example.
+- **`pull-requests` and `issues`.** Reading threads, posting or updating comments, and (for `pull-requests`) creating or updating pull requests. Both are `write` in the example.
 - **`id-token: write`.** This one is easy to miss. It lets the job ask GitHub for an identity token (OIDC). The setup guide says the action uses it to fetch that token, and that the default path through the GitHub app already needs it. Without it the action cannot prove who it is, and by default that proof is how the job gets its write-capable token (see below).
 - **`actions: read`.** The comment in the file says this lets Claude read CI results on pull requests. Leave it out, and by the GH5 rule that access is `none`. That is a reading of the comment and the GH5 rule. We did not run the action to see it fail.
 
