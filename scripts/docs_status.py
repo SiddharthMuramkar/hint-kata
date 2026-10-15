@@ -25,7 +25,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-REPO = "siddharth-0044/hint-kata"
+REPO = "SiddharthMuramkar/hint-kata"
 ROOT = Path(__file__).resolve().parent.parent
 LIMIT = 300  # gh returns at most this many rows; the script stops if it gets exactly this many
 

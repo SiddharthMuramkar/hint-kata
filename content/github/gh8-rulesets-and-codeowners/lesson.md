@@ -68,7 +68,7 @@ A bypass is an exit door. It is sometimes needed. It also means the rules are no
 The Hint Kata ruleset has no bypass actors. You can see it yourself, because `gh ruleset view` prints it:
 
 ```bash
-gh ruleset view 25079334 -R siddharth-0044/hint-kata
+gh ruleset view 25079334 -R SiddharthMuramkar/hint-kata
 ```
 
 At the time of writing, the output contains `You can bypass: never` and `This ruleset cannot be bypassed`. Here is why that is the right choice for this repo:
@@ -151,8 +151,8 @@ The `gh ruleset` commands only read. They never change anything. (`gh ruleset --
 Add `-R owner/repo` to look at another repo. Try them on this one:
 
 ```bash
-gh ruleset list -R siddharth-0044/hint-kata
-gh ruleset check main -R siddharth-0044/hint-kata
+gh ruleset list -R SiddharthMuramkar/hint-kata
+gh ruleset check main -R SiddharthMuramkar/hint-kata
 ```
 
 At the time of writing, `check` lists four rules for `main`, all from `protect-main`:
@@ -167,7 +167,7 @@ Read it against this lesson. The branch cannot be deleted or force-pushed. A PR 
 The same rules are available as JSON from the API. Checks in this course use that form, because `jq` can test it:
 
 ```bash
-gh api repos/siddharth-0044/hint-kata/rules/branches/main --jq '[.[].type]'
+gh api repos/SiddharthMuramkar/hint-kata/rules/branches/main --jq '[.[].type]'
 ```
 
 This prints a list of the rule types, for example `["deletion","non_fast_forward","pull_request","required_status_checks"]`. There is no `CODEOWNERS` file in `.github/` when `gh api repos/OWNER/REPO/contents/.github/CODEOWNERS` answers `Not Found`.
@@ -227,7 +227,7 @@ Read the JSON piece by piece:
 - The `pull_request` rule must list its settings. Zero approvals, and the code-owner requirement off.
 - `required_status_checks` names the job `checks` from GH2. The `integration_id` 15368 means "only the GitHub Actions app may report this check".
 
-This shape is the same one the API gives back for a ruleset. You can see it for the real `protect-main` with `gh api repos/siddharth-0044/hint-kata/rulesets/25079334`. Every key in the JSON above appears there, with the same kind of value. So one habit is to read a working ruleset first and copy its shape.
+This shape is the same one the API gives back for a ruleset. You can see it for the real `protect-main` with `gh api repos/SiddharthMuramkar/hint-kata/rulesets/25079334`. Every key in the JSON above appears there, with the same kind of value. So one habit is to read a working ruleset first and copy its shape.
 
 If your practice repo already has the GH1 ruleset, you now have two rulesets on `main`. That is allowed. Run `gh ruleset check main` and you will see rules listed once for each ruleset. The strictest version of each rule applies.
 

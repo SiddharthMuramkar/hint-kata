@@ -29,7 +29,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-UA = "hint-kata-fetch/0.1 (+https://github.com/siddharth-0044/hint-kata)"
+UA = "hint-kata-fetch/0.1 (+https://github.com/SiddharthMuramkar/hint-kata)"
 FASTAPI_RAW = "https://raw.githubusercontent.com/fastapi/fastapi"
 GITHUB_HOST = "docs.github.com"
 ALERTS = {"tip": "TIP", "note": "NOTE", "warning": "WARNING", "danger": "CAUTION"}

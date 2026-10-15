@@ -34,8 +34,8 @@ Topic rules live in `.claude/rules/` and load by themselves:
 - `git.md` — branches, commits, PR body, learning-log file.
 
 ## Model routing
-Fable judges (main session, reviews every diff, merges). Sonnet 5.5 at effort high builds (`builder`,
-`content-writer`). Opus 5.5 is a rare second opinion on risky changes only (`second-opinion`). Check the real
+Opus 5.5 judges (main session, reviews every diff, merges). Sonnet 5.5 at effort high builds (`builder`,
+`content-writer`). `second-opinion` is a rare extra read of risky changes only. Check the real
 model of each running agent with `/tasks`. Do not set `CLAUDE_CODE_SUBAGENT_MODEL`.
 
 ## Style

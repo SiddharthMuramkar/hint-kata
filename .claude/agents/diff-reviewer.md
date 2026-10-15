@@ -1,7 +1,7 @@
 ---
 name: diff-reviewer
 description: Reviews one PR diff for correctness, tests, scope creep, secrets, and licence/attribution. Returns a findings list. Read-only.
-model: claude-fable-5-1
+model: claude-opus-5-5
 effort: high
 tools: Read, Grep, Glob, Bash
 disallowedTools: Edit, Write, NotebookEdit
