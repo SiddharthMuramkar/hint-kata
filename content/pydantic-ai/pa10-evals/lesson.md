@@ -255,7 +255,7 @@ Here is what happens when you forget. We ran a dataset with `LLMJudge(rubric=...
 
 - Nothing raised. `report.failures` was `[]`.
 - The case had no assertion. `report.averages().assertions` was `None`.
-- The table showed only an "Evaluator Failures" column: `LLMJudge: UserError: Set the `OPENAI_API_KEY` environment variable ...`.
+- The table showed only an "Evaluator Failures" column: `` LLMJudge: UserError: Set the `OPENAI_API_KEY` environment variable ... ``.
 
 A missing judge looks like a quiet report, not a red one. This is why the gate in the last section checks `evaluator_failures`.
 
@@ -351,7 +351,7 @@ report_evaluators: []
 - An evaluator without arguments is just its name. One with a single argument can be `Contains: Rain`. We also loaded a hand-written file with the long form (`Contains: {value: hello, case_sensitive: false}`) and an `LLMJudge` with `rubric`, `model` and `include_input`. Putting `model:` in the file pins the judge with the data.
 - `to_file` also wrote `summaries_schema.json` next to the file. The first line of the YAML points to it, so an editor can check and complete your file.
 - Load without `custom_evaluator_types` and you get an `ExceptionGroup`. Inside it the message says ``Evaluator 'ShorterThanInput' is not in the provided `custom_evaluator_types`. Valid choices: [...]``, with the built-in names in the list.
-- Give the dataset a metadata type when you save it, as we did with `dict[str, str]`. With `Dataset[str, str, None]`, `to_file` raised ``Dataset` is not fully defined; you should define `meta_type`, then call `Dataset.model_rebuild()`.``
+- Give the dataset a metadata type when you save it, as we did with `dict[str, str]`. With `Dataset[str, str, None]`, `to_file` raised `` `Dataset` is not fully defined; you should define `meta_type`, then call `Dataset.model_rebuild()`. ``
 
 The [Dataset Management](https://pydantic.dev/docs/ai/evals/how-to/dataset-management/) page covers saving, loading and generating datasets. It is linked only. It is not one of this site's registered sources.
 
@@ -360,6 +360,11 @@ The [Dataset Management](https://pydantic.dev/docs/ai/evals/how-to/dataset-manag
 The task can be any function, `def` or `async def`. For an agent, wrap the run. Build the agent on a `FunctionModel` (or `TestModel`) and set `ALLOW_MODEL_REQUESTS = False`, as in the lesson on tools and dependencies.
 
 ```python
+from pydantic_ai import Agent
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+
 def reply(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
     prompt = str(messages[-1].parts[-1].content)
     return ModelResponse(parts=[TextPart(prompt.split(". ")[0] + ".")])
@@ -405,4 +410,4 @@ Why kappa and not plain agreement? Kappa takes away the agreement you would get 
 
 **Where it runs.** The calibration calls a real model, three times per answer, so it costs tokens and needs the owner's OpenRouter key. The workflow `evals.yml` starts only on `workflow_dispatch`, which means someone presses the button. It runs `uv run python -m evals.run_grader` with the `OPENROUTER_API_KEY` secret. The CI workflow (`ci.yml`) does not run it, and on 2026-10-14 no test imported `run_grader`. We did not run the real calibration for this lesson. We ran its pieces offline, as above.
 
-Sources: [Pydantic Evals overview](https://pydantic.dev/docs/ai/evals/evals/), [Quick Start](https://pydantic.dev/docs/ai/evals/getting-started/quick-start/), [LLM Judge](https://pydantic.dev/docs/ai/evals/evaluators/llm-judge/) and [Standard Quality Metrics](https://pydantic.dev/docs/ai/evals/evaluators/standard-quality-metrics/) from the Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. 2024 to present. The Dataset Management page is linked only. This site is not affiliated with Pydantic.
+Sources: [Pydantic Evals](https://pydantic.dev/docs/ai/evals/evals/), [Pydantic Evals quickstart](https://pydantic.dev/docs/ai/evals/getting-started/quick-start/), [LLM Judge Deep Dive](https://pydantic.dev/docs/ai/evals/evaluators/llm-judge/) and [Standard Quality Metrics](https://pydantic.dev/docs/ai/evals/evaluators/standard-quality-metrics/) from the Pydantic AI documentation, version 2.56.0, MIT licence, © Pydantic Services Inc. 2024 to present. The Dataset Management page is linked only. This site is not affiliated with Pydantic.
