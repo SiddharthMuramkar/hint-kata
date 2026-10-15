@@ -17,7 +17,7 @@ A web app that stores things needs a database connection. The question is who op
 
 One sentence is the whole mental model: **each request gets its own connection, opened before your route runs and closed after it, and the route itself never opens, saves or closes anything.** FastAPI does this with a dependency that uses `yield`. You met that idea in lesson FA1. This lesson puts a database inside it.
 
-We look at two real examples. First the official FastAPI tutorial, which uses SQLModel. Then this very site, which does the same job with the plain `sqlite3` module and `psycopg`. We read the SQLModel example. We ran everything else: the FastAPI behaviour and this site's own code. Where a claim comes from a run and not from a doc page, the lesson says so.
+We look at two real examples. First the official FastAPI tutorial, which uses SQLModel. Then this very site, which does the same job with the plain `sqlite3` module and `psycopg`. Where the lesson says "we ran" or "we checked", it is an observation from 2026-10-15 (FastAPI 0.143.0, Python 3.13, macOS). We ran the FastAPI behaviour and the SQLite parts of this site's code. The SQLModel example and the Postgres/Neon parts we read, not ran.
 
 ## What the official SQL tutorial teaches
 
@@ -26,7 +26,7 @@ The [SQL (Relational) Databases](https://fastapi.tiangolo.com/tutorial/sql-datab
 Four pieces matter for this lesson.
 
 - **One engine for the whole app.** The engine is the object that holds the connections. You create it once.
-- **`check_same_thread=False`.** The page passes this to SQLite's connect arguments. It gives the reason too: a single request may touch the connection from two threads, because a dependency and the route can run on different workers. By default SQLite refuses a connection that is used from a thread other than the one that made it.
+- **`check_same_thread=False`.** The page passes this to SQLite's connect arguments. It gives the reason too: a single request may touch the connection from two threads, because a dependency and the route can run on different threads. By default SQLite refuses a connection that is used from a thread other than the one that made it.
 - **A session per request.** A session keeps track of objects in memory and uses the engine to talk to the database. The page makes a dependency with `yield` that opens a `Session` in a `with` block, so each request gets a new one and it is closed afterwards. The routes ask for it with `Depends`, wrapped in an `Annotated` name.
 - **Tables created at startup.** A function calls `SQLModel.metadata.create_all(engine)`, and a startup handler runs it when the app starts. The page adds that for production you would probably run a migration script before starting the app.
 
@@ -213,7 +213,7 @@ Two small rules make the same code work on both databases.
 
 **Datetimes are ISO-8601 text in UTC.** Every timestamp is written with `datetime.now(UTC).isoformat()`, which gives text like `2026-10-14T18:23:10.593268+00:00`. Both schemas use `TEXT` for these columns, so the SQLite file and the Postgres tables hold the same strings.
 
-Why not let the driver convert a `datetime`? We tried it. In Python 3.12 and later, `sqlite3`'s built-in `datetime` adapter is deprecated. It printed a `DeprecationWarning`, and what it stored was `typeof` `text` in a different shape: a space between date and time, and no time zone. It was the machine's local time, not UTC, so the same moment would be stored differently on two machines. With one fixed text format, two things hold. A comparison such as `due <= ?` in `due_cards` works as a plain text comparison, because the year comes first, then the month, and so on. And the values mean the same everywhere.
+Why not let the driver convert a `datetime`? We tried it. In Python 3.12 and later, `sqlite3`'s built-in `datetime` adapter is deprecated. It printed a `DeprecationWarning`, and it stored text in a different shape: a space between the date and the time, not a `T`. If you pass a naive `datetime.now()`, the text has no time zone and holds the machine's local time, so the same moment is stored differently on two machines. With one fixed text format, two things hold. A comparison such as `due <= ?` in `due_cards` works as a plain text comparison, because the year comes first, then the month, and so on. And the values mean the same everywhere.
 
 **Placeholders differ.** You never build SQL by gluing values into the string. You write a marker and pass the values separately. The marker depends on the driver.
 
