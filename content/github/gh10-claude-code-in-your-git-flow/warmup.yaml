@@ -7,8 +7,8 @@ items:
     note: >-
       The sentence is a request, not a lock. The agent usually follows it, but nothing stops it if
       it does not. A lock is something a program enforces: a deny rule, a hook that blocks the
-      command, and best of all a GitHub ruleset that refuses a direct push to `main`. This repo
-      uses all three.
+      command, and best of all a GitHub ruleset that refuses a direct push to `main`. For this rule,
+      this repo uses a hookify rule and the ruleset.
   - id: w2
     prompt: >-
       Two agents work on two different tasks at the same time, in the same folder of the same

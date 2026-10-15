@@ -85,11 +85,12 @@ In your repo folder:
 ```bash
 git worktree add -b claude/second-try ../practice-second-try
 git worktree list
+git switch claude/second-try
 git worktree remove ../practice-second-try
 git branch -d claude/second-try
 ```
 
-The list shows two folders on two branches. Try `git switch claude/first-change` in your main folder while a second worktree holds that branch, and read the error.
+The list shows two folders on two branches. The `git switch` runs in your main folder while the second worktree still holds `claude/second-try`. Read the error: git says the branch is already used by the other worktree.
 
 ## Check my work
 

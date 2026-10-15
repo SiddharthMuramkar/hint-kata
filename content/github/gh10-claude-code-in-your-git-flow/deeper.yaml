@@ -33,7 +33,7 @@ questions:
           Says ask is just as safe, or gives no reason, or says deny is used only because it is
           stricter.
       - name: outside-lock
-        explanation: The answer names a protection that a local session cannot get around.
+        explanation: The answer names a protection that does not live on your machine.
         pass_anchor: >-
           Names the GitHub ruleset on `main` (a required pull request and required checks, with no
           bypass) as the protection that does not depend on the local machine.
