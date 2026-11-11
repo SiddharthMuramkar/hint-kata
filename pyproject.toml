@@ -4,21 +4,21 @@ version = "0.1.0"
 description = "Interactive lessons for Pydantic AI, FastAPI and GitHub flow in the Claude Code era"
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "fastapi==0.143.0",
+    "fastapi==0.162.0",
     "fastapi-cli==0.0.32",
     "uvicorn[standard]==0.54.0",
     "jinja2==3.1.6",
-    "python-multipart==0.0.32",
+    "python-multipart==0.0.33",
     "markdown-it-py==4.2.0",
     "mdit-py-plugins==0.6.1",
     "pygments==2.21.0",
     "fsrs==6.3.2",
     "pydantic-ai-slim[openrouter]==2.56.0",
     "pydantic-evals==2.56.0",
-    "pydantic-settings==2.16.0",
+    "pydantic-settings==2.16.2",
     "pyyaml==6.0.3",
-    "logfire[fastapi]==5.2.0",
-    "psycopg[binary]==3.3.6",
+    "logfire[fastapi]==5.4.0",
+    "psycopg[binary]==3.3.8",
     "pgvector==0.5.1",
     "tiktoken==0.14.0",
 ]
@@ -26,9 +26,9 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx==0.28.1",
-    "pytest==9.1.1",
-    "ruff==0.17.0",
-    "ty==0.0.87",
+    "pytest==9.2.0",
+    "ruff==0.17.3",
+    "ty==0.0.97",
 ]
 
 [tool.ruff]
